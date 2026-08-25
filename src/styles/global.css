@@ -24,6 +24,19 @@
    --------------------------------------------------------------------------- */
 
 @layer base {
+	/* starlight-tailwind's reset restores `border: 0 solid`, which leaves the
+	   border *colour* as currentColor — so shadcn's bare `border` utility would
+	   paint borders in the text colour (white in dark mode). shadcn normally
+	   gets this rule from `shadcn init`, which we don't run. Living in the
+	   lowest cascade layer, it never overrides Starlight's own borders. */
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-border);
+	}
+
 	:root {
 		--radius: 0.625rem;
 
@@ -41,11 +54,14 @@
 		--input: var(--sl-color-gray-5);
 		--ring: var(--sl-color-accent);
 
-		/* shadcn zinc, dark. */
-		--secondary: oklch(0.274 0.006 286.033);
+		/* shadcn zinc, dark. `--secondary` and `--accent` are one step lighter
+		   than stock (zinc-700, not zinc-800) because `--card` is already
+		   zinc-800 here — at the stock value, secondary badges and hover states
+		   would be invisible against a card. */
+		--secondary: oklch(0.37 0.013 285.805);
 		--secondary-foreground: oklch(0.985 0 0);
 		--muted: oklch(0.274 0.006 286.033);
-		--accent: oklch(0.274 0.006 286.033);
+		--accent: oklch(0.37 0.013 285.805);
 		--accent-foreground: oklch(0.985 0 0);
 		--destructive: oklch(0.704 0.191 22.216);
 		--destructive-foreground: oklch(0.985 0 0);
@@ -60,7 +76,7 @@
 		--sidebar-foreground: var(--sl-color-white);
 		--sidebar-primary: var(--sl-color-accent);
 		--sidebar-primary-foreground: oklch(0.985 0 0);
-		--sidebar-accent: oklch(0.274 0.006 286.033);
+		--sidebar-accent: oklch(0.37 0.013 285.805);
 		--sidebar-accent-foreground: oklch(0.985 0 0);
 		--sidebar-border: var(--sl-color-gray-5);
 		--sidebar-ring: var(--sl-color-accent);

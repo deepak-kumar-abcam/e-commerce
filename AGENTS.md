@@ -23,6 +23,21 @@ Structural tokens (`--background`, `--foreground`, `--border`, `--primary`, `--r
 
 The shadcn MCP server is registered in `.mcp.json` for browsing and installing components conversationally.
 
+## Content structure
+
+Six documentation sections live under `src/content/docs/`: `features`, `custom-features`, `api`,
+`architecture`, `low-level-design`, and `flows`. Each is wired into the sidebar as a group wrapping
+an `autogenerate` config, so new pages dropped into those directories appear automatically —
+`astro.config.mjs` only needs editing to add a *new* section.
+
+Platform facts (operating companies, their order backends, payment providers, and marketing
+platforms) belong in `src/data/platform.ts`, not hardcoded into pages. The home page renders from
+it, and later pages should too. **Unconfirmed values are `null`, never guessed** — the UI renders
+those as an explicit "Not documented" badge so gaps stay visible.
+
+Home-page sections are React components in `src/components/home/`. They render statically with no
+client directive; only `OpCoMatrix` is hydrated (`client:load`) because it uses tabs.
+
 ## Documentation
 
 Full documentation: https://docs.astro.build
