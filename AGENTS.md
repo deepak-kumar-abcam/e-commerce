@@ -30,8 +30,15 @@ Seven documentation sections live under `src/content/docs/`: `features`, `custom
 an `autogenerate` config, so new pages dropped into those directories appear automatically —
 `astro.config.mjs` only needs editing to add a *new* section.
 
-Platform facts (operating companies, their order backends, payment providers, and marketing
-platforms) belong in `src/data/platform.ts`, not hardcoded into pages. The home page renders from
+**Scope: estate on the home page, central instance in depth.** Seven OpCos sell on Intershop
+across four instances. The platform team runs the *central* instance (four OpCos); Pall, Beckman
+Coulter Life Sciences, and Leica Biosystems each run their *own* instance with their own code and
+team. The home page lists the whole estate; every detailed section, and the platform evaluation,
+covers the central instance only. In code, use `centralOpcos` for anything instance-specific and
+`opcos` only where the whole estate is meant.
+
+Platform facts (operating companies, their instances, order backends, payment providers, and
+marketing platforms) belong in `src/data/platform.ts`, not hardcoded into pages. The home page renders from
 it, and later pages should too. **Unconfirmed values are `null`, never guessed** — the UI renders
 those as an explicit "Not documented" badge so gaps stay visible.
 

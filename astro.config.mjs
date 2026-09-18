@@ -12,7 +12,7 @@ export default defineConfig({
 		starlight({
 			title: 'Commerce Platform Docs',
 			description:
-				'Documentation for the centrally managed Intershop e-commerce platform serving Danaher Life Sciences, SCIEX, Phenomenex, Leica Microsystems, and Pall.',
+				'Documentation for the centrally managed Intershop e-commerce platform serving Danaher Life Sciences, SCIEX, Phenomenex, and Leica Microsystems.',
 			customCss: [
 				// Path to your Tailwind base styles:
 				'./src/styles/global.css',

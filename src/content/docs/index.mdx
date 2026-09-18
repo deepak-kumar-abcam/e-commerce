@@ -1,9 +1,9 @@
 ---
 title: Danaher Life Sciences Commerce Platform
-description: Documentation for the centrally managed Intershop e-commerce platform serving Danaher Life Sciences, SCIEX, Phenomenex, Leica Microsystems, and Pall.
+description: Documentation for the centrally managed Intershop e-commerce platform serving Danaher Life Sciences, SCIEX, Phenomenex, and Leica Microsystems, within the wider Danaher Life Sciences Intershop estate.
 template: splash
 hero:
-  tagline: One centrally managed Intershop instance powering e-commerce for five Danaher Life Sciences operating companies — and the backend systems behind each of them.
+  tagline: One centrally managed Intershop instance powering e-commerce for four Danaher Life Sciences operating companies — and the backend systems behind each of them.
   actions:
     - text: Explore the documentation
       link: '#documentation'
@@ -23,19 +23,23 @@ import { DocSections } from '@/components/home/DocSections';
 
 ## What this platform does
 
-We run **Intershop** as the e-commerce platform for Danaher Life Sciences. Rather than each
-operating company standing up its own commerce stack, they all launch on a **single Intershop
-instance** that our team manages centrally. Five operating companies trade on it today —
-Danaher Life Sciences, SCIEX, Phenomenex, Leica Microsystems, and Pall — each in its own regions,
-each with its own branded storefront.
+**Intershop** is the e-commerce platform across Danaher Life Sciences. Our team runs the
+**central instance**: rather than standing up their own commerce stacks, four operating companies
+launch on it — Danaher Life Sciences, SCIEX, Phenomenex, and Leica Microsystems — each in its own
+regions, each with its own branded storefront.
 
-What is shared is the commerce platform itself and customer identity. What differs is everything
-behind the sale: each operating company processes orders in its own ERP, takes payment through its
+Three more operating companies also sell on Intershop, but on **their own instances**, with their
+own code and their own teams: Pall and Beckman Coulter Life Sciences on ICM 14, and Leica
+Biosystems on ICM 10. This site lists them so the full picture is visible, but documents only the
+central instance in depth.
+
+On the central instance, what is shared is the commerce platform itself and customer identity
+(Auth0). What differs is everything behind the sale: each operating company processes orders in its own ERP, takes payment through its
 own provider, and runs campaigns from its own marketing automation platform. Intershop is the
 common front end that talks to all of them.
 
-This site documents both halves — the platform capabilities every operating company draws on, and
-the integrations that connect each one to its own backend systems.
+This site documents both halves — the platform capabilities every central-instance OpCo draws on,
+and the integrations that connect each one to its own backend systems.
 
 ## Who this is for
 
@@ -46,6 +50,8 @@ touches, without assuming technical background. If you are implementing or integ
 [flow diagrams](/flows/) carry the detail.
 
 <h2 id="landscape">How the systems fit together</h2>
+
+On the central instance:
 
 <IntegrationLandscape />
 
@@ -69,5 +75,8 @@ These gaps are called out here deliberately so they stay visible rather than rea
 - Launch details and live regions for each operating company.
 - The order backend and payment provider for **Danaher Life Sciences** — its marketing platform
   (Salesforce Marketing Cloud) is the only system confirmed so far.
-- The order backend, payment provider, and marketing platform for **Pall**.
+- For the separately managed instances (**Pall**, **Beckman Coulter Life Sciences**,
+  **Leica Biosystems**): front end, order backend, payment provider, and marketing platform — and
+  whether Pall and Leica Biosystems use Auth0. Beckman Coulter Life Sciences is joining the central
+  Auth0 tenant.
 - The Intershop OpenAPI specifications, which will drive the API reference section.

@@ -1,6 +1,6 @@
 ---
 title: Architecture
-description: Intershop and commercetools compared as platforms, and a proposed commercetools design for five operating companies.
+description: Intershop and commercetools compared as platforms, and a proposed commercetools design for the four central-instance operating companies.
 sidebar:
   order: 3
 ---
@@ -34,11 +34,11 @@ Separate Projects would give each OpCo stronger isolation, but at a cost that cu
 central model:
 
 - **Identity multiplies.** commercetools allows one token-introspection endpoint per Project, so
-  Auth0 integration would be configured and operated five times.
+  Auth0 integration would be configured and operated four times.
 - **Integrations duplicate.** Subscriptions, API Extensions, and their limits are per Project, so
   shared services such as payments and ERP connectors would be wired up separately for each OpCo.
 - **Cross-OpCo views get harder.** Reporting or governance across all OpCos would need data pulled
-  together from five places.
+  together from four places.
 
 A Project per OpCo becomes worth revisiting only if an OpCo needs data residency or isolation that
 Stores cannot provide.

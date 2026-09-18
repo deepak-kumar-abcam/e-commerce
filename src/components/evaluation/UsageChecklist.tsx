@@ -1,5 +1,5 @@
 import { b2bRows, b2bUsage, type Usage } from '@/data/evaluation';
-import { opcos } from '@/data/platform';
+import { centralOpcos } from '@/data/platform';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,7 +21,7 @@ export function UsageChecklist() {
 				<thead>
 					<tr className="border-b bg-muted/50">
 						<th className="px-3 py-2.5 text-xs font-semibold tracking-wide uppercase">Feature</th>
-						{opcos.map((opco) => (
+						{centralOpcos.map((opco) => (
 							<th
 								key={opco.id}
 								className="px-3 py-2.5 text-center text-xs font-semibold tracking-wide uppercase"
@@ -38,7 +38,7 @@ export function UsageChecklist() {
 							<th scope="row" className="px-3 py-2 text-sm font-normal">
 								{row.capability}
 							</th>
-							{opcos.map((opco) => {
+							{centralOpcos.map((opco) => {
 								const usage = b2bUsage[row.id]?.[opco.id] ?? null;
 								return (
 									<td key={opco.id} className="px-3 py-2 text-center text-sm">

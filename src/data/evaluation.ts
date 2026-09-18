@@ -18,6 +18,8 @@ export const evaluationMeta = {
 	asOf: '2026-09-18',
 	owner: 'Platform team',
 	nextReview: '2026-12-18',
+	/** What the comparison covers: the central instance only, not the wider estate. */
+	scope: 'Central instance, 4 OpCos',
 	/** The Intershop version the comparison is written against. */
 	intershopVersion: 'ICM 14.5',
 };
@@ -589,7 +591,7 @@ export const architectureRows: ComparisonRow[] = [
 	{
 		id: 'multi-opco',
 		capability: 'Multi-OpCo model',
-		why: 'How five OpCos share one platform.',
+		why: 'How the four central-instance OpCos share one platform.',
 		intershop: {
 			summary:
 				'Organization tree with sales and partner channels per brand or region. Channels belong to one organization and cannot be shared.',
@@ -901,7 +903,7 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'auth0',
 		capability: 'Auth0 (CIAM and SSO)',
 		critical: true,
-		intershop: production('Central Auth0 SSO for every OpCo.'),
+		intershop: production('Central Auth0 tenant for every OpCo on the central instance.'),
 		commercetools: {
 			rating: 'custom',
 			summary:
@@ -948,7 +950,7 @@ export const integrationRows: ComparisonRow[] = [
 export const operatingRows: ComparisonRow[] = [
 	{
 		id: 'governance',
-		capability: 'Central control of five OpCos',
+		capability: 'Central control of four OpCos',
 		intershop: {
 			summary:
 				'One instance and one codebase: OpCo technical teams contribute changes, and the central team owns code management and deployment.',
@@ -1195,7 +1197,7 @@ export const migrationPaths: MigrationPath[] = [
 		id: 'stay',
 		name: 'Stay on Intershop',
 		summary:
-			'Keep all five OpCos on ICM, which is already current at 14.5. Adopt Copilot for Merchants and ACP feeds where they help.',
+			'Keep the four central-instance OpCos on ICM, which is already current at 14.5. Adopt Copilot for Merchants and ACP feeds where they help.',
 		aemImpact: 'None.',
 		erpImpact: 'None.',
 		parallelRun: 'Nothing new to run.',
@@ -1241,12 +1243,12 @@ export const migrationPaths: MigrationPath[] = [
 	{
 		id: 'big-bang',
 		name: 'Big bang',
-		summary: 'All five OpCos cut over to commercetools together.',
+		summary: 'All four central-instance OpCos cut over to commercetools together.',
 		aemImpact: 'Every commerce-calling AEM component changes for all OpCos at once.',
 		erpImpact: 'All three ERP integrations (D365, SAP, Oracle) rebuilt before go-live.',
 		parallelRun: 'Short, but a single cutover window for every OpCo.',
 		risks: [
-			'Highest concentration of risk; any failure affects all five OpCos.',
+			'Highest concentration of risk; any failure affects all four OpCos.',
 			'The one public Intershop → commercetools migration we found (PLUS Supermarkets, grocery) took three years and cut over in a 24-hour window.',
 		],
 		blockers: ['Every B2B gap and every integration must be ready before go-live.'],

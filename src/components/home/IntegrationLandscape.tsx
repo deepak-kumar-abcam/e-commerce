@@ -1,8 +1,8 @@
 import { Badge } from '@/components/ui/badge';
-import { opcos } from '@/data/platform';
+import { centralOpcos } from '@/data/platform';
 
 /**
- * A layered read of the platform: what every operating company shares (the
+ * A layered read of the central instance: what every OpCo on it shares (the
  * storefronts, identity, and the single Intershop instance) sits above the
  * systems that differ per operating company.
  */
@@ -71,26 +71,26 @@ const backendGroups = [
 	{
 		title: 'Order management',
 		caption: 'One per operating company',
-		rows: opcos.map((o) => ({ opco: o.short, system: o.orderBackend?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.orderBackend?.name ?? null })),
 	},
 	{
 		title: 'Payment',
 		caption: 'Two providers, shared',
-		rows: opcos.map((o) => ({ opco: o.short, system: o.paymentProvider?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.paymentProvider?.name ?? null })),
 	},
 	{
 		title: 'Marketing automation',
 		caption: 'Campaign & lead data',
-		rows: opcos.map((o) => ({ opco: o.short, system: o.marketingPlatform?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.marketingPlatform?.name ?? null })),
 	},
 ];
 
 export function IntegrationLandscape() {
 	return (
 		<div className="not-content">
-			<Layer label="Storefronts" caption="One branded experience per operating company">
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-					{opcos.map((opco) => (
+			<Layer label="Storefronts" caption="One branded experience per central-instance OpCo">
+				<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+					{centralOpcos.map((opco) => (
 						<Node key={opco.id}>{opco.name}</Node>
 					))}
 				</div>
@@ -98,7 +98,7 @@ export function IntegrationLandscape() {
 
 			<Connector label="Sign-in" />
 
-			<Layer label="Customer identity" caption="Central CIAM — shared by every operating company">
+			<Layer label="Customer identity" caption="Central CIAM tenant — shared by the central-instance OpCos">
 				<Node emphasis>
 					Auth0 <span className="text-muted-foreground">— single sign-on</span>
 				</Node>
@@ -106,11 +106,11 @@ export function IntegrationLandscape() {
 
 			<Connector />
 
-			<Layer label="Commerce platform" caption="Single instance, centrally managed" tone="core">
+			<Layer label="Central Intershop instance" caption="Managed by the platform team" tone="core">
 				<div className="rounded-lg border border-primary/30 bg-background px-4 py-3 text-center">
 					<div className="text-base font-semibold">Intershop</div>
 					<div className="mt-0.5 text-xs text-muted-foreground">
-						Catalogue, cart, checkout, and customer accounts for every operating company
+						Catalogue, cart, checkout, and customer accounts for each OpCo on it
 					</div>
 				</div>
 			</Layer>

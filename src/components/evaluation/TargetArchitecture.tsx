@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { opcos } from '@/data/platform';
+import { centralOpcos } from '@/data/platform';
 import { cn } from '@/lib/utils';
 
 /**
@@ -134,8 +134,8 @@ export function TargetArchitecture() {
 				<div className="mb-2 text-xs text-muted-foreground">
 					One Store per OpCo — each fences its own customers, carts, orders, and assortments:
 				</div>
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-					{opcos.map((opco) => (
+				<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+					{centralOpcos.map((opco) => (
 						<Node key={opco.id} title={`${opco.name} Store`} kind="platform" />
 					))}
 				</div>

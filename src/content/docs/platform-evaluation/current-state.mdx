@@ -1,12 +1,13 @@
 ---
 title: Current State
-description: How the Intershop platform runs today across five operating companies, and why we are evaluating an alternative.
+description: How the central Intershop instance runs today for four operating companies, the wider Intershop estate, and why we are evaluating an alternative.
 sidebar:
   label: Current state
   order: 2
 ---
 
-import { EvaluationBanner } from '@/components/evaluation/parts';
+import { EvaluationBanner, EvidenceTag, SourceRefs } from '@/components/evaluation/parts';
+import { EstateTable } from '@/components/evaluation/EstateTable';
 import { OpCoRoster } from '@/components/home/OpCoRoster';
 
 <EvaluationBanner />
@@ -20,17 +21,17 @@ the evaluation's terms — except where marked as not yet documented.
 
 ## How it is built
 
-- **One Intershop instance, ICM 14.5**, serves all five operating companies. This is the current
+- **One central Intershop instance, ICM 14.5**, serves four operating companies. This is the current
   major release, so there is no upgrade backlog behind the comparison.
 - **Headless.** Intershop hosts no customer-facing pages. **Adobe Experience Manager (AEM)** is the
-  front end for every OpCo — marketing site and product catalog alike — and its components call
+  front end for every OpCo on the instance — marketing site and product catalog alike — and its components call
   Intershop's REST APIs **directly**, with no API layer in between.
 - **ERP integrations live inside the codebase.** Orders reach Microsoft Dynamics 365 (Phenomenex),
   SAP (Leica Microsystems), and Oracle (SCIEX) through Java cartridges in the shared Intershop
   codebase.
 - **Product data is mastered upstream.** The ERPs feed a PIM, which feeds AEM and Intershop.
   Commerce consumes product data rather than owning it.
-- **Shared services.** Auth0 provides central sign-on for every OpCo. Payments run through Stripe
+- **Shared services.** Auth0 provides central sign-on for every OpCo on the instance. Payments run through Stripe
   (Phenomenex, Leica Microsystems) and Cybersource (SCIEX).
 
 ## How it is run
@@ -52,10 +53,35 @@ What doesn't:
 - **AI enablement.** New AI capabilities arrive slowly — and since we are on the current release,
   that is a limit of the platform, not of our upgrade cadence.
 
+## The wider estate
+
+The central instance is not the only Intershop in Danaher Life Sciences. Three more OpCos run
+Intershop on **their own instances**, each with its own code repository and its own team. This
+evaluation does not cover them, but they belong in the picture.
+
+<EstateTable />
+
+- **Leica Biosystems is on ICM 10**, which is **likely past vendor support**. Intershop's release
+  policy gives each major version 6 months of active updates and 12 months of patches, and keeps
+  long-term support only for 7.10 LTS and 11.11 LTS. <SourceRefs ids={['ishReleaseModel']} />{' '}
+  <EvidenceTag evidence="unconfirmed" /> — the Leica Biosystems team can confirm its support
+  arrangement.
+- **Beckman Coulter Life Sciences is joining the central Auth0 tenant.** Once live, it will be the
+  first shared service that crosses instance boundaries.
+
+### A question this evaluation does not answer
+
+Four instances of the same platform raise a bigger question: **should they converge** — onto the
+central Intershop instance, onto commercetools, or not at all? An instance that needs a major
+upgrade anyway, and OpCos already sharing Auth0, make it a live question. It is deliberately out of
+scope until we know more about the other three instances: their integrations, customizations, and
+B2B usage.
+
 ## Not yet documented
 
 - Which **PIM** product is in use, and exactly how it feeds AEM and Intershop.
 - Which **B2B features** each OpCo relies on — see the
   [usage checklist](/platform-evaluation/b2b/#which-opcos-use-what).
-- The **order backend, payment provider, and marketing platform** for Danaher Life Sciences
-  (except its marketing platform) and for Pall.
+- The **order backend and payment provider** for Danaher Life Sciences.
+- For the separately managed instances: front end, integrations, and whether Pall and Leica
+  Biosystems use Auth0.

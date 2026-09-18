@@ -115,7 +115,7 @@ export function EvaluationBanner() {
 				<span className="font-medium text-foreground">Next review</span> {evaluationMeta.nextReview}
 			</span>
 			<span>
-				<span className="font-medium text-foreground">Compared against</span>{' '}
+				<span className="font-medium text-foreground">Scope</span> {evaluationMeta.scope},{' '}
 				{evaluationMeta.intershopVersion}
 			</span>
 		</div>

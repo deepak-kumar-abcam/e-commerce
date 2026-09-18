@@ -1,6 +1,6 @@
 ---
 title: Feature Lists
-description: Out-of-the-box Intershop capabilities available to every operating company, and which ones each has switched on.
+description: Out-of-the-box Intershop capabilities available to every OpCo on the central instance, and which ones each has switched on.
 ---
 
 This section catalogues the standard Intershop capabilities the platform provides, and records

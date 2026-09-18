@@ -8,7 +8,7 @@ import {
 	TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { opcos, type BackendSystem } from '@/data/platform';
+import { centralOpcos, type BackendSystem } from '@/data/platform';
 
 /**
  * The same integration facts read two ways: down the operating companies, or
@@ -28,9 +28,9 @@ function SystemCell({ system }: { system: BackendSystem | null }) {
 }
 
 /** Which operating companies use a given system, grouped for the second view. */
-function usageBySystem(pick: (o: (typeof opcos)[number]) => BackendSystem | null) {
+function usageBySystem(pick: (o: (typeof centralOpcos)[number]) => BackendSystem | null) {
 	const map = new Map<string, string[]>();
-	for (const opco of opcos) {
+	for (const opco of centralOpcos) {
 		const system = pick(opco);
 		if (!system) continue;
 		map.set(system.name, [...(map.get(system.name) ?? []), opco.name]);
@@ -66,7 +66,7 @@ export function OpCoMatrix() {
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{opcos.map((opco) => (
+								{centralOpcos.map((opco) => (
 									<TableRow key={opco.id}>
 										<TableCell className="font-medium">{opco.name}</TableCell>
 										<TableCell>
@@ -87,7 +87,7 @@ export function OpCoMatrix() {
 						</Table>
 					</div>
 					<p className="mt-2 text-xs text-muted-foreground">
-						Intershop and Auth0 are shared by every operating company and so are not repeated per row.
+						Covers the central instance. Intershop and Auth0 are shared by every OpCo on it, so they are not repeated per row.
 					</p>
 				</TabsContent>
 
@@ -107,14 +107,14 @@ export function OpCoMatrix() {
 									<TableCell>
 										<Badge>Intershop</Badge>
 									</TableCell>
-									<TableCell className="text-sm">All operating companies</TableCell>
+									<TableCell className="text-sm">All central-instance OpCos</TableCell>
 								</TableRow>
 								<TableRow>
 									<TableCell className="font-medium">Customer identity</TableCell>
 									<TableCell>
 										<Badge>Auth0</Badge>
 									</TableCell>
-									<TableCell className="text-sm">All operating companies</TableCell>
+									<TableCell className="text-sm">All central-instance OpCos</TableCell>
 								</TableRow>
 								{systemViews.map((view) =>
 									view.rows.map((row, index) => (
