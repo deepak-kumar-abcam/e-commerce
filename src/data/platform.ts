@@ -30,10 +30,10 @@ export const opcos: OpCo[] = [
 	{
 		id: 'danaher-life-sciences',
 		name: 'Danaher Life Sciences',
-		short: 'DLS',
+		short: 'DHLS',
 		orderBackend: null,
 		paymentProvider: null,
-		marketingPlatform: { name: 'Salesforce Marketing Cloud', category: 'marketing' },
+		marketingPlatform: { name: 'Marketing Cloud', category: 'marketing' },
 		regions: null,
 	},
 	{
@@ -48,7 +48,7 @@ export const opcos: OpCo[] = [
 	{
 		id: 'phenomenex',
 		name: 'Phenomenex',
-		short: 'Phenomenex',
+		short: 'PHX',
 		orderBackend: { name: 'Microsoft Dynamics 365', category: 'order' },
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
@@ -57,7 +57,7 @@ export const opcos: OpCo[] = [
 	{
 		id: 'leica-microsystems',
 		name: 'Leica Microsystems',
-		short: 'Leica',
+		short: 'LMS',
 		orderBackend: { name: 'SAP', category: 'order' },
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Salesforce Pardot', category: 'marketing' },
