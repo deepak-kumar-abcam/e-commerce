@@ -1,0 +1,44 @@
+---
+title: Architecture
+description: Intershop and commercetools compared as platforms, and a proposed commercetools design for five operating companies.
+sidebar:
+  order: 3
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { ComparisonTable } from '@/components/evaluation/ComparisonTable';
+import { TargetArchitecture } from '@/components/evaluation/TargetArchitecture';
+
+<EvaluationBanner />
+
+The two platforms differ most in **where our code lives**. On Intershop, OpCo-specific logic runs
+*inside* the platform as Java cartridges. On commercetools, the platform is a set of hosted APIs and
+our logic runs *outside* it — in extensions, event handlers, and separate services.
+
+## Side by side
+
+<ComparisonTable set="architecture" />
+
+## Proposed commercetools design
+
+If we moved, this is the design we propose: **one commercetools Project, owned by the central
+team, with one Store per OpCo.** It is commercetools' documented default for multiple brands, and
+it maps most directly onto how we run things today — one platform, centrally governed, with each
+OpCo's customers and orders kept apart.
+
+<TargetArchitecture />
+
+### Why not one Project per OpCo?
+
+Separate Projects would give each OpCo stronger isolation, but at a cost that cuts against our
+central model:
+
+- **Identity multiplies.** commercetools allows one token-introspection endpoint per Project, so
+  Auth0 integration would be configured and operated five times.
+- **Integrations duplicate.** Subscriptions, API Extensions, and their limits are per Project, so
+  shared services such as payments and ERP connectors would be wired up separately for each OpCo.
+- **Cross-OpCo views get harder.** Reporting or governance across all OpCos would need data pulled
+  together from five places.
+
+A Project per OpCo becomes worth revisiting only if an OpCo needs data residency or isolation that
+Stores cannot provide.

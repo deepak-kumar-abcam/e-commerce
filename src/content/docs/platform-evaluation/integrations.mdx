@@ -1,0 +1,44 @@
+---
+title: Integrations
+description: How AEM, the ERPs, the PIM, Auth0, payments, and marketing automation would connect on each platform.
+sidebar:
+  order: 5
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { ComparisonTable } from '@/components/evaluation/ComparisonTable';
+
+<EvaluationBanner />
+
+Everything around the commerce platform stays the same on either path — AEM, Auth0, the ERPs, the
+PIM, the payment providers, and the marketing platforms. What changes is how each one connects.
+On Intershop, every integration below is **in production today**; the question is what each would
+take on commercetools.
+
+<ComparisonTable set="integrations" />
+
+## The two critical-path integrations
+
+**ERP order flows.** Our D365, SAP, and Oracle integrations are Java cartridges inside the shared
+Intershop codebase. None of that code carries over: on commercetools, each becomes an event-driven
+service listening for orders and writing back status. No marketplace connector for D365 was found.
+This is the largest single block of migration work, and one ERP flow is in the
+[proof of concept](/platform-evaluation/poc/#poc-erp) to size it.
+
+**AEM.** AEM components call Intershop's APIs directly. commercetools offers REST and GraphQL APIs
+that AEM can call the same way, but every component that talks to commerce would be rewritten for
+the new API. Adobe's Commerce Integration Framework (CIF) is an alternative, but its commercetools
+connector is partner-built and Adobe describes it as not plug-and-play.
+
+## Identity needs a small new service
+
+commercetools accepts tokens from an external identity provider such as Auth0 only through a
+token-introspection endpoint that we would host. That service maps each Auth0 user to a
+commercetools customer, must answer within 500 ms, and has to carry B2B context — which
+commercetools does not document for external tokens. It is small, but everyone signs in through
+it, so it is in the [proof of concept](/platform-evaluation/poc/#poc-auth0).
+
+## Product data carries over
+
+Because the ERPs feed the PIM, and the PIM feeds commerce, moving the catalog means pointing the
+existing feed at commercetools' Import API — not rebuilding the catalog.

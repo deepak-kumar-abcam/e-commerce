@@ -1,0 +1,42 @@
+---
+title: Migration Paths
+description: Four ways forward — stay on Intershop, greenfield first, one OpCo at a time, or big bang — with their effort, risks, and blockers.
+sidebar:
+  label: Migration paths
+  order: 8
+---
+
+import { EvaluationBanner, SourceRefs } from '@/components/evaluation/parts';
+import { MigrationPaths } from '@/components/evaluation/MigrationPaths';
+
+<EvaluationBanner />
+
+Four paths, including staying where we are. Each card answers the same questions, so they can be
+compared line by line.
+
+<MigrationPaths />
+
+## What every move has in common
+
+Whichever path moves an OpCo to commercetools, two pieces of work sit on its critical path:
+
+- **ERP integrations are rebuilt, not ported.** They are Java cartridges in the shared Intershop
+  codebase today, so each ERP (D365, SAP, Oracle) needs a new event-driven integration.
+- **AEM changes with every OpCo that moves.** AEM calls Intershop directly, so every AEM component
+  that talks to commerce must be rewritten against commercetools for each OpCo.
+
+Product data is the exception: the PIM feed is re-pointed rather than rebuilt.
+
+## What others have done
+
+- **PLUS Supermarkets** (Netherlands, grocery) moved from Intershop to commercetools over three
+  years and cut over in a single 24-hour window. It is the only public Intershop → commercetools
+  migration we found, and it is B2C, not B2B. <SourceRefs ids={['ctPlus']} />
+- **Incremental rollouts** — by domain, as at John Lewis, or by market, as at ISC2 — are what
+  commercetools recommends. That recommendation comes from the vendor.
+  <SourceRefs ids={['ctMigrationStories', 'ctMigrationGuide']} />
+- **Partial adoption** is newly possible: since July 2026 commercetools sells Core Commerce and
+  Product Catalog as separate modules. Whether any module could sit alongside Intershop usefully is
+  unexplored. <SourceRefs ids={['ctModular']} />
+
+These accounts come from commercetools customer stories and blogs. See [Sources](/platform-evaluation/sources/).

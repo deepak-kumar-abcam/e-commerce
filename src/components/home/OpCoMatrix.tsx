@@ -133,7 +133,7 @@ export function OpCoMatrix() {
 						</Table>
 					</div>
 					<p className="mt-2 text-xs text-muted-foreground">
-						Systems still to be confirmed for Danaher Life Sciences do not appear in this view.
+						Systems not yet documented for an operating company do not appear in this view.
 					</p>
 				</TabsContent>
 			</Tabs>

@@ -1,0 +1,61 @@
+---
+title: Current State
+description: How the Intershop platform runs today across five operating companies, and why we are evaluating an alternative.
+sidebar:
+  label: Current state
+  order: 2
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { OpCoRoster } from '@/components/home/OpCoRoster';
+
+<EvaluationBanner />
+
+Everything on this page describes our own production platform, so it counts as **verified** in
+the evaluation's terms — except where marked as not yet documented.
+
+## Who runs on the platform
+
+<OpCoRoster />
+
+## How it is built
+
+- **One Intershop instance, ICM 14.5**, serves all five operating companies. This is the current
+  major release, so there is no upgrade backlog behind the comparison.
+- **Headless.** Intershop hosts no customer-facing pages. **Adobe Experience Manager (AEM)** is the
+  front end for every OpCo — marketing site and product catalog alike — and its components call
+  Intershop's REST APIs **directly**, with no API layer in between.
+- **ERP integrations live inside the codebase.** Orders reach Microsoft Dynamics 365 (Phenomenex),
+  SAP (Leica Microsystems), and Oracle (SCIEX) through Java cartridges in the shared Intershop
+  codebase.
+- **Product data is mastered upstream.** The ERPs feed a PIM, which feeds AEM and Intershop.
+  Commerce consumes product data rather than owning it.
+- **Shared services.** Auth0 provides central sign-on for every OpCo. Payments run through Stripe
+  (Phenomenex, Leica Microsystems) and Cybersource (SCIEX).
+
+## How it is run
+
+There is **one common codebase**. OpCo technical teams make the changes their business needs, but
+code management and deployment are owned centrally by the Danaher Life Sciences platform team.
+Every change, for every OpCo, ships through the same build and release.
+
+## Why we are looking
+
+What works:
+
+- **B2B capabilities** we depend on are mature and built in.
+- **Customization** has been good enough to meet each OpCo's needs on a shared codebase.
+
+What doesn't:
+
+- **Feature velocity.** New capabilities take a long time to reach production.
+- **AI enablement.** New AI capabilities arrive slowly — and since we are on the current release,
+  that is a limit of the platform, not of our upgrade cadence.
+
+## Not yet documented
+
+- Which **PIM** product is in use, and exactly how it feeds AEM and Intershop.
+- Which **B2B features** each OpCo relies on — see the
+  [usage checklist](/platform-evaluation/b2b/#which-opcos-use-what).
+- The **order backend, payment provider, and marketing platform** for Danaher Life Sciences
+  (except its marketing platform) and for Pall.

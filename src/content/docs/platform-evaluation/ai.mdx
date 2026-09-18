@@ -1,0 +1,48 @@
+---
+title: AI and Agentic Commerce
+description: Four AI use cases compared across Intershop and commercetools — buyer agents, build speed, merchant copilots, and AI discovery — plus MCP and agent protocols.
+sidebar:
+  label: AI and agentic commerce
+  order: 7
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { AiUseCases } from '@/components/evaluation/AiUseCases';
+import { ComparisonTable } from '@/components/evaluation/ComparisonTable';
+
+<EvaluationBanner />
+
+"AI capabilities" covers four different things, and the two platforms lead on different ones. We
+rank them by relevance to us: **buyer agents** matter because that is where B2B buying is heading,
+and **build speed** matters because it is the problem that started this evaluation.
+
+:::caution[Most AI claims here are recent and vendor-stated]
+Both vendors changed their AI offerings month by month through 2026. Check the evidence tag on each
+claim, and the date of its source, before relying on it.
+:::
+
+## The four use cases
+
+<AiUseCases />
+
+## Agent protocols
+
+Agents reach commerce platforms through a few emerging standards. **MCP** is how an agent calls a
+system's tools and data; the others cover product feeds, checkout, and payment by agents.
+
+<ComparisonTable set="protocols" />
+
+## What neither platform does yet
+
+Neither vendor documents a complete **B2B buying flow driven by an agent** — one that respects
+approval rules, budgets, and punchout. commercetools comes closest: its MCP server can be pinned to
+a single buyer and Business Unit. Whether approvals and budgets hold when an agent is buying is
+exactly what the [proof of concept](/platform-evaluation/poc/#poc-mcp) should test.
+
+## Our catalog may not belong to either platform
+
+Our product data is mastered upstream: ERPs feed the PIM, which feeds both AEM and commerce. So
+making our catalog visible to public AI assistants — the fourth use case — does not have to run
+through the commerce platform at all. The PIM or AEM may be the better place to publish feeds from,
+whichever platform we choose. That makes use case 4 a weaker reason to switch than it first
+appears.

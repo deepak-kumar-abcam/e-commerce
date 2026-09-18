@@ -1,0 +1,39 @@
+---
+title: Sources
+description: Every source behind the platform evaluation, numbered to match the citations, with its date and evidence type.
+sidebar:
+  order: 10
+---
+
+import { EvaluationBanner, Legend } from '@/components/evaluation/parts';
+import { SourceList } from '@/components/evaluation/SourceList';
+
+<EvaluationBanner />
+
+Numbers match the `[n]` citations in the comparison tables. Undated reference pages show when they
+were read. Every source is tagged with the kind of evidence it provides:
+
+<Legend />
+
+## All sources
+
+<SourceList />
+
+## Could not be confirmed
+
+Open questions from the research. Each needs a vendor answer or the proof of concept:
+
+- Commercial terms for **managed** Commerce MCP servers. The code is MIT-licensed; hosted terms may
+  differ.
+- Whether commercetools is a partner in **Google's AP2** payment protocol. It is not named in
+  Google's launch post.
+- Any **Visa or Mastercard** agent-payment integration, for either vendor.
+- A general **per-second API rate limit** for commercetools. None is published.
+- Whether the **300,000-Store limit** is hard or soft. commercetools' own pages disagree.
+- Native **budgets, cost centers, or requisitions** in commercetools. None were found.
+- Whether commercetools **Approval Rules apply to quotes**.
+- Intershop **order templates, contract pricing, and recurring orders**. The feature lists require
+  a login.
+- Who maintains the commercetools **Cybersource** connector.
+- Marketplace connectors for **D365, Eloqua, Pardot, and Salesforce Marketing Cloud**. None found.
+- Any **Intershop → commercetools migration in B2B or life sciences**. None found.

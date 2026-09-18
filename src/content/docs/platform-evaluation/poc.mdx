@@ -1,0 +1,55 @@
+---
+title: Proof of Concept
+description: The proposed commercetools proof of concept — what it must test, what counts as a pass, and how to choose the OpCo to test with.
+sidebar:
+  label: Proof of concept
+  order: 9
+---
+
+import { EvaluationBanner, SourceRefs } from '@/components/evaluation/parts';
+import { PocPlan } from '@/components/evaluation/PocPlan';
+
+<EvaluationBanner />
+
+No one on our team has tested commercetools yet, so every claim in this evaluation rests on
+documentation or vendor statements. The proof of concept exists to change that for the handful of
+questions that decide the outcome. Each passing test moves its capability to **Verified**.
+
+It is **not** a pilot: nothing goes live, and passing it does not commit us to moving.
+
+## What it must prove
+
+<PocPlan />
+
+## Choosing the OpCo to test with
+
+Not yet decided. The OpCo should be chosen once the
+[B2B usage checklist](/platform-evaluation/b2b/#which-opcos-use-what) is complete, using these
+criteria:
+
+- **Uses Stripe.** commercetools has an official Stripe connector, so payment is not what gets
+  tested — Phenomenex and Leica Microsystems qualify.
+- **Representative ERP.** Its ERP integration should be typical enough to size the other two
+  rebuilds from.
+- **Uses the B2B features at risk.** Punchout and budgets are only worth testing with an OpCo that
+  depends on them.
+
+## What it produces
+
+- An evidence update: each tested capability moves to *Verified* in `src/data/evaluation.ts`, with
+  the results.
+- **Effort baselines** for the two critical-path items — one ERP integration and one AEM component
+  — to scale up across OpCos in the business case.
+- A clear answer on whether budgets and punchout are small builds or programmes of their own.
+
+## Talk to Cepheid
+
+Cepheid, a Danaher company, has run on commercetools since 2021 with EPAM as implementation
+partner, according to commercetools' customer story. <SourceRefs ids={['ctCepheid']} /> It launched with no previous e-commerce
+platform, so it is not a migration reference — but it is the closest one we have. Questions worth
+asking:
+
+- Which B2B features did they build themselves, and how long did those take?
+- How do they handle sign-on, and would Auth0 fit their approach?
+- What does running commercetools cost them beyond the licence?
+- How have commercetools' AI features worked in practice?

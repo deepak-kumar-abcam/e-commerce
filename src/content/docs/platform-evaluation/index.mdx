@@ -1,0 +1,89 @@
+---
+title: Platform Evaluation — Summary
+description: Intershop compared with commercetools for the Danaher Life Sciences commerce platform — headline findings, deciding factors, and the recommended next step.
+sidebar:
+  label: Summary
+  order: 1
+---
+
+import { EvaluationBanner, Legend, SourceRefs } from '@/components/evaluation/parts';
+import { DecidingFactors } from '@/components/evaluation/DecidingFactors';
+
+<EvaluationBanner />
+
+We run e-commerce for five Danaher Life Sciences operating companies on a single, centrally
+managed Intershop instance. It serves our B2B needs well and supports the customization we rely
+on, but new features — especially AI capabilities — are slow to reach production. This section
+compares Intershop with **commercetools** to decide what to do about that.
+
+**The decision is still open.** This section does not recommend switching platforms. It sets out
+the facts, where each platform is stronger, what moving would involve, and what we need to test
+before anyone can decide.
+
+## Headline findings
+
+1. **Intershop is stronger on B2B depth.** Punchout (OCI and cXML), budgets, cost centers, and
+   requisitions are built in. On commercetools, punchout comes from a partner product and the other
+   three would be custom builds. Whether that matters depends on which features our OpCos actually
+   use — which is [not yet confirmed](/platform-evaluation/b2b/#which-opcos-use-what).
+2. **commercetools is stronger on AI for outside agents.** Its Commerce MCP server lets an AI
+   agent search, build carts, and order on behalf of one buyer, and it is generally available.
+   Intershop has no equivalent open to external agents. Neither vendor documents complete
+   agent-driven *B2B* buying yet.
+3. **Intershop is not standing still on AI.** Copilot for Merchants became generally available in
+   the Spring 2026 release, and ICM 14 publishes product feeds in the format ChatGPT uses. We are
+   already on the current version (ICM 14.5), so our AI gaps are real platform limits, not
+   version lag.
+4. **Moving would be expensive in two specific places.** Our ERP integrations (D365, SAP, Oracle)
+   live as Java code inside the Intershop codebase, so each one would be rebuilt. And because AEM
+   calls Intershop directly, every AEM component that talks to commerce would change.
+5. **Product data would carry over cheaply.** It is mastered upstream (ERP → PIM), so moving the
+   catalog mostly means pointing the existing PIM feed at a new platform.
+
+:::caution[How much to trust this comparison]
+No one on our team has tested commercetools yet. Intershop's B2B capabilities are mostly backed by
+product documentation; most of commercetools' AI claims come from press releases. Every statement
+below is tagged so you can tell which is which.
+:::
+
+## Deciding factors
+
+The capabilities most likely to decide the outcome, across all categories. Select one for the
+detail.
+
+<DecidingFactors />
+
+## Recommended next step
+
+**Run a scoped proof of concept before making any platform decision.** It should test the six
+things this comparison cannot settle from documentation alone — punchout, Auth0 sign-in, one ERP
+order flow, one AEM component, a buyer-scoped AI agent, and budgets. See the
+[proof of concept plan](/platform-evaluation/poc/).
+
+Alongside it:
+
+- **Talk to Cepheid.** Cepheid, a Danaher company, has run on commercetools since 2021. Its
+  experience with B2B gaps, identity, and running costs is worth more than any vendor document. <SourceRefs ids={['ctCepheid']} />
+- **Confirm B2B feature usage.** OpCo technical leads fill in the
+  [usage checklist](/platform-evaluation/b2b/#which-opcos-use-what), so we know which gaps actually
+  matter.
+
+## In this section
+
+| Page | What it covers |
+|---|---|
+| [Current state](/platform-evaluation/current-state/) | How we run Intershop today, and why we are looking |
+| [Architecture](/platform-evaluation/architecture/) | The two platforms side by side, and a proposed commercetools design |
+| [B2B capabilities](/platform-evaluation/b2b/) | Punchout, budgets, approvals, pricing, and who uses what |
+| [Integrations](/platform-evaluation/integrations/) | AEM, ERPs, PIM, Auth0, payments, and marketing |
+| [Operating model and cost](/platform-evaluation/operating-model/) | Governance, releases, skills, and cost drivers |
+| [AI and agentic commerce](/platform-evaluation/ai/) | Four AI use cases, MCP, and agent protocols |
+| [Migration paths](/platform-evaluation/migration-paths/) | Four ways forward, including staying |
+| [Proof of concept](/platform-evaluation/poc/) | What to test, and what counts as a pass |
+| [Sources](/platform-evaluation/sources/) | Every source, with its date and evidence type |
+
+## How to read the ratings
+
+Each capability has two tags: how the platform delivers it, and how we know.
+
+<Legend />

@@ -1,0 +1,51 @@
+---
+title: Operating Model and Cost
+description: How central governance, releases, and skills would change, and the cost drivers to weigh — without figures.
+sidebar:
+  label: Operating model and cost
+  order: 6
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { ComparisonTable } from '@/components/evaluation/ComparisonTable';
+
+<EvaluationBanner />
+
+Today the central team governs one codebase that every OpCo contributes to. On commercetools, the
+platform itself needs no upgrades, but our code spreads across several independently deployed
+services. Central control stays possible — it just shifts from **governing one codebase** to
+**governing many deployables and the API permissions between them**.
+
+<ComparisonTable set="operating" />
+
+## Cost drivers
+
+This page deliberately carries **no figures**. These are the drivers any business case needs to
+price.
+
+**Licensing and platform**
+
+- **Intershop:** platform licence and hosting. Intershop offers its Commerce Platform on Azure; our
+  own hosting arrangement is not documented here. Copilot for Merchants comes as an *Agentic
+  Commerce Package* with tiered, credit-based monthly pricing.
+- **commercetools:** SaaS subscription, now sold as separable modules (for example Core Commerce and
+  Product Catalog). AI capabilities such as AI Hub and Agent Gateway are add-ons. Commercial terms
+  for managed MCP servers were not confirmed.
+
+**Running costs we would add on commercetools**
+
+- Hosting for our own services: ERP connectors, the Auth0 introspection service, budget checks,
+  and marketing sync — either in commercetools Connect or our own cloud.
+- Partner products: punchout (Shopspray) and any marketplace payment connectors.
+
+**One-off migration effort**
+
+- Rebuilding three ERP integrations (D365, SAP, Oracle).
+- Rewriting AEM's commerce components, for each OpCo that moves.
+- Custom builds for B2B features commercetools lacks — scaled by what our OpCos actually use.
+- A period of running both platforms side by side, for every path except big bang.
+
+**People**
+
+- Moving from Intershop cartridge expertise towards API and cloud-service development, through
+  training, hiring, or an implementation partner.

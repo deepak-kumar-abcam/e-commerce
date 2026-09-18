@@ -1,0 +1,43 @@
+---
+title: B2B Capabilities
+description: B2B buying features compared across Intershop and commercetools, and which operating companies rely on each.
+sidebar:
+  label: B2B capabilities
+  order: 4
+---
+
+import { EvaluationBanner } from '@/components/evaluation/parts';
+import { ComparisonTable } from '@/components/evaluation/ComparisonTable';
+import { UsageChecklist } from '@/components/evaluation/UsageChecklist';
+
+<EvaluationBanner />
+
+B2B depth is where Intershop is strongest. The comparison below covers the features life-sciences
+B2B commerce typically relies on — but **a gap only matters if an OpCo uses the feature**, and we
+have not yet confirmed which ones do.
+
+## Feature comparison
+
+<ComparisonTable set="b2b" />
+
+:::note[Why some Intershop rows say "Not confirmed"]
+Intershop's detailed feature lists sit behind a customer login, so public research could not
+confirm them. Our platform team runs Intershop daily and can settle these rows directly — each
+answer moves from *Unconfirmed* to *Verified*.
+:::
+
+## Punchout: the likely deciding gap
+
+Punchout lets a customer's buyers shop from inside their own procurement system (for example SAP
+Ariba or Coupa) and send the cart back for approval there. Intershop supports OCI and cXML natively. commercetools does not — it relies on a partner
+product, Shopspray PunchoutPilot, which adds a vendor, a contract, and an integration to operate.
+
+If any OpCo depends on punchout, testing the partner product is the first item in the
+[proof of concept](/platform-evaluation/poc/#poc-punchout).
+
+## Which OpCos use what
+
+To be completed by OpCo technical leads. Mark each feature **Used**, **Customized**, or
+**Not used**; answers are recorded in `src/data/evaluation.ts`.
+
+<UsageChecklist />

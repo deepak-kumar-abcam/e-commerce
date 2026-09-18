@@ -63,6 +63,15 @@ export const opcos: OpCo[] = [
 		marketingPlatform: { name: 'Salesforce Pardot', category: 'marketing' },
 		regions: null,
 	},
+	{
+		id: 'pall',
+		name: 'Pall',
+		short: 'Pall',
+		orderBackend: null,
+		paymentProvider: null,
+		marketingPlatform: null,
+		regions: null,
+	},
 ];
 
 /** Services every operating company shares on the single central instance. */
@@ -87,9 +96,19 @@ export interface DocSection {
 	description: string;
 	/** Shown on the card so readers know whether content exists yet. */
 	status: 'in-progress' | 'planned';
+	/** Rendered full-width above the other cards. */
+	featured?: boolean;
 }
 
 export const docSections: DocSection[] = [
+	{
+		title: 'Platform Evaluation',
+		href: '/platform-evaluation/',
+		description:
+			'Intershop compared with commercetools across architecture, B2B, integrations, operating model, and AI — with migration paths and a proposed proof of concept.',
+		status: 'in-progress',
+		featured: true,
+	},
 	{
 		title: 'Feature Lists',
 		href: '/features/',

@@ -89,7 +89,7 @@ export function IntegrationLandscape() {
 	return (
 		<div className="not-content">
 			<Layer label="Storefronts" caption="One branded experience per operating company">
-				<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
 					{opcos.map((opco) => (
 						<Node key={opco.id}>{opco.name}</Node>
 					))}
@@ -110,7 +110,7 @@ export function IntegrationLandscape() {
 				<div className="rounded-lg border border-primary/30 bg-background px-4 py-3 text-center">
 					<div className="text-base font-semibold">Intershop</div>
 					<div className="mt-0.5 text-xs text-muted-foreground">
-						Catalogue, cart, checkout, and customer accounts for all four operating companies
+						Catalogue, cart, checkout, and customer accounts for every operating company
 					</div>
 				</div>
 			</Layer>

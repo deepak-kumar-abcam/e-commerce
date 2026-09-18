@@ -25,8 +25,8 @@ The shadcn MCP server is registered in `.mcp.json` for browsing and installing c
 
 ## Content structure
 
-Six documentation sections live under `src/content/docs/`: `features`, `custom-features`, `api`,
-`architecture`, `low-level-design`, and `flows`. Each is wired into the sidebar as a group wrapping
+Seven documentation sections live under `src/content/docs/`: `features`, `custom-features`, `api`,
+`architecture`, `low-level-design`, `flows`, and `platform-evaluation`. Each is wired into the sidebar as a group wrapping
 an `autogenerate` config, so new pages dropped into those directories appear automatically —
 `astro.config.mjs` only needs editing to add a *new* section.
 
@@ -37,6 +37,25 @@ those as an explicit "Not documented" badge so gaps stay visible.
 
 Home-page sections are React components in `src/components/home/`. They render statically with no
 client directive; only `OpCoMatrix` is hydrated (`client:load`) because it uses tabs.
+
+## Platform evaluation (Intershop vs commercetools)
+
+Every rating, claim, and source lives in `src/data/evaluation.ts`; the MDX pages under
+`platform-evaluation/` hold narrative only and render tables through components in
+`src/components/evaluation/`. Evidence discipline is the point of the section:
+
+- Each claim has an **evidence tag**: `documented` (vendor docs, release notes, source code),
+  `vendor-claim` (press releases, blogs, customer stories, marketplace listings), `verified` (tested
+  by our team, or a fact about our own production platform), or `unconfirmed`. Never upgrade a tag
+  without new evidence.
+- Unknown capabilities use the `unknown` rating ("Not confirmed"), never a guess.
+- Every claim cites source ids from `sources`; citation numbers come from their order in that
+  object, so append new sources rather than reordering.
+- Bump `evaluationMeta.asOf` whenever facts change; the banner on every page shows it.
+- Settled decisions from the evaluation's scoping: the section compares and recommends a **PoC as
+  next step**, not a platform; the commercetools target is **one Project, one Store per OpCo**
+  (labelled *Proposal*); cost is **qualitative only — no figures**; it does **not** recommend an API
+  layer between AEM and commerce.
 
 ## Documentation
 
