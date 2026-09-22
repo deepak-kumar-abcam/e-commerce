@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { API_BASE, loadSpecs, SPEC_DIR } from '@/lib/openapi.mjs';
+import { withBase } from '@/lib/url';
 import { cn } from '@/lib/utils';
 
 /**
@@ -7,7 +8,7 @@ import { cn } from '@/lib/utils';
  * build time. Static — no client directive needed.
  */
 
-const specHref = (id: string) => `/${API_BASE}/${id.toLowerCase()}/`;
+const specHref = (id: string) => withBase(`/${API_BASE}/${id.toLowerCase()}/`);
 
 /** `com.danaher.rest.smb.FooResource` → `FooResource` */
 const shortClass = (originClass?: string) => originClass?.split('.').pop();

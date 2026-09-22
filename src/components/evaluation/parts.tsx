@@ -9,6 +9,7 @@ import {
 	type Rating,
 	type SourceId,
 } from '@/data/evaluation';
+import { withBase } from '@/lib/url';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,7 +17,7 @@ import { cn } from '@/lib/utils';
  * client directive needed.
  */
 
-export const SOURCES_PAGE = '/platform-evaluation/sources/';
+export const SOURCES_PAGE = withBase('/platform-evaluation/sources/');
 
 const sourceIds = Object.keys(sources) as SourceId[];
 

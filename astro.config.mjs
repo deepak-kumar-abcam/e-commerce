@@ -8,6 +8,11 @@ import react from '@astrojs/react';
 import starlightOpenAPI, { createOpenAPISidebarGroup } from 'starlight-openapi';
 
 import { API_BASE, loadSpecs, writeRenderableSpecs } from './src/lib/openapi.mjs';
+import { rehypeBaseLinks } from './src/lib/rehype-base-links.mjs';
+
+// Served from https://deepak-kumar-abcam.github.io/e-commerce/, so every
+// in-site link has to carry this prefix.
+const BASE = '/e-commerce';
 
 // One generated API reference per YAML file in openapi/intershop/. APIs made
 // entirely of Danaher resources get their own sidebar group.
@@ -19,7 +24,13 @@ const standardApiGroup = createOpenAPISidebarGroup();
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://deepak-kumar-abcam.github.io',
-  	base: '/e-commerce',
+	base: BASE,
+
+	// Site-root links in markdown content are emitted verbatim; prefix them.
+	markdown: {
+		rehypePlugins: [[rehypeBaseLinks, { base: BASE }]],
+	},
+
 	integrations: [
 		starlight({
 			title: 'Commerce Platform Docs',

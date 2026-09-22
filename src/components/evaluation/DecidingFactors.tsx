@@ -1,4 +1,5 @@
 import { aiUseCases, b2bRows, integrationRows, type ComparisonRow } from '@/data/evaluation';
+import { withBase } from '@/lib/url';
 import { EvidenceTag, RatingBadge } from './parts';
 
 /**
@@ -41,7 +42,7 @@ export function DecidingFactors() {
 											</div>
 										)}
 										<a
-											href={`${group.href}#row-${group.set}-${row.id}`}
+											href={withBase(`${group.href}#row-${group.set}-${row.id}`)}
 											className="text-sm font-medium text-foreground no-underline hover:text-primary hover:underline"
 										>
 											{row.capability}

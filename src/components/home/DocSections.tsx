@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { docSections } from '@/data/platform';
+import { withBase } from '@/lib/url';
 import { cn } from '@/lib/utils';
 
 const statusLabel: Record<string, string> = {
@@ -31,7 +32,10 @@ export function DocSections() {
 								)}
 								{/* Stretched link keeps the whole card clickable without nesting
 								    interactive elements. */}
-								<a href={section.href} className="text-foreground no-underline after:absolute after:inset-0">
+								<a
+									href={withBase(section.href)}
+									className="text-foreground no-underline after:absolute after:inset-0"
+								>
 									{section.title}
 								</a>
 							</CardTitle>
