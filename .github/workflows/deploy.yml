@@ -24,15 +24,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node
-        # Node 24 ships npm 11, which is what package-lock.json was written by.
-        # Node 22's npm 10 rejects the lock file as out of sync.
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
+      # `npm ci` cannot be used here: npm writes a lock file whose nested
+      # @astrojs/markdown-remark copies its own sync check then rejects, so
+      # `npm ci` fails even against a lock file npm itself just generated
+      # (on Linux it also reports @emnapi/runtime and @emnapi/core missing).
+      # `npm install` honours the locked versions and fills in the gaps.
       - name: Install dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
