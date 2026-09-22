@@ -1,0 +1,4622 @@
+openapi: 3.0.1
+info:
+  title: Customer
+  description: |-
+    The _Customer REST API_ offers resources to perform a range of customer-related operations. These include registering new customers, managing address and payment information, handling gift cards and certificates, and interacting with user profiles associated with B2B customers.
+
+    For operations related to Intershop Commerce Management (back office), refer to the Customer Management REST API.
+
+    ## Changelog
+
+    ### Version 1.6.2
+    * Differentiated `NewCustomerRO` schema for B2C and SMB customer types
+
+    ### Version 1.6.1
+    * Restricted general customer information updates via `PUT /customers/{customerId}` to account admins with the `APP_B2B_MANAGE_USERS` permission
+
+    ### Version 1.6.0
+    * Added JsonProperty write-only access to `password` of the `UserRO` resource object
+    * Added password validation in `updateCustomerUser` of `CustomerItemUserItemResource` when e-mail is updated
+
+    ### Version 1.5.0
+    * Added attribute `budgetPriceType` to the `SMBCustomerRO` resource object. Updating the value of the `budgetPriceType` resets all user budgets.
+
+    ### Version 1.4.0
+    * Added new endpoint _/eligible-payment-methods_ to get the list of eligible payment methods
+    * Deprecated the OPTIONS method for the _/payments_ endpoint. Use the new _/eligible-payment-methods_ endpoint instead.
+
+    ### Version 1.3.0
+    * __BETA__ | Added attribute `customFieldDefinitions` to the resource objects `PrivateCustomerRO`and `SMBCustomerRO`
+
+    ### Version 1.2.1
+    * Added this changelog
+
+    ### Version 1.2.0
+    * Added read-only attributes `externalID` and `externalUrn` to the `Address` resource object
+  version: 1.6.2
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+paths:
+  /customers:
+    post:
+      tags:
+        - General
+      summary: Registers a new SMB customer
+      description: This operation registers a new SMB customer.
+      operationId: createCustomer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewSMBCustomerRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/NewSMBCustomerRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Authorization is required if the customer is assigned to an existing user.
+        "403":
+          description: The authorized user must be the same as the one assigned to the new customer.
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource.createCustomer(com.intershop.sellside.rest.smb.capi.resourceobject.NewCustomerRO)
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /customers/{CustomerKey}:
+    get:
+      tags:
+        - General
+      summary: Returns the logged-in user's customer profile
+      description: This operation returns the customer profile of the currently logged-in user.
+      operationId: getCustomer
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerRO com.intershop.sellside.rest.smb.capi.resource.customer.CustomerItemResource.getCustomer()
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - General
+      summary: Updates the logged-in user's customer profile
+      description: |-
+        This operation updates the customer profile of the currently logged-in user. 
+        The logged-in user requires the permission 'APP_B2B_MANAGE_USERS'.
+      operationId: updateCustomer
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerRO com.intershop.sellside.rest.smb.capi.resource.customer.CustomerItemResource.updateCustomer(com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerRO)
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer, (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS])]"
+  /customers/{CustomerKey}/addresses:
+    get:
+      tags:
+        - Address
+      summary: Returns the customer's addresses
+      description: This operation returns a list of the customer's addresses based on the provided CustomerResourceKey. The response resource collection contains objects of the type LinkRO.
+      operationId: getAddresses
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK - The addresses of the customer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getAddress
+              parameters:
+                DanaherCustomerAddressKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type AddressRO
+        "401":
+          description: Unauthorized - The organization is not valid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource.getAddresses()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - Address
+      summary: Creates new customer address
+      description: This operation creates a new customer address using POST data provided by the client.
+      operationId: createAddress
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+      responses:
+        "200":
+          description: |-
+            OK
+             The created address is a duplicate. The existing instance is returned.
+        "201":
+          description: |-
+            Created
+             The creation of a unique address finished succesfully.
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - customer.address.invalid_fields.usage.error
+             - customer.address.missing_fields.error
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             Possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource.createAddress(com.intershop.sellside.rest.common.capi.resourceobject.AddressRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}:
+    get:
+      tags:
+        - Address
+      summary: Get customer address details
+      description: Returns details about customer's address to the client
+      operationId: getAddress
+      parameters:
+        - name: include
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address_not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.getAddress(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Address
+      summary: Update customer address
+      description: Updates a customer address with address data provided from the client
+      operationId: updateAddress
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.address.missing_fields.error
+             - customer.address.update.error.inconsistentUsage
+             Other errors (customer.address.update.error.failureCode)  may be returned if AddressUpdateHandlers are registered 
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             possible values for header error-key:
+             - customer.address.update.error.AddressNotUpdatable
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.updateAddress(com.intershop.sellside.rest.common.capi.resourceobject.AddressRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Address
+      summary: Delete customer address
+      description: Deletes a customer address
+      operationId: deleteAddress
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+        "409":
+          description: |-
+            Conflict
+             possible values for header error-key:
+             - customer.address.deletion.error.LastAddress
+             - customer.address.deletion.error.WrongAddressRepository
+             Other errors (customer.address.deletion.error.failureCode)  may be returned if additional AddressDeletionHandlers are registered
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.deleteAddress()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/eligible-payment-methods:
+    get:
+      tags:
+        - Payment
+      summary: Returns payment methods for customer
+      description: This operation returns all available payment methods and their parameters that can be added to the customer.
+      operationId: getEligiblePaymentMethods
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentOptionsRO com.danaher.sellside.rest.common.capi.resource.customer.payment.DanaherCustomerEligiblePaymentItemResource.getEligiblePaymentMethods()
+      x-origin-class: com.danaher.sellside.rest.common.capi.resource.customer.payment.DanaherCustomerEligiblePaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/myAddresses:
+    put:
+      tags:
+        - MyAddress
+      summary: Update customer address
+      description: Updates a customer address with address data provided from the client
+      operationId: updateAddress_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerAddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerAddressRO"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.address.missing_fields.error
+             - customer.address.update.error.inconsistentUsage
+             Other errors (`customer.address.update.error.failureCode`)  may be returned if `AddressUpdateHandlers` are registered 
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             possible values for header error-key:
+             - customer.address.update.error.AddressNotUpdatable
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.rest.common.capi.resource.customer.DanaherCustomerAddressListResource.updateAddress(com.danaher.rest.common.capi.resource.customer.CustomerAddressRO)
+      x-origin-class: com.danaher.rest.common.capi.resource.customer.DanaherCustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - MyAddress
+      summary: Create new customer address with Attributes and email notification to customer support
+      description: Creates a new customer address by using POST data provided by the client
+      operationId: createAddress_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerAddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerAddressRO"
+      responses:
+        "200":
+          description: |-
+            OK
+             The created address is a duplicate. The existing instance is returned.
+        "201":
+          description: |-
+            Created
+             Creation of a unique address finished succesfully
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.address.invalid_fields.usage.error
+             - customer.address.missing_fields.error
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.rest.common.capi.resource.customer.DanaherCustomerAddressListResource.createAddress(com.danaher.rest.common.capi.resource.customer.CustomerAddressRO)
+      x-origin-class: com.danaher.rest.common.capi.resource.customer.DanaherCustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer, isMemberOfCustomer]"
+  /customers/{CustomerKey}/payments:
+    get:
+      tags:
+        - Payment
+      summary: Returns list of customer's payment instruments
+      description: This operation returns a list of links of all payment instruments that are stored in the profile of the logged-in customer.
+      operationId: getPayments
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getPayment
+              parameters:
+                CustomerPaymentKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type PaymentRO
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             Value for header error-key: 
+             - payment.instrument.not_found.error (e.g. unregistred user)
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.getPayments()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - Payment
+      summary: Adds payment instrument to customer
+      description: This operation adds a payment instrument to the profile of the logged-in customer.
+      operationId: createPayment
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - shopping_cart.payment.paymentdata.error (e.g., wrong giftcard number)
+             - shopping_cart.payment.missing_fields.error
+             - shopping_cart.payment.invalid_fields.error
+             - shopping_cart.payment.name.error (payment method not found)
+             - shopping_cart.payment.dublicate.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.createPayment(com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    options:
+      tags:
+        - Payment
+      summary: Returns payment methods for customer
+      description: This operation returns all available payment methods and their parameters that can be added to the customer.
+      operationId: getPaymentOptions
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+        "401":
+          description: Unauthorized
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentOptionsRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.getPaymentOptions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/payments/{CustomerPaymentKey}:
+    get:
+      tags:
+        - Payment
+      summary: Returns customer's payment instrument details
+      description: This operation returns detailed information about a payment instrument of a customer.
+      operationId: getPayment
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             value for header error-key: 
+             - payment.instrument.not_found.error (e.g. unregistred user)
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.getPayment()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Payment
+      summary: Updates customer's payment instrument
+      description: This operation updates a payment instrument in the customer profile for the logged-in user, including its attributes. The request must contain all attributes, even if they are unchanged. Payment instruments without additional attributes cannot be updated.
+      operationId: updatePayment
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - shopping_cart.payment.paymentdata.error (e.g. wrong giftcard number)
+             - shopping_cart.payment.missing_fields.error
+             - shopping_cart.payment.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.updatePayment(com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Payment
+      summary: Removes payment instrument from customer's profile
+      description: This operation removes a payment instrument from the profile of the logged-in customer.
+      operationId: deletePayment
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.deletePayment()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/profile:
+    post:
+      tags:
+        - customerprofile
+      summary: Update Customer & User details along with Segments assignment
+      description: Update Customer & User details along with Segments assignment.
+      operationId: updateCustomerProfile
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.danaher.sellside.rest.common.capi.resource.customer.profile.DanaherCustomerProfileResource.updateCustomerProfile()
+      x-origin-class: com.danaher.sellside.rest.common.capi.resource.customer.profile.DanaherCustomerProfileResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/users:
+    get:
+      tags:
+        - User
+      summary: Returns users of SMB customer
+      description: This operation lists all registered users of the selected SMB customer with links to the user item resources.
+      operationId: getCustomers
+      parameters:
+        - name: offset
+          in: query
+          description: The start element position
+          schema:
+            type: string
+            default: "0"
+        - name: limit
+          in: query
+          description: The count of users to return
+          schema:
+            type: string
+            default: "50"
+        - name: filter
+          in: query
+          description: Only users whose firstName, lastName, or login matches the specified text will be returned.
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: The sorting to be applied to returned users. A minus sign indicates sorting in descending order.
+          schema:
+            type: string
+            enum:
+              - name
+              - creationDate
+              - login
+              - -name
+              - -creationDate
+              - -login
+            default: name
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: The list of registered users.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource.getCustomers()
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_MANAGE_USERS] OR hasPermission[Organization:APP_B2B_MANAGE_COSTCENTER])), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), isMemberOfCustomer]"
+    post:
+      tags:
+        - User
+      summary: Registers new users of SMB customer
+      description: This operation registers new users for an SMB customer and returns links to the created users.
+      operationId: addUsersToCustomer
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        description: A collection with data of the new users to be created.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerUserROCollection"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerUserROCollection"
+      responses:
+        "201":
+          description: A collection with links to the created users.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+        "207":
+          description: A collection with links to the created users and header 'not-created-users' listing users whose creation failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/UserLinkROCollection"
+        "400":
+          description: The provided login is not acceptable.
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+        "409":
+          description: A user with the provided login or business partner number already exists.
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+        "500":
+          description: The provided user data contains missing or invalid fields.
+          content:
+            application/json:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource.addUsersToCustomer(com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerUserROCollection)
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}:
+    get:
+      tags:
+        - User
+      summary: Get user profile data of selected user
+      operationId: getCustomerUser
+      parameters:
+        - name: cattri
+          in: query
+          schema:
+            type: string
+        - name: uattri
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: Display available user data. If user has a preferred address assigned, it will be included in the response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerUserRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/SMBCustomerUserRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerUserRO com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource.getCustomerUser(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_MANAGE_USERS] OR hasSameIdentity)), isMemberOfCustomer]"
+    put:
+      tags:
+        - User
+      summary: Update the profile of the selected SMB customer user
+      operationId: updateCustomerUser
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        description: Updated user data
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerUserRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SMBCustomerUserRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+        "409":
+          description: User with the provided business partner number already exists
+        "500":
+          description: Invalid or missing user data
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource.updateCustomerUser(com.intershop.sellside.rest.smb.capi.resourceobject.SMBCustomerUserRO)
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_MANAGE_USERS] OR hasSameIdentity)), isMemberOfCustomer]"
+    delete:
+      tags:
+        - User
+      summary: Delete an SMB customer user
+      description: Deletes the user with the specified ID or login
+      operationId: deleteUser
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "403":
+          description: Requires Manage Users permission (APP_B2B_MANAGE_USERS)
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource.deleteUser()
+      x-origin-class: com.intershop.sellside.rest.smb.capi.resource.user.DanaherCustomerItemUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/giftcardsandcertificates:
+    get:
+      tags:
+        - Gift Card and Certificate
+      summary: Returns gift cards and certificates
+      description: This operation returns a list of gift cards and certificates associated with the current user.
+      operationId: getGiftCardsAndCertificates
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: OK - The list of gift cards and certificates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The authenticated user does not match the requested user.
+        "404":
+          description: Not found - The customer or user could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource.getGiftCardsAndCertificates()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/giftcardsandcertificates/{CustomerGiftCardAndCertificateResourceKey}:
+    get:
+      tags:
+        - Gift Card and Certificate
+      summary: Returns gift card or certificate details
+      description: This operation returns details about a specific gift card or certificate associated with the current user.
+      operationId: getGiftCardAndCertificate
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerGiftCardAndCertificateResourceKey
+          in: path
+          description: The gift card or certificate number
+          required: true
+          schema:
+            type: string
+            description: The gift card or certificate number
+            example: "27755166187"
+          example: "27755166187"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource
+      responses:
+        "200":
+          description: OK - The gift card or certificate with the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftCardAndCertificateRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/GiftCardAndCertificateRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The authenticated user does not match the requested user.
+        "404":
+          description: Not found - The customer, user or gift card/certificate could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.GiftCardAndCertificateRO com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.balance.CustomerGiftCardAndCertificateResource.getGiftCardAndCertificate()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.balance.CustomerGiftCardAndCertificateResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /privatecustomers:
+    post:
+      tags:
+        - General
+      summary: Creates an individual customer
+      description: This operation creates an individual customer. It is available for unregistered users only.
+      operationId: createCustomer_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPrivateCustomerRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/NewPrivateCustomerRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.already_exists.error
+             - customer.customerno.already_exists.error
+             - customer.missing_fields.error
+             - customer.invalid_fields.error
+             - customer.credentials.missing_fields.error
+             - customer.credentials.login.not_acceptable.error
+             - customer.credentials.login.not_unique.error
+             - customer.credentials.password.invalid.error
+             - customer.address.missing_fields.error
+        "401":
+          description: Authorization is required if the customer is assigned to an existing user.
+        "403":
+          description: The authorized user must be the same as the one assigned to the new customer.
+        "409":
+          description: Conflict
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource.createCustomer(com.intershop.sellside.rest.b2c.capi.resourceobject.NewCustomerRO)
+      x-origin-class: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /privatecustomers/simple:
+    post:
+      tags:
+        - General
+      summary: Creates a customer
+      description: This operation provides a simplified creation process for a new customer with minimal information.
+      operationId: createAccount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CredentialsRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CredentialsRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad request
+        "409":
+          description: |-
+            Conflict
+             possible values for header error-key:
+             - customer.already_exists.error
+        "501":
+          description: |-
+            Not implemented
+             possible values for header error-key:
+             - customer.simpleaccount.not_possible.error
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource.createAccount(com.intershop.sellside.rest.common.capi.resourceobject.CredentialsRO)
+      x-origin-class: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      x-AuthorizationRule: "[isMemberOfCustomer, isAnyUser]"
+  /privatecustomers/{CustomerKey}:
+    get:
+      tags:
+        - General
+      summary: Returns current customer's profile details
+      description: This operation returns the profile details of the currently logged-in customer.
+      operationId: getCustomer_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivateCustomerRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PrivateCustomerRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.b2c.capi.resourceobject.PrivateCustomerRO com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerItemResource.getCustomer()
+      x-origin-class: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - General
+      summary: Upates a customer
+      description: This operation updates the details of an existing customer.
+      operationId: updateCustomer_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivateCustomerRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PrivateCustomerRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivateCustomerRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PrivateCustomerRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.b2c.capi.resourceobject.PrivateCustomerRO com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerItemResource.updateCustomer(com.intershop.sellside.rest.b2c.capi.resourceobject.PrivateCustomerRO)
+      x-origin-class: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/addresses:
+    get:
+      tags:
+        - Address
+      summary: Returns the customer's addresses
+      description: This operation returns a list of the customer's addresses based on the provided CustomerResourceKey. The response resource collection contains objects of the type LinkRO.
+      operationId: getAddresses
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK - The addresses of the customer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getAddress_1
+              parameters:
+                DanaherCustomerAddressKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type AddressRO
+        "401":
+          description: Unauthorized - The organization is not valid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource.getAddresses()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - Address
+      summary: Creates new customer address
+      description: This operation creates a new customer address using POST data provided by the client.
+      operationId: createAddress_2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+      responses:
+        "200":
+          description: |-
+            OK
+             The created address is a duplicate. The existing instance is returned.
+        "201":
+          description: |-
+            Created
+             The creation of a unique address finished succesfully.
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - customer.address.invalid_fields.usage.error
+             - customer.address.missing_fields.error
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             Possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource.createAddress(com.intershop.sellside.rest.common.capi.resourceobject.AddressRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}:
+    get:
+      tags:
+        - Address
+      summary: Get customer address details
+      description: Returns details about customer's address to the client
+      operationId: getAddress_1
+      parameters:
+        - name: include
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address_not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.getAddress(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Address
+      summary: Update customer address
+      description: Updates a customer address with address data provided from the client
+      operationId: updateAddress_2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/AddressRO"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.address.missing_fields.error
+             - customer.address.update.error.inconsistentUsage
+             Other errors (customer.address.update.error.failureCode)  may be returned if AddressUpdateHandlers are registered 
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             possible values for header error-key:
+             - customer.address.update.error.AddressNotUpdatable
+        "404":
+          description: |-
+            Not found
+             possible values for header error-key:
+             - customer.address.not_found.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.updateAddress(com.intershop.sellside.rest.common.capi.resourceobject.AddressRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Address
+      summary: Delete customer address
+      description: Deletes a customer address
+      operationId: deleteAddress_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+        "409":
+          description: |-
+            Conflict
+             possible values for header error-key:
+             - customer.address.deletion.error.LastAddress
+             - customer.address.deletion.error.WrongAddressRepository
+             Other errors (customer.address.deletion.error.failureCode)  may be returned if additional AddressDeletionHandlers are registered
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource.deleteAddress()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/eligible-payment-methods:
+    get:
+      tags:
+        - Payment
+      summary: Returns payment methods for customer
+      description: This operation returns all available payment methods and their parameters that can be added to the customer.
+      operationId: getEligiblePaymentMethods_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentOptionsRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource.getEligiblePaymentMethods()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/giftcardsandcertificates:
+    get:
+      tags:
+        - Gift Card and Certificate
+      summary: Returns gift cards and certificates
+      description: This operation returns a list of gift cards and certificates associated with the current user.
+      operationId: getGiftCardsAndCertificates
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK - The list of gift cards and certificates.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The authenticated user does not match the requested user.
+        "404":
+          description: Not found - The customer or user could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource.getGiftCardsAndCertificates()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/giftcardsandcertificates/{CustomerGiftCardAndCertificateResourceKey}:
+    get:
+      tags:
+        - Gift Card and Certificate
+      summary: Returns gift card or certificate details
+      description: This operation returns details about a specific gift card or certificate associated with the current user.
+      operationId: getGiftCardAndCertificate
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerGiftCardAndCertificateResourceKey
+          in: path
+          description: The gift card or certificate number
+          required: true
+          schema:
+            type: string
+            description: The gift card or certificate number
+            example: "27755166187"
+          example: "27755166187"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.CustomerGiftCardsAndCertificatesResource
+      responses:
+        "200":
+          description: OK - The gift card or certificate with the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftCardAndCertificateRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/GiftCardAndCertificateRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The authenticated user does not match the requested user.
+        "404":
+          description: Not found - The customer, user or gift card/certificate could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.GiftCardAndCertificateRO com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.balance.CustomerGiftCardAndCertificateResource.getGiftCardAndCertificate()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.giftcardsandcertificates.balance.CustomerGiftCardAndCertificateResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/payments:
+    get:
+      tags:
+        - Payment
+      summary: Returns list of customer's payment instruments
+      description: This operation returns a list of links of all payment instruments that are stored in the profile of the logged-in customer.
+      operationId: getPayments_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getPayment_1
+              parameters:
+                CustomerPaymentKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type PaymentRO
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             Value for header error-key: 
+             - payment.instrument.not_found.error (e.g. unregistred user)
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.getPayments()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - Payment
+      summary: Adds payment instrument to customer
+      description: This operation adds a payment instrument to the profile of the logged-in customer.
+      operationId: createPayment_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - shopping_cart.payment.paymentdata.error (e.g., wrong giftcard number)
+             - shopping_cart.payment.missing_fields.error
+             - shopping_cart.payment.invalid_fields.error
+             - shopping_cart.payment.name.error (payment method not found)
+             - shopping_cart.payment.dublicate.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.createPayment(com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    options:
+      tags:
+        - Payment
+      summary: Returns payment methods for customer
+      description: This operation returns all available payment methods and their parameters that can be added to the customer.
+      operationId: getPaymentOptions_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+        "401":
+          description: Unauthorized
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentOptionsRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource.getPaymentOptions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/payments/{CustomerPaymentKey}:
+    get:
+      tags:
+        - Payment
+      summary: Returns customer's payment instrument details
+      description: This operation returns detailed information about a payment instrument of a customer.
+      operationId: getPayment_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             value for header error-key: 
+             - payment.instrument.not_found.error (e.g. unregistred user)
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.getPayment()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Payment
+      summary: Updates customer's payment instrument
+      description: This operation updates a payment instrument in the customer profile for the logged-in user, including its attributes. The request must contain all attributes, even if they are unchanged. Payment instruments without additional attributes cannot be updated.
+      operationId: updatePayment_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "400":
+          description: |-
+            Bad request
+             Possible values for header error-key:
+             - shopping_cart.payment.paymentdata.error (e.g. wrong giftcard number)
+             - shopping_cart.payment.missing_fields.error
+             - shopping_cart.payment.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.updatePayment(com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Payment
+      summary: Removes payment instrument from customer's profile
+      description: This operation removes a payment instrument from the profile of the logged-in customer.
+      operationId: deletePayment_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource.deletePayment()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerPaymentItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    AddressRO:
+      title: Address
+      type: object
+      properties:
+        addressLine1:
+          type: string
+          description: the first address line
+          example: Berliner Str. 20
+        addressLine2:
+          type: string
+          description: the second address line
+          example: 1st Floor
+        addressLine3:
+          type: string
+          description: The third address line
+          example: Second door on the right
+        addressName:
+          type: string
+          description: The name of the address
+          example: customeraddr-ABCDEFGPRMuMCscyXgSRVU
+        aristocraticTitle:
+          type: string
+          description: the aristocratic title of the contact person, like <i>Lord</i> or <i>Lady</i>
+        city:
+          type: string
+          description: The name of the city
+          example: Potsdam
+        companyName1:
+          type: string
+          description: the company name
+          example: PMiller ltd.
+        companyName2:
+          type: string
+          description: The second company name
+        country:
+          type: string
+          description: The display name of the country in the current locale
+          example: Germany
+        countryCode:
+          type: string
+          description: The country code
+          example: DE
+        email:
+          type: string
+          description: the e-mail address of the contact person
+          example: pmiller@intershop.de
+        externalId:
+          type: string
+          description: The ID uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system
+          readOnly: true
+          example: "000123456"
+        externalUrn:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for  data objects that have already been synchronized with the external system
+          readOnly: true
+          example: urn:address:MSDynamics365:MyCorp:000123456
+        externalURN:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system.
+          example: A049364112643
+        fax:
+          type: string
+          description: the fax number
+          example: "049364112643"
+        firstName:
+          type: string
+          description: The (first) given name of the contact person
+          example: Patricia
+        honorific:
+          type: string
+          description: the honorific title of the contact person that denotes the honored person's occupation, like <i>Captain</i>, <i>Coach</i>, <i>Officer</i>, <i>Reverend</i> or the academic title, like <i>PhD</i>
+        id:
+          type: string
+          description: The ID of the returned element
+          example: vagKAB17gg4AAAFGSkFqQASI
+        jobTitle:
+          type: string
+          description: the job title of the contact person
+          example: CEO
+        lastName:
+          type: string
+          description: The last name of the contact person
+          example: Miller
+        mainDivision:
+          type: string
+          description: the main division of the country, e. g. a state or province
+          example: AL
+        mainDivisionName:
+          type: string
+          description: The localized display name of the main division
+          example: Alabama
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        phoneBusiness:
+          type: string
+          description: The phone number of the contact person's company
+          example: "049364112699"
+        phoneBusinessDirect:
+          type: string
+          description: the business phone number of the contact person that allows an outside caller to connect directly to the contact person without any help of an attendant or operator
+          example: "049364112659"
+        phoneHome:
+          type: string
+          description: The phone number of the house or apartment where the contact person lives
+          example: "049364112677"
+        phoneMobile:
+          type: string
+          description: The number of the contact person's cell phone
+          example: "+49364112677"
+        postalCode:
+          type: string
+          description: The postal code
+          example: "14482"
+        postBox:
+          type: string
+          description: the post-office box
+          example: PO Box 42
+        secondLastName:
+          type: string
+          description: the second last name of the contact person
+        secondName:
+          type: string
+          description: the second given name of the contact person
+          example: Luise
+        subDivision:
+          type: string
+          description: The sub division code of the country.
+          example: GB-PKN
+        subDivisionName:
+          type: string
+          description: The localized display name of the sub division
+          example: Perth and Kinross
+        title:
+          type: string
+          description: The (personal) title of the contact person, like 'Mr.' or 'Ms.'
+          example: Mrs.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Address
+          xml:
+            attribute: true
+        urn:
+          type: string
+          description: the URN representation of this address
+          example: urn:address:customer:1234567890:0987654321
+        usage:
+          type: object
+          properties:
+            empty:
+              type: boolean
+          description: " Returns usage information for the address. Every bit in the returned set marks a specific usage type, like ship-from or invoice-to address. If a bit is set, the address may be used for the specific purpose mapped to this bit. Further bits may be used for custom types. Default usage for first 4 bits are Invoice-to, Ship-to, Service-to and Install-to"
+      description: This resource holds the details of an address.
+      xml:
+        name: Address
+    AttributeRO_v1:
+      required:
+        - name
+        - type
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          enum:
+            - Boolean
+            - Date
+            - Decimal
+            - Double
+            - Integer
+            - Long
+            - Money
+            - Quantity
+            - String
+            - Text
+            - MultipleBoolean
+            - MultipleDate
+            - MultipleDecimal
+            - MultipleDouble
+            - MultipleInteger
+            - MultipleLong
+            - MultipleString
+        value:
+          type: object
+      description: A representation of an attribute
+      discriminator:
+        propertyName: type
+        mapping:
+          Boolean: "#/components/schemas/BooleanAttributeRO_v1"
+          Date: "#/components/schemas/DateAttributeRO_v1"
+          Decimal: "#/components/schemas/DecimalAttributeRO_v1"
+          Double: "#/components/schemas/DoubleAttributeRO_v1"
+          Integer: "#/components/schemas/IntegerAttributeRO_v1"
+          Long: "#/components/schemas/LongAttributeRO_v1"
+          Money: "#/components/schemas/MoneyAttributeRO_v1"
+          Quantity: "#/components/schemas/QuantityAttributeRO_v1"
+          String: "#/components/schemas/StringAttributeRO_v1"
+          Text: "#/components/schemas/TextAttributeRO_v1"
+          MultipleBoolean: "#/components/schemas/MultipleBooleanAttributeRO_v1"
+          MultipleDate: "#/components/schemas/MultipleDateAttributeRO_v1"
+          MultipleDecimal: "#/components/schemas/MultipleDecimalAttributeRO_v1"
+          MultipleDouble: "#/components/schemas/MultipleDoubleAttributeRO_v1"
+          MultipleInteger: "#/components/schemas/MultipleIntegerAttributeRO_v1"
+          MultipleLong: "#/components/schemas/MultipleLongAttributeRO_v1"
+          MultipleString: "#/components/schemas/MultipleStringAttributeRO_v1"
+      oneOf:
+        - $ref: "#/components/schemas/BooleanAttributeRO_v1"
+        - $ref: "#/components/schemas/DateAttributeRO_v1"
+        - $ref: "#/components/schemas/DecimalAttributeRO_v1"
+        - $ref: "#/components/schemas/DoubleAttributeRO_v1"
+        - $ref: "#/components/schemas/IntegerAttributeRO_v1"
+        - $ref: "#/components/schemas/LongAttributeRO_v1"
+        - $ref: "#/components/schemas/MoneyAttributeRO_v1"
+        - $ref: "#/components/schemas/QuantityAttributeRO_v1"
+        - $ref: "#/components/schemas/StringAttributeRO_v1"
+        - $ref: "#/components/schemas/TextAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleBooleanAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDateAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDecimalAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDoubleAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleIntegerAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleLongAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleStringAttributeRO_v1"
+    BooleanAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a boolean attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: boolean
+              description: The boolean attribute value
+    CredentialsRO:
+      type: object
+      properties:
+        login:
+          type: string
+          description: the login
+          example: pmiller@test.intershop.de
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: the password
+          example: "!InterShop00!"
+        securityQuestion:
+          type: string
+          description: the security question
+          example: what was the name of your first pet?
+        securityQuestionAnswer:
+          type: string
+          description: the security questions answer
+          example: Snoopy
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: the credentials of the new customer as CredentialsRO
+      nullable: true
+      xml:
+        name: Credentials
+    CustomerAddressRO:
+      type: object
+      properties:
+        addressLine1:
+          type: string
+          description: the first address line
+          example: Berliner Str. 20
+        addressLine2:
+          type: string
+          description: the second address line
+          example: 1st Floor
+        addressLine3:
+          type: string
+          description: The third address line
+          example: Second door on the right
+        addressName:
+          type: string
+          description: The name of the address
+          example: customeraddr-ABCDEFGPRMuMCscyXgSRVU
+        aristocraticTitle:
+          type: string
+          description: the aristocratic title of the contact person, like <i>Lord</i> or <i>Lady</i>
+        city:
+          type: string
+          description: the city
+          example: Potsdam
+        companyName1:
+          type: string
+          description: the company name
+          example: PMiller ltd.
+        companyName2:
+          type: string
+          description: the second company name
+        country:
+          type: string
+          description: the display name of the country in the current locale
+          example: Germany
+        countryCode:
+          type: string
+          description: ISO 3166-1 country code
+          example: DE
+        customerAttributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeRO_v1"
+        email:
+          type: string
+          description: the e-mail address of the contact person
+          example: pmiller@intershop.de
+        fax:
+          type: string
+          description: the fax number
+          example: "049364112643"
+        firstName:
+          type: string
+          description: the (first) given name of the contact person
+          example: Patricia
+        honorific:
+          type: string
+          description: the honorific title of the contact person that denotes the honored person's occupation, like <i>Captain</i>, <i>Coach</i>, <i>Officer</i>, <i>Reverend</i> or the academic title, like <i>PhD</i>
+        id:
+          type: string
+          description: The id of the returned element
+          example: vagKAB17gg4AAAFGSkFqQASI
+        jobTitle:
+          type: string
+          description: the job title of the contact person
+          example: CEO
+        lastName:
+          type: string
+          description: the last name of the contact person
+          example: Miller
+        mainDivision:
+          type: string
+          description: the main division of the country, e. g. a state or province
+          example: AL
+        mainDivisionName:
+          type: string
+          description: The localized display name of the main division
+          example: Alabama
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        phoneBusiness:
+          type: string
+          description: the phone number of the contact person's company
+          example: "049364112699"
+        phoneBusinessDirect:
+          type: string
+          description: the business phone number of the contact person that allows an outside caller to connect directly to the contact person without any help of an attendant or operator
+          example: "049364112659"
+        phoneHome:
+          type: string
+          description: the phone number of the house or apartment where the contact person lives
+          example: "049364112677"
+        phoneMobile:
+          type: string
+          description: the number of the contact person's cell phone
+          example: "+49364112677"
+        postalCode:
+          type: string
+          description: the postal code
+          example: "14482"
+        postBox:
+          type: string
+          description: the post-office box
+          example: PO Box 42
+        secondLastName:
+          type: string
+          description: the second last name of the contact person
+        secondName:
+          type: string
+          description: the second given name of the contact person
+          example: Luise
+        sendEmailTocs:
+          type: boolean
+        subDivision:
+          type: string
+          description: The sub division code of the country.
+          example: GB-PKN
+        subDivisionName:
+          type: string
+          description: The localized display name of the sub division
+          example: Perth and Kinross
+        title:
+          type: string
+          description: " the (personal) title of the contact person, like <i>Mr.</i> or <i>Ms.</i>"
+          example: Mrs.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Address
+          xml:
+            attribute: true
+        urn:
+          type: string
+          description: the URN representation of this address
+          example: urn:address:customer:1234567890:0987654321
+        usage:
+          type: object
+          properties:
+            empty:
+              type: boolean
+          description: " Returns usage information for the address. Every bit in the returned set marks a specific usage type, like ship-from or invoice-to address. If a bit is set, the address may be used for the specific purpose mapped to this bit. Further bits may be used for custom types. Default usage for first 4 bits are Invoice-to, Ship-to, Service-to and Install-to"
+      xml:
+        name: CustomerAddress
+    CustomFieldDefinitionRO_v1:
+      type: object
+      properties:
+        description:
+          type: string
+          description: The localized custom field description.
+          readOnly: true
+        displayName:
+          type: string
+          description: The localized display name of the custom field.
+          readOnly: true
+          example: Delivery Preference
+        name:
+          type: string
+          description: The name of an element
+          readOnly: true
+          example: deliveryPreference
+        position:
+          type: integer
+          description: The position of the custom field in the list of custom fields.
+          format: int32
+          readOnly: true
+          example: 1
+        scopes:
+          type: array
+          description: A list of configured scopes for this custom field.
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinitionScopeRO_v1"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          example: String
+      description: __BETA__ | A representation of a custom field definition.
+      readOnly: true
+    CustomFieldDefinitionScopeRO_v1:
+      type: object
+      properties:
+        isEditable:
+          type: boolean
+          description: Flag indicating whether a custom field can be edited or not.
+          readOnly: true
+          example: true
+        isVisible:
+          type: boolean
+          description: Flag indicating whether a custom field is visible or not.
+          readOnly: true
+          example: true
+        name:
+          type: string
+          description: The name of an element
+          readOnly: true
+          example: Basket
+      description: __BETA__ | A representation of a custom field definition scope.
+      readOnly: true
+    DateAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a date/time attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The date/time attribute value
+              format: date-time
+              example: 2020-05-23T13:23:45+02:00
+    DecimalAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a decimal attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: number
+              description: The decimal attribute value
+    DoubleAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a double attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: number
+              description: The double attribute value
+              format: double
+    GenericPropertyROObject:
+      type: object
+      properties:
+        displayName:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        property:
+          type: object
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: Property
+    GiftCardAndCertificateRO:
+      title: GiftCardAndCertificate
+      type: object
+      properties:
+        amount:
+          type: number
+          description: The value of the gift card
+          example: 25
+        amountRemaining:
+          type: number
+          description: The remaining value of the gift card
+          example: 12.73
+        currency:
+          type: string
+          description: The currency of the gift card
+          example: USD
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: GiftCardAndCertificate
+          xml:
+            attribute: true
+      description: This resource holds information on a gift card or a gift certificate.
+      xml:
+        name: GiftCardAndCertificate
+    IntegerAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of an integer attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: integer
+              description: The integer attribute value
+              format: int32
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    LinkROResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of Link-ResourceObjects
+      xml:
+        name: ResourceCollection
+    LongAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a long attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: integer
+              description: The long attribute value
+              format: int64
+    MoneyAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a money attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              $ref: "#/components/schemas/MoneyRO_v1"
+    MoneyRO:
+      title: Money
+      type: object
+      properties:
+        currency:
+          type: string
+          description: Three-letter currency code (ISO 4217) of the monetary value
+          example: USD
+        currencyMnemonic:
+          type: string
+          deprecated: true
+        type:
+          type: string
+          description: "This is a constant: **Money**"
+          readOnly: true
+          example: Money
+          xml:
+            attribute: true
+        value:
+          type: number
+          description: The monetary value
+          example: 10.99
+      description: Money combines a currency and a money amount.
+      readOnly: true
+      xml:
+        name: Money
+    MoneyRO_v1:
+      title: MoneyRO_v1
+      type: object
+      properties:
+        currency:
+          type: string
+          description: Three-letter currency code (ISO 4217) of the monetary value
+          example: USD
+        value:
+          type: number
+          description: The monetary value
+          example: 10.99
+      description: Describes a money object
+    MultipleBooleanAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple boolean attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple boolean attribute value
+              items:
+                type: boolean
+                description: The multiple boolean attribute value
+    MultipleDateAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple date/time attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple date/time attribute value
+              items:
+                type: string
+                description: The multiple date/time attribute value
+                format: date-time
+    MultipleDecimalAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple decimal attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple decimal attribute value
+              items:
+                type: number
+                description: The multiple decimal attribute value
+    MultipleDoubleAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple double attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple double attribute value
+              items:
+                type: number
+                description: The multiple double attribute value
+                format: double
+    MultipleIntegerAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple integer attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple integer attribute value
+              items:
+                type: integer
+                description: The multiple integer attribute value
+                format: int32
+    MultipleLongAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple long attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple long attribute value
+              items:
+                type: integer
+                description: The multiple long attribute value
+                format: int64
+    MultipleStringAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple string attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple string attribute value
+              items:
+                type: string
+                description: The multiple string attribute value
+    NewPrivateCustomerRO:
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/AddressRO"
+        birthday:
+          type: string
+          description: the birthday of the customer
+          nullable: true
+          example: 1970-03-10
+        credentials:
+          $ref: "#/components/schemas/CredentialsRO"
+        customerNo:
+          type: string
+        customerType:
+          type: string
+          description: the type of the customer
+          readOnly: true
+          example: PRIVATE
+        customFieldDefinitions:
+          type: array
+          description: "The collection of the custom field definitions<br/>[BETA]: This property is still in BETA and could be subject to breaking changes."
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinitionRO_v1"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        email:
+          type: string
+          description: the email address of the customer
+          nullable: true
+          example: patrik@test.intershop.net
+        externalURN:
+          type: string
+          description: the external URN of the customer
+          nullable: true
+          example: A4211324
+        fax:
+          type: string
+          description: the fax number of the customer
+          nullable: true
+          example: "4211324"
+        firstName:
+          type: string
+          description: the first name of the customer
+          nullable: true
+          example: Patrik
+        lastName:
+          type: string
+          description: the last name of the customer
+          nullable: true
+          example: Mueller
+        login:
+          type: string
+          description: the login(username) of the customer
+          nullable: true
+          example: patrik_83
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: Password of the user. Used only in requests.
+          nullable: true
+          writeOnly: true
+          example: P@ssw0rd123
+        phoneBusiness:
+          type: string
+          description: the business phone number of the customer
+          nullable: true
+          example: "4211324"
+        phoneHome:
+          type: string
+          description: the phone home number of the customer
+          nullable: true
+          example: "4211324"
+        phoneMobile:
+          type: string
+          description: the mobile phone number of the customer
+          nullable: true
+          example: "4211324"
+        preferredInvoiceToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        preferredLanguage:
+          type: string
+          description: the preferred language of the customer
+          nullable: true
+          example: de_DE
+        preferredPaymentInstrument:
+          $ref: "#/components/schemas/PaymentRO"
+        preferredShipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        title:
+          type: string
+          description: the title of the customer
+          nullable: true
+          example: Mr
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PrivateCustomer
+          xml:
+            attribute: true
+        userId:
+          type: string
+          description: the id of the user this customer is based on. If not set, credentials and user data are mandatory.
+          nullable: true
+      description: A representation of a private customer to be created.
+      xml:
+        name: NewCustomer
+    NewSMBCustomerRO:
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/AddressRO"
+        budgetPriceType:
+          type: string
+          description: The price type used for the customer's budgets. Updating the value resets all user budgets.
+          example: net
+          enum:
+            - gross
+            - net
+          default: gross
+        companyName:
+          type: string
+          description: The company name of the customer
+          example: AgroNet
+        companyName2:
+          type: string
+        credentials:
+          $ref: "#/components/schemas/CredentialsRO"
+        customerNo:
+          type: string
+        customerType:
+          type: string
+          description: the type of the customer
+          readOnly: true
+          example: PRIVATE
+        customFieldDefinitions:
+          type: array
+          description: "The collection of the custom field definitions.<br/>[BETA]: This property is still in BETA and could be subject to breaking changes."
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinitionRO_v1"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        description:
+          type: string
+          description: The description of the customer
+          example: AgroNet description
+        externalURN:
+          type: string
+          description: The external URN of the customer
+          example: A123456
+        industry:
+          type: string
+          description: The industry of the customer
+          example: agrar industry
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        taxationID:
+          type: string
+          description: The taxation ID of the customer
+          example: "123456"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: SMBCustomer
+          xml:
+            attribute: true
+        user:
+          $ref: "#/components/schemas/SMBCustomerUserRO"
+        userId:
+          type: string
+          description: the id of the user this customer is based on. If not set, credentials and user data are mandatory.
+          nullable: true
+      description: A representation of a business customer to be created.
+      xml:
+        name: NewCustomer
+    PaymentOptionRO:
+      title: PaymentOption
+      type: object
+      properties:
+        applicability:
+          type: string
+          example: Applicable
+        displayName:
+          type: string
+          description: The display name of the payment option
+          example: Invoice
+        id:
+          type: string
+          description: The ID of the payment option
+          example: ISH_INVOICE
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        paymentParameters:
+          type: array
+          description: The parameters for this payment option
+          xml:
+            name: parameters
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/GenericPropertyROObject"
+        restrictions:
+          type: array
+          description: The restrictions for this payment option
+          xml:
+            wrapped: true
+          items:
+            type: string
+            xml:
+              name: restriction
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOption
+          xml:
+            attribute: true
+      description: This resource holds information on a payment option.
+      xml:
+        name: PaymentOption
+    PaymentOptionsForMethodRO:
+      title: PaymentOptionsForMethod
+      type: object
+      properties:
+        method:
+          type: string
+          description: The HTTP method to use when adding this method
+          example: POST
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        payments:
+          type: array
+          description: The payments
+          items:
+            $ref: "#/components/schemas/PaymentOptionRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOptionsForMethodRO
+          xml:
+            attribute: true
+      description: This resource holds information about payment methods that can be added and the HTTP method to be used.
+      xml:
+        name: PaymentOptionsForMethodRO
+    PaymentOptionsRO:
+      title: PaymentOptions
+      type: object
+      properties:
+        methods:
+          type: array
+          description: The payment methods that can be added via HTTP
+          items:
+            $ref: "#/components/schemas/PaymentOptionsForMethodRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOptions
+          xml:
+            attribute: true
+      description: This resource holds one or more PaymentOptionsForMethodRO.
+      xml:
+        name: PaymentOptions
+    PaymentRO:
+      title: Payment
+      type: object
+      properties:
+        accountIdentifier:
+          type: string
+          description: The optional account identifier for this payment instrument
+          readOnly: true
+          example: DE12****7890
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        id:
+          type: string
+          description: The payment ID
+          example: dhKsEmZRPyEAAAF2hyV6dB2n
+        limitedTenderBalance:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        parameters:
+          type: array
+          description: The parameters for this payment
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/GenericPropertyROObject"
+        paymentTotalAmount:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Payment
+          xml:
+            attribute: true
+      xml:
+        name: Payment
+    PrivateCustomerRO:
+      type: object
+      properties:
+        birthday:
+          type: string
+          description: the birthday of the customer
+          nullable: true
+          example: 1970-03-10
+        customerNo:
+          type: string
+        customerType:
+          type: string
+          description: the type of the customer
+          readOnly: true
+          example: PRIVATE
+        customFieldDefinitions:
+          type: array
+          description: "The collection of the custom field definitions<br/>[BETA]: This property is still in BETA and could be subject to breaking changes."
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinitionRO_v1"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        email:
+          type: string
+          description: the email address of the customer
+          nullable: true
+          example: patrik@test.intershop.net
+        externalURN:
+          type: string
+          description: the external URN of the customer
+          nullable: true
+          example: A4211324
+        fax:
+          type: string
+          description: the fax number of the customer
+          nullable: true
+          example: "4211324"
+        firstName:
+          type: string
+          description: the first name of the customer
+          nullable: true
+          example: Patrik
+        lastName:
+          type: string
+          description: the last name of the customer
+          nullable: true
+          example: Mueller
+        login:
+          type: string
+          description: the login(username) of the customer
+          nullable: true
+          example: patrik_83
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: Password of the user. Used only in requests.
+          nullable: true
+          writeOnly: true
+          example: P@ssw0rd123
+        phoneBusiness:
+          type: string
+          description: the business phone number of the customer
+          nullable: true
+          example: "4211324"
+        phoneHome:
+          type: string
+          description: the phone home number of the customer
+          nullable: true
+          example: "4211324"
+        phoneMobile:
+          type: string
+          description: the mobile phone number of the customer
+          nullable: true
+          example: "4211324"
+        preferredInvoiceToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        preferredLanguage:
+          type: string
+          description: the preferred language of the customer
+          nullable: true
+          example: de_DE
+        preferredPaymentInstrument:
+          $ref: "#/components/schemas/PaymentRO"
+        preferredShipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        title:
+          type: string
+          description: the title of the customer
+          nullable: true
+          example: Mr
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PrivateCustomer
+          xml:
+            attribute: true
+      xml:
+        name: PrivateCustomer
+    QuantityAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a quantity attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              $ref: "#/components/schemas/QuantityRO_v1"
+    QuantityRO_v1:
+      required:
+        - value
+      type: object
+      properties:
+        unit:
+          type: string
+          description: The unit of the quantity
+          example: kg
+        value:
+          type: number
+          description: The quantity's value
+          example: 10
+      description: The quantity of a business entity
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    SMBCustomerRO:
+      type: object
+      properties:
+        budgetPriceType:
+          type: string
+          description: The price type used for the customer's budgets. Updating the value resets all user budgets.
+          example: net
+          enum:
+            - gross
+            - net
+          default: gross
+        companyName:
+          type: string
+          description: The company name of the customer
+          example: AgroNet
+        companyName2:
+          type: string
+        customerNo:
+          type: string
+        customerType:
+          type: string
+          description: the type of the customer
+          readOnly: true
+          example: PRIVATE
+        customFieldDefinitions:
+          type: array
+          description: "The collection of the custom field definitions.<br/>[BETA]: This property is still in BETA and could be subject to breaking changes."
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/CustomFieldDefinitionRO_v1"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        description:
+          type: string
+          description: The description of the customer
+          example: AgroNet description
+        externalURN:
+          type: string
+          description: The external URN of the customer
+          example: A123456
+        industry:
+          type: string
+          description: The industry of the customer
+          example: agrar industry
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        preferredInvoiceToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        preferredShipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        taxationID:
+          type: string
+          description: The taxation ID of the customer
+          example: "123456"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: SMBCustomer
+          xml:
+            attribute: true
+      xml:
+        name: SMBCustomer
+    SMBCustomerUserRO:
+      type: object
+      properties:
+        active:
+          type: boolean
+          description: Indicates whether the user is active
+          example: true
+        birthday:
+          type: string
+          description: Date of birth of the person represented by this user in format MM/dd/yyyy
+          nullable: true
+          example: 12/24/1998
+        businessPartnerNo:
+          type: string
+          description: ID uniquely identifying the user in the context of the customer.
+          example: PMerkel
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        department:
+          type: string
+          description: The department of the user
+          example: Sales
+        email:
+          type: string
+          description: The e-mail of the user. When changing the e-mail, the user's password is required.
+          example: pmerkel@test.intershop.de
+        fax:
+          type: string
+          description: The fax number of the user
+          example: "4211324"
+        firstName:
+          type: string
+          description: The given name (also known as a personal name, first name, forename) of the person represented by this user.
+          example: Peter
+        lastName:
+          type: string
+          description: The surname (also known as a family name, last name) of the person represented by this user.
+          example: Merkel
+        login:
+          type: string
+          description: The login to be used for that user.
+          example: pmerkel@test.intershop.de
+        name:
+          type: string
+          description: The name of an element
+          example: SMBCustomerUser
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: Password of the user. Used only in requests.
+          nullable: true
+          writeOnly: true
+          example: P@ssw0rd123
+        phoneBusiness:
+          type: string
+          description: The business phone number of the user
+          example: "4211324"
+        phoneHome:
+          type: string
+          description: The phone home number of the user
+          example: "4211324"
+        phoneMobile:
+          type: string
+          description: The mobile phone number of the user
+          example: "4211324"
+        preferredInvoiceToAddressUrn:
+          type: string
+          description: The URN representation of the preferred invoice address for the user in the format urn:address:customer:addressID:customerID
+          nullable: true
+          example: ""
+        preferredLanguage:
+          type: string
+          description: The preferred language of the user
+          example: de_DE
+        preferredPaymentInstrument:
+          $ref: "#/components/schemas/PaymentRO"
+        preferredShipToAddressUrn:
+          type: string
+          description: The URN representation of the preferred shipping address for the user in the format urn:address:customer:addressID:customerID
+          nullable: true
+          example: ""
+        title:
+          type: string
+          description: The personal title, like Ms., Mr.
+          example: Mr.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: SMBCustomerUser
+          xml:
+            attribute: true
+      xml:
+        name: SMBCustomerUser
+    SMBCustomerUserROCollection:
+      title: Collection
+      type: object
+      properties:
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            name: SMBCustomerUser
+          items:
+            $ref: "#/components/schemas/SMBCustomerUserRO"
+        name:
+          type: string
+          description: The name of an element
+          example: Users
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: SMBCustomerUserCollection
+    StringAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a string attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The string attribute value
+    TextAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a text attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The text attribute value
+    UserLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        login:
+          type: string
+          description: The login of the user
+          example: pmerkel@test.intershop.de
+        name:
+          type: string
+          description: The name of an element
+          example: Peter Merkel
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: the uri to the user item resource
+          example: Organization-Channel-Site/-/customers/-/users/pmerkel@test.intershop.de
+      description: A Link to registered User Item Resource
+      xml:
+        name: Link
+    UserLinkROCollection:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/UserLinkRO"
+        filter:
+          type: string
+          description: the defined filter criteria for returned users
+        limit:
+          type: integer
+          description: the maximum count of users to return
+          format: int32
+        name:
+          type: string
+          description: The name of an element
+          example: users
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: customer
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.DanaherCustomerAddressItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource,com.intershop.sellside.rest.common.capi.resource.customer.payment.CustomerEligiblePaymentItemResource

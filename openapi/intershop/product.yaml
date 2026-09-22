@@ -1,0 +1,4756 @@
+openapi: 3.0.1
+info:
+  title: Product & Category
+  description: |-
+    The Intershop Product & Category REST API contains resources for retrieving a wide range of product-related information as well as category information and product filters.
+
+    ## Personalized Content
+
+    The call can contain customer-segment specific details, e.g. prices.
+
+    If the `spgid` parameter is not provided, the cached version of the call is returned. Use the `spgid` parameter to retrieve a customer-segment specific version.
+
+    For authenticated REST calls, use the `spgid` parameter in the URL. Otherwise the request will be considered anonymous, even if authentication is provided in the header.
+
+    Example: `/products;spgid=12345`
+
+    Use the `/personalization` call to retrieve the spgid.
+
+    ## Product Filters
+
+    ### Using the Product Filters Endpoint
+
+    The `/products` endpoint returns available products. The results can be filtered by search term and product filters.
+    The `/categories/{categoryID}/products` endpoint returns available products for a specific category. The results can be filtered by search term, product filters and predefined product filters (via the productFilter query parameter).
+    The `/productfilters` endpoint is used to fetch said filters and filter entries.
+    The interaction between these endpoints is illustrated in the following sections:
+
+    ### Selection of Filter Entry
+
+    To start, fetch the available filters for a search term.
+
+    **Example:** `/productfilters?searchTerm=camera` fetches filters which are applicable for products matching the search term "camera".
+
+    The result list of the endpoint contains further filters that can be applied in addition to the current filters. They can be applied by using the URI provided in the `link` field.
+
+    **Example:** `/productfilters?searchTerm=camera&Colour_of_product=Black` applies the filter `Colour_of_product=Black` to the current query.
+
+    It is possible to select multiple entries for a filter. If an attribute is a multi-value, then combinations of these values are made available in the list of filter entries.
+
+    **Example:** `/productfilters?searchTerm=camera&Colour_of_product=Black_or_Blue` adds `Blue` to the filter.
+
+    It is also possible to deselect entries. If a filter entry is selected, its `link` field will provide a link to deselect this entry.
+    **Example:** `/productfilters?searchTerm=camera&Colour_of_product=Blue`
+
+    ### Retrieving Product Hits
+
+    To fetch the products that match the given search term and selected filters, use the link provided in the `hits` field.
+    The existing query parameters that apply to the product list endpoint may be added to this query.
+
+    **Example:** `/categories/Cameras-Camcorders/products?searchTerm=camera&Colour_of_product=Black_or_Blue&amount=12` fetches a maximum of 12 products matching these filters in the Cameras-Camcorders category.
+
+    ### Navigation
+
+    The same filters can also be used when navigating through the category tree.
+
+    **Example:** `/categories/Cameras-Camcorders/832/productfilters?productFilter=fallback_searchquerydefinition` fetches filters that are available in the respective subcategory.
+
+    ## Product SKU
+
+    If the product SKU uses special characters ("/", ":", ...), then it needs to be double [encoded](https://developer.mozilla.org/en-US/docs/Glossary/percent-encoding).
+
+    The SKU in the links in the responses are also double encoded, so they may be directly used.
+
+    **Example** 
+    product: Using double encoding for ```a/b```, it becomes ```a%252Fb```.
+
+    ## Changelog
+
+    ### Version 1.12.0
+    * Added support for category references to `/products` and `/productfilters` endpoints
+    * Changed `categoriesKey` parameter documentation in several endpoints to reflect the new category reference support
+
+    ### Version 1.11.0
+    * Added parameter `supplierName` and `manufacturerSKU` to `ProductRO`
+
+    ### Version 1.10.0
+    * Added query parameter `omitProductCountPerCategory` to the GET categories/{categoriesKey} request
+
+    ### Version 1.9.0
+    * Changed the query parameter `offset` for the products list call. The offset is rounded down to the nearest multiple of `amount` to match a full page
+
+    ### Version 1.8.0
+    * Added this changelog
+    * Added query parameter `omitProductCountPerCategory` to GET categories request
+  version: 1.12.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Custom Product List
+    description: Return the requested product details and the eligible promotion details for the same product
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.DanaherCustomProductListResource
+paths:
+  "{loc}{cur}/products{spgid}/{productKey}":
+    get:
+      tags:
+        - Product
+      summary: Returns details of a product
+      description: This operation retrieves information about a product, usually in order to render a product details page.
+      operationId: getProductSingle
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: attrs
+          in: query
+          description: |-
+            Allows to retrieve specific data for the product. Can be combined with the `view` parameter.
+
+            Available values are every field in the ProductRO class, as well as other attributes that may be set in the product.
+
+            Multiple values can be combined using commas. Available values:
+
+            - `attachments`
+            - `attributeGroups`
+            - `availability` (in stock status, according to Intershop Commerce Management)
+            - `availableGiftMessages`
+            - `availableGiftWraps`
+            - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+            - `availableWarranties`
+            - `averageRating` (average user evaluation score)
+            - `bundles`
+            - `crosssells`
+            - `currencyCode`
+            - `customAttributes`
+            - `defaultCategory`
+            - `endOfLife`
+            - `images`
+            - `inStock` (in stock status, according to the Inventory Service)
+            - `lastOrderDate`
+            - `listPrice`
+            - `longDescription` (maximal item description)
+            - `manufacturer`
+            - `manufacturerSKU`
+            - `mastered` (true, if the product is a variation product)
+            - `maxListPrice`
+            - `maxOrderQuantity`
+            - `maxSalePrice`
+            - `minListPrice`
+            - `minOrderQuantity`
+            - `minSalePrice`
+            - `packingUnit` (unit in which the product is sold)
+            - `partOfRetailSet`
+            - `price`
+            - `productBundle`
+            - `productMaster` (true, if the product is a variation master)
+            - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+            - `productName`
+            - `productTypes`
+            - `promotions` (applicable promotions)
+            - `readyForShipmentMax`
+            - `readyForShipmentMin`
+            - `retailSet`
+            - `reviews`
+            - `roundedAverageRating` (rating)
+            - `salePrice`
+            - `seoAttributes` (Search Engine Optimization attributes)
+            - `shippingMethods`
+            - `shortDescription` (minimal item description)
+            - `sku` (product ID)
+            - `stepOrderQuantity`
+            - `summedUpListPrice`
+            - `summedUpSalePrice`
+            - `supplier`
+            - `supplierSKU`
+            - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+            - `variations`
+            - `variationAttributeValues`
+            - `variableVariationAttributes`
+          schema:
+            type: string
+            description: |-
+              Allows to retrieve specific data for the product. Can be combined with the `view` parameter.
+
+              Available values are every field in the ProductRO class, as well as other attributes that may be set in the product.
+
+              Multiple values can be combined using commas. Available values:
+
+              - `attachments`
+              - `attributeGroups`
+              - `availability` (in stock status, according to Intershop Commerce Management)
+              - `availableGiftMessages`
+              - `availableGiftWraps`
+              - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+              - `availableWarranties`
+              - `averageRating` (average user evaluation score)
+              - `bundles`
+              - `crosssells`
+              - `currencyCode`
+              - `customAttributes`
+              - `defaultCategory`
+              - `endOfLife`
+              - `images`
+              - `inStock` (in stock status, according to the Inventory Service)
+              - `lastOrderDate`
+              - `listPrice`
+              - `longDescription` (maximal item description)
+              - `manufacturer`
+              - `manufacturerSKU`
+              - `mastered` (true, if the product is a variation product)
+              - `maxListPrice`
+              - `maxOrderQuantity`
+              - `maxSalePrice`
+              - `minListPrice`
+              - `minOrderQuantity`
+              - `minSalePrice`
+              - `packingUnit` (unit in which the product is sold)
+              - `partOfRetailSet`
+              - `price`
+              - `productBundle`
+              - `productMaster` (true, if the product is a variation master)
+              - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+              - `productName`
+              - `productTypes`
+              - `promotions` (applicable promotions)
+              - `readyForShipmentMax`
+              - `readyForShipmentMin`
+              - `retailSet`
+              - `reviews`
+              - `roundedAverageRating` (rating)
+              - `salePrice`
+              - `seoAttributes` (Search Engine Optimization attributes)
+              - `shippingMethods`
+              - `shortDescription` (minimal item description)
+              - `sku` (product ID)
+              - `stepOrderQuantity`
+              - `summedUpListPrice`
+              - `summedUpSalePrice`
+              - `supplier`
+              - `supplierSKU`
+              - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+              - `variations`
+              - `variationAttributeValues`
+              - `variableVariationAttributes`
+            example: sku,inStock,manufacturer
+          example: sku,inStock,manufacturer
+        - name: view
+          in: query
+          description: |-
+            ID of a custom view.
+
+            It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+            Can be combined with the `attrs` parameter.
+          schema:
+            type: string
+            description: |-
+              ID of a custom view.
+
+              It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+              Can be combined with the `attrs` parameter.
+            example: default
+            default: default
+          example: default
+        - name: imageView
+          in: query
+          description: |-
+            By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+              Only one value allowed.
+            example: front
+          example: front
+        - name: imageType
+          in: query
+          description: |-
+            By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+              Only one value allowed.
+            example: 2XS
+          example: 2XS
+        - name: allImages
+          in: query
+          description: Specify whether the response should contain all or no images.
+          schema:
+            type: string
+            description: Specify whether the response should contain all or no images.
+            example: "true"
+            default: "false"
+          example: "true"
+        - name: basketId
+          in: query
+          description: ID of a specific basket. Allows to retrieve prices based on country-specific taxes for the given basket.
+          schema:
+            type: string
+            description: ID of a specific basket. Allows to retrieve prices based on country-specific taxes for the given basket.
+            example: 3CwKDgAFvUgAAAF3PScz6KVy
+          example: 3CwKDgAFvUgAAAF3PScz6KVy
+        - name: invoiceToAddressId
+          in: query
+          description: ID of a specific invoice address. Allows to retrieve prices based on country-specific taxes for the given invoice address.
+          schema:
+            type: string
+            description: ID of a specific invoice address. Allows to retrieve prices based on country-specific taxes for the given invoice address.
+            example: QdasEQAFJKAAAAF3o89ZTnFf
+          example: QdasEQAFJKAAAAF3o89ZTnFf
+        - name: shipToAddressId
+          in: query
+          description: ID of a specific shipping address. Allows to retrieve prices based on country-specific taxes for the given shipping address.
+          schema:
+            type: string
+            description: ID of a specific shipping address. Allows to retrieve prices based on country-specific taxes for the given shipping address.
+            example: QdasEQAFJKAAAAF3o89ZTnFf
+          example: QdasEQAFJKAAAAF3o89ZTnFf
+        - name: shipFromAddressId
+          in: query
+          description: ID of a specific sender address. Allows to retrieve prices based on country-specific taxes for the given sender address.
+          schema:
+            type: string
+            description: ID of a specific sender address. Allows to retrieve prices based on country-specific taxes for the given sender address.
+            example: SX6sEQAFMaYAAAF33DhZTnFf
+          example: SX6sEQAFMaYAAAF33DhZTnFf
+        - name: extended
+          in: query
+          description: Set to `true` to fetch extended information on product variations
+          schema:
+            type: boolean
+            description: Set to `true` to fetch extended information on product variations
+            example: false
+            default: false
+          example: "false"
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The product with the given ID is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getProduct(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/categories":
+    get:
+      tags:
+        - Product
+        - Categories
+      summary: Returns categories of a product
+      description: This operation returns a list of all categories to which the product is explicitly or dynamically assigned.
+      operationId: getCategoriesResource
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The categories of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getCategories()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products/{productKey}/variations/search":
+    post:
+      tags:
+        - Product
+      summary: Returns a variation of a product by search
+      description: This operation returns a product variation for a product by searching for product attributes.
+      operationId: searchVariationsPOST
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      requestBody:
+        description: The request body that contains the product attributes to search for.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductSearchAttributesRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/ProductSearchAttributesRO"
+      responses:
+        "200":
+          description: OK - The product variation is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+        "400":
+          description: Bad request - The product is not a product master.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductRO com.intershop.sellside.rest.common.capi.resource.product.VariationResource.searchVariations(jakarta.ws.rs.core.UriInfo,com.intershop.sellside.rest.common.capi.resourceobject.ProductSearchAttributesRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.product.VariationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/productfilters":
+    get:
+      tags:
+        - Filter
+      summary: Returns product filters
+      description: |-
+        This operation retrieves a list of product filters.
+
+        # Advanced Variation Handling
+
+        This resource can be filtered by search index attributes (if specified in the back office).
+        However, if you filter specifically by MasterSKU, there is a slightly different behavior: When you pass this parameter, you only get filters for variation attributes instead of all filters. The filter values count represents the number of available variations with that filter value.
+
+        Example: ```/productfilters?MasterSKU=M123``` will exclude filters like *price* or *category* to show variation attributes only. 
+      operationId: getProductFilters
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - name: searchTerm
+          in: query
+          description: An optional search term
+          schema:
+            type: string
+            description: An optional search term
+        - name: productFilter
+          in: query
+          description: A product filter ID to be used for category navigation or search respectively
+          schema:
+            type: string
+            description: A product filter ID to be used for category navigation or search respectively
+            example: sort_by_price
+          example: sort_by_price
+      responses:
+        "200":
+          description: OK - The list of product filters is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROFilterRO"
+        "404":
+          description: Not found - No product filter could be found.
+        "503":
+          description: Service unavailable
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductFiltersResource.getProductFilters(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductFiltersResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/links":
+    get:
+      tags:
+        - Product
+      summary: Returns product links of a product
+      description: This operation returns all product links of a product. The links are grouped by type and contain both linked products and categories.
+      operationId: getProductLinksGETProductLinks_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: linkType
+          in: query
+          description: The type of links to retrieve
+          schema:
+            type: string
+            description: The type of links to retrieve
+            example: accessory
+          example: accessory
+        - name: targetObject
+          in: query
+          description: The target of the links to fetch
+          schema:
+            type: string
+            description: The target of the links to fetch
+            example: product
+            enum:
+              - product
+              - category
+          example: product
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The links for the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TypedLinksCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/TypedLinksCollectionRO"
+        "400":
+          description: Bad request - The query parameters are invalid.
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.TypedLinkRO$TypedLinksCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductLinksResource.getProductLinks(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductLinksResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories{spgid}":
+    get:
+      tags:
+        - Categories
+      summary: Returns top-level categories or category tree
+      description: |-
+        This operation returns a list of all top-level categories (catalogs). The sorting is as defined in Intershop Commerce Management (manual or dynamic sorting).
+
+        Use the `view` parameter to retrieve the whole category tree. This can be used to render the shop's main navigation.
+      operationId: getCategoryListResource
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: categories
+        - name: imageView
+          in: query
+          description: |-
+            By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+              Only one value allowed.
+            example: front
+          example: front
+        - name: imageType
+          in: query
+          description: |-
+            By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+              Only one value allowed.
+            example: 2XS
+          example: 2XS
+        - name: allImages
+          in: query
+          description: Specifies whether images in all image views and image types should be returned
+          schema:
+            type: string
+            description: Specifies whether images in all image views and image types should be returned
+            example: "true"
+            default: "false"
+          example: "true"
+        - name: view
+          in: query
+          description: Use this parameter to retrieve the whole category hierarchy, not just the top-level.
+          schema:
+            type: string
+            description: Use this parameter to retrieve the whole category hierarchy, not just the top-level.
+            example: tree
+            enum:
+              - tree
+          example: tree
+        - name: limit
+          in: query
+          description: Restricts the number of levels which are included in the response. Use in combination with `view`.
+          schema:
+            type: string
+            description: Restricts the number of levels which are included in the response. Use in combination with `view`.
+            example: "2"
+          example: "2"
+        - name: omitHasOnlineProducts
+          in: query
+          description: If true, the field `hasOnlineProducts` will not be resolved for subcategories.
+          schema:
+            type: boolean
+            description: If true, the field `hasOnlineProducts` will not be resolved for subcategories.
+            example: true
+            default: false
+          example: "true"
+        - name: omitProductCountPerCategory
+          in: query
+          description: If true, the field `onlineProductsCountInSubCategories` will not be resolved for subcategories.
+          schema:
+            type: boolean
+            description: If true, the field `onlineProductsCountInSubCategories` will not be resolved for subcategories.
+            example: true
+            default: false
+          example: "true"
+      responses:
+        "200":
+          description: OK - The list of categories is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CategoryCollectionRO"
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.CategoryRO$CategoryCollectionRO com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource.getCategory(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean,java.lang.Boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/variations":
+    get:
+      tags:
+        - Product
+      summary: Returns variations of a product
+      description: This operation returns a list of all variation products for a variation master.
+      operationId: getVariationsGET_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: extended
+          in: query
+          description: Set to `true` to fetch extended information on product variations
+          schema:
+            type: boolean
+            description: Set to `true` to fetch extended information on product variations
+            example: false
+            default: false
+          example: "false"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The variations of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariationCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/VariationCollectionRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.VariationAttributeRO$VariationCollectionRO com.intershop.sellside.rest.common.capi.resource.product.VariationResource.getVariations(java.lang.String,java.lang.Integer,java.lang.Integer,boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.product.VariationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/productfilters":
+    get:
+      tags:
+        - Filter
+      summary: Returns product filters
+      description: |-
+        This operation retrieves a list of product filters for a given category.
+
+        # Advanced Variation Handling
+
+        This resource can be filtered by search index attributes (if specified in the back office).
+        However, if you filter specifically by MasterSKU, there is a slightly different behavior: When you pass this parameter, you only get filters for variation attributes instead of all filters.
+
+        Example: ```/productfilters?MasterSKU=M123``` will exclude filters like *price* or *category* to show variation attributes only.
+      operationId: getProductFilters_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - name: searchTerm
+          in: query
+          description: An optional search term
+          schema:
+            type: string
+            description: An optional search term
+        - name: productFilter
+          in: query
+          description: A product filter ID to be used within categories
+          schema:
+            type: string
+            description: A product filter ID to be used within categories
+            example: sort_by_price
+          example: sort_by_price
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+      responses:
+        "200":
+          description: OK - The product filters for the given category are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROFilterRO"
+        "404":
+          description: Not found - The category could not be found.
+        "503":
+          description: Service unavailable
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.CategoryProductFiltersResource.getProductFilters(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.CategoryProductFiltersResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/crosssells":
+    get:
+      tags:
+        - Product
+      summary: Returns product cross sells
+      description: This operation returns a list of cross sells of a product.
+      operationId: getProductCrossSellsGETcross_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The cross sells of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getProductCrossSells()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/productlist{spgid}":
+    post:
+      tags:
+        - Product
+        - Custom Product List
+      summary: Get Product List With Promotions.
+      operationId: getProducts
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: danahercustomproducts
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/DanaherProductListRO"
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+            text/xml: {}
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.DanaherCustomProductListResource.getProducts(com.intershop.sellside.rest.common.capi.resourceobject.DanaherProductListRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.DanaherCustomProductListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/bundles":
+    get:
+      tags:
+        - Product
+      summary: Returns bundled products
+      description: This operation returns a list of all bundled products for a bundle.
+      operationId: getBundledProductsGETbundles
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The bundled products are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getBundledProducts(java.lang.String,java.lang.Integer,java.lang.Integer)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories{spgid}/{categoriesKey}":
+    get:
+      tags:
+        - Categories
+      summary: Returns category info
+      description: |-
+        This operation returns information about a category.
+
+        Use the `view` parameter to retrieve the whole category tree for this category.
+      operationId: getCategory
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: categories
+        - name: view
+          in: query
+          description: Use this parameter to retrieve the whole category hierarchy, not just the top-level.
+          schema:
+            type: string
+            description: Use this parameter to retrieve the whole category hierarchy, not just the top-level.
+            example: tree
+            enum:
+              - tree
+          example: tree
+        - name: limit
+          in: query
+          description: Restricts the number of levels which are included in the response. Use in combination with `view`.
+          schema:
+            type: string
+            description: Restricts the number of levels which are included in the response. Use in combination with `view`.
+            example: "2"
+          example: "2"
+        - name: imageView
+          in: query
+          description: |-
+            By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+              Only one value allowed.
+            example: front
+          example: front
+        - name: imageType
+          in: query
+          description: |-
+            By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+              Only one value allowed.
+            example: 2XS
+          example: 2XS
+        - name: allImages
+          in: query
+          description: Specifies whether images in all image views and image types should be returned
+          schema:
+            type: string
+            description: Specifies whether images in all image views and image types should be returned
+            example: "true"
+            default: "false"
+          example: "true"
+        - name: omitHasOnlineProducts
+          in: query
+          description: If true, the field `hasOnlineProducts` will not be resolved for subcategories.
+          schema:
+            type: boolean
+            description: If true, the field `hasOnlineProducts` will not be resolved for subcategories.
+            example: true
+            default: false
+          example: "true"
+        - name: omitProductCountPerCategory
+          in: query
+          description: If true, the field `onlineProductsCountInSubCategories` will not be resolved for subcategories.
+          schema:
+            type: boolean
+            description: If true, the field `onlineProductsCountInSubCategories` will not be resolved for subcategories.
+            example: true
+            default: false
+          example: "true"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+      responses:
+        "200":
+          description: OK - The category with the given ID was successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CategoryRO"
+        "404":
+          description: Not found - The category could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.CategoryRO com.intershop.sellside.rest.common.capi.resource.category.CategoryResource.getCategory(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.Boolean,java.lang.Boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.category.CategoryResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/links":
+    get:
+      tags:
+        - Categories
+      summary: Returns category links of a category
+      description: |-
+        This operation returns a list of all products and categories which are assigned as links to the category.
+
+        It is possible to filter by link type and by product/category.
+      operationId: getCategoryLinks
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - name: linkType
+          in: query
+          description: Limits the response to one link type
+          schema:
+            type: string
+            description: Limits the response to one link type
+            example: accessory
+          example: accessory
+        - name: targetObject
+          in: query
+          description: Limits the response to either `product` or `category` results
+          schema:
+            type: string
+            description: Limits the response to either `product` or `category` results
+            example: product
+            enum:
+              - product
+              - category
+          example: product
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+      responses:
+        "200":
+          description: OK - The links for the given category are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROTypedLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROTypedLinkRO"
+        "400":
+          description: Bad request - The query parameters are invalid.
+        "404":
+          description: Not found - The category could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.CategoryLinksResource.getCategoryLinks(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.CategoryLinksResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}":
+    get:
+      tags:
+        - Product
+      summary: Returns details of a product
+      description: This operation retrieves information about a product, usually in order to render a product details page.
+      operationId: getProductSingle_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: attrs
+          in: query
+          description: |-
+            Allows to retrieve specific data for the product. Can be combined with the `view` parameter.
+
+            Available values are every field in the ProductRO class, as well as other attributes that may be set in the product.
+
+            Multiple values can be combined using commas. Available values:
+
+            - `attachments`
+            - `attributeGroups`
+            - `availability` (in stock status, according to Intershop Commerce Management)
+            - `availableGiftMessages`
+            - `availableGiftWraps`
+            - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+            - `availableWarranties`
+            - `averageRating` (average user evaluation score)
+            - `bundles`
+            - `crosssells`
+            - `currencyCode`
+            - `customAttributes`
+            - `defaultCategory`
+            - `endOfLife`
+            - `images`
+            - `inStock` (in stock status, according to the Inventory Service)
+            - `lastOrderDate`
+            - `listPrice`
+            - `longDescription` (maximal item description)
+            - `manufacturer`
+            - `manufacturerSKU`
+            - `mastered` (true, if the product is a variation product)
+            - `maxListPrice`
+            - `maxOrderQuantity`
+            - `maxSalePrice`
+            - `minListPrice`
+            - `minOrderQuantity`
+            - `minSalePrice`
+            - `packingUnit` (unit in which the product is sold)
+            - `partOfRetailSet`
+            - `price`
+            - `productBundle`
+            - `productMaster` (true, if the product is a variation master)
+            - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+            - `productName`
+            - `productTypes`
+            - `promotions` (applicable promotions)
+            - `readyForShipmentMax`
+            - `readyForShipmentMin`
+            - `retailSet`
+            - `reviews`
+            - `roundedAverageRating` (rating)
+            - `salePrice`
+            - `seoAttributes` (Search Engine Optimization attributes)
+            - `shippingMethods`
+            - `shortDescription` (minimal item description)
+            - `sku` (product ID)
+            - `stepOrderQuantity`
+            - `summedUpListPrice`
+            - `summedUpSalePrice`
+            - `supplier`
+            - `supplierSKU`
+            - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+            - `variations`
+            - `variationAttributeValues`
+            - `variableVariationAttributes`
+          schema:
+            type: string
+            description: |-
+              Allows to retrieve specific data for the product. Can be combined with the `view` parameter.
+
+              Available values are every field in the ProductRO class, as well as other attributes that may be set in the product.
+
+              Multiple values can be combined using commas. Available values:
+
+              - `attachments`
+              - `attributeGroups`
+              - `availability` (in stock status, according to Intershop Commerce Management)
+              - `availableGiftMessages`
+              - `availableGiftWraps`
+              - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+              - `availableWarranties`
+              - `averageRating` (average user evaluation score)
+              - `bundles`
+              - `crosssells`
+              - `currencyCode`
+              - `customAttributes`
+              - `defaultCategory`
+              - `endOfLife`
+              - `images`
+              - `inStock` (in stock status, according to the Inventory Service)
+              - `lastOrderDate`
+              - `listPrice`
+              - `longDescription` (maximal item description)
+              - `manufacturer`
+              - `manufacturerSKU`
+              - `mastered` (true, if the product is a variation product)
+              - `maxListPrice`
+              - `maxOrderQuantity`
+              - `maxSalePrice`
+              - `minListPrice`
+              - `minOrderQuantity`
+              - `minSalePrice`
+              - `packingUnit` (unit in which the product is sold)
+              - `partOfRetailSet`
+              - `price`
+              - `productBundle`
+              - `productMaster` (true, if the product is a variation master)
+              - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+              - `productName`
+              - `productTypes`
+              - `promotions` (applicable promotions)
+              - `readyForShipmentMax`
+              - `readyForShipmentMin`
+              - `retailSet`
+              - `reviews`
+              - `roundedAverageRating` (rating)
+              - `salePrice`
+              - `seoAttributes` (Search Engine Optimization attributes)
+              - `shippingMethods`
+              - `shortDescription` (minimal item description)
+              - `sku` (product ID)
+              - `stepOrderQuantity`
+              - `summedUpListPrice`
+              - `summedUpSalePrice`
+              - `supplier`
+              - `supplierSKU`
+              - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+              - `variations`
+              - `variationAttributeValues`
+              - `variableVariationAttributes`
+            example: sku,inStock,manufacturer
+          example: sku,inStock,manufacturer
+        - name: view
+          in: query
+          description: |-
+            ID of a custom view.
+
+            It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+            Can be combined with the `attrs` parameter.
+          schema:
+            type: string
+            description: |-
+              ID of a custom view.
+
+              It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+              Can be combined with the `attrs` parameter.
+            example: default
+            default: default
+          example: default
+        - name: imageView
+          in: query
+          description: |-
+            By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image views that are maintained for this product. To receive only images of a specific image view, provide an image view ID. The possible values depend on the image management configuration in Intershop Commerce Management.
+
+              Only one value allowed.
+            example: front
+          example: front
+        - name: imageType
+          in: query
+          description: |-
+            By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+            Only one value allowed.
+          schema:
+            type: string
+            description: |-
+              By default, the response contains images of all image types that are maintained for this product. Use this parameter to receive only images of a specific image type.
+
+              Only one value allowed.
+            example: 2XS
+          example: 2XS
+        - name: allImages
+          in: query
+          description: Specify whether the response should contain all or no images.
+          schema:
+            type: string
+            description: Specify whether the response should contain all or no images.
+            example: "true"
+            default: "false"
+          example: "true"
+        - name: basketId
+          in: query
+          description: ID of a specific basket. Allows to retrieve prices based on country-specific taxes for the given basket.
+          schema:
+            type: string
+            description: ID of a specific basket. Allows to retrieve prices based on country-specific taxes for the given basket.
+            example: 3CwKDgAFvUgAAAF3PScz6KVy
+          example: 3CwKDgAFvUgAAAF3PScz6KVy
+        - name: invoiceToAddressId
+          in: query
+          description: ID of a specific invoice address. Allows to retrieve prices based on country-specific taxes for the given invoice address.
+          schema:
+            type: string
+            description: ID of a specific invoice address. Allows to retrieve prices based on country-specific taxes for the given invoice address.
+            example: QdasEQAFJKAAAAF3o89ZTnFf
+          example: QdasEQAFJKAAAAF3o89ZTnFf
+        - name: shipToAddressId
+          in: query
+          description: ID of a specific shipping address. Allows to retrieve prices based on country-specific taxes for the given shipping address.
+          schema:
+            type: string
+            description: ID of a specific shipping address. Allows to retrieve prices based on country-specific taxes for the given shipping address.
+            example: QdasEQAFJKAAAAF3o89ZTnFf
+          example: QdasEQAFJKAAAAF3o89ZTnFf
+        - name: shipFromAddressId
+          in: query
+          description: ID of a specific sender address. Allows to retrieve prices based on country-specific taxes for the given sender address.
+          schema:
+            type: string
+            description: ID of a specific sender address. Allows to retrieve prices based on country-specific taxes for the given sender address.
+            example: SX6sEQAFMaYAAAF33DhZTnFf
+          example: SX6sEQAFMaYAAAF33DhZTnFf
+        - name: extended
+          in: query
+          description: Set to `true` to fetch extended information on product variations
+          schema:
+            type: boolean
+            description: Set to `true` to fetch extended information on product variations
+            example: false
+            default: false
+          example: "false"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The product with the given ID is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getProduct(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products/{productKey}/variations/search":
+    post:
+      tags:
+        - Product
+      summary: Returns a variation of a product by search
+      description: This operation returns a product variation for a product by searching for product attributes.
+      operationId: searchVariationsPOST_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      requestBody:
+        description: The request body that contains the product attributes to search for.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductSearchAttributesRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/ProductSearchAttributesRO"
+      responses:
+        "200":
+          description: OK - The product variation is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductRO"
+        "400":
+          description: Bad request - The product is not a product master.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductRO com.intershop.sellside.rest.common.capi.resource.product.VariationResource.searchVariations(jakarta.ws.rs.core.UriInfo,com.intershop.sellside.rest.common.capi.resourceobject.ProductSearchAttributesRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.product.VariationResource
+      x-AuthorizationRule: "[]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/bundles":
+    get:
+      tags:
+        - Product
+      summary: Returns bundled products
+      description: This operation returns a list of all bundled products for a bundle.
+      operationId: getBundledProductsGETbundles_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The bundled products are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getBundledProducts(java.lang.String,java.lang.Integer,java.lang.Integer)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/partOfRetailSet":
+    get:
+      tags:
+        - Product
+      summary: Returns products of retail set
+      description: This operation returns a list of all products assigned to a retail set.
+      operationId: getPartOfRetailSetGETRetailSet
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The products assigned to the retail set are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getPartOfRetailSet(java.lang.String,java.lang.Integer,java.lang.Integer)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/variations":
+    get:
+      tags:
+        - Product
+      summary: Returns variations of a product
+      description: This operation returns a list of all variation products for a variation master.
+      operationId: getVariationsGET
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: extended
+          in: query
+          description: Set to `true` to fetch extended information on product variations
+          schema:
+            type: boolean
+            description: Set to `true` to fetch extended information on product variations
+            example: false
+            default: false
+          example: "false"
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The variations of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariationCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/VariationCollectionRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.VariationAttributeRO$VariationCollectionRO com.intershop.sellside.rest.common.capi.resource.product.VariationResource.getVariations(java.lang.String,java.lang.Integer,java.lang.Integer,boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.product.VariationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}":
+    get:
+      tags:
+        - Product
+      summary: Returns products by search
+      description: |-
+        This operation returns a list of products for a given search expression. The response contains product stubs which allow to render product lists efficiently.
+
+        # Advanced Variation Handling
+
+        This resource can be filtered by search index attributes (if specified in the back office).
+        However, if you filter specifically by MasterSKU, there is a slightly different behavior: When you pass this parameter, you will get all variations instead of just the default one.
+
+        Example: ```/products?MasterSKU=M123``` will return all variations for the Product Master M123.
+
+        Note: If no other sorting is specified, the sorting configured in the back office will be used for product variations.
+      operationId: getProductsListResource
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: sortKey
+          in: query
+          description: Defines the sorting order of the products. By default, products can be sorted by name (`name-asc` or `name-desc`) or list price (`value-asc` or `value-desc`). Moreover, it is also possible to use the attribute ID of indexed attributes defined in Intershop Commerce Management. They can be configured in the search index settings.
+          schema:
+            type: string
+            description: Defines the sorting order of the products. By default, products can be sorted by name (`name-asc` or `name-desc`) or list price (`value-asc` or `value-desc`). Moreover, it is also possible to use the attribute ID of indexed attributes defined in Intershop Commerce Management. They can be configured in the search index settings.
+            example: name-asc
+            enum:
+              - name-asc
+              - name-desc
+              - value-asc
+              - value-desc
+          example: name-asc
+        - name: returnSortKeys
+          in: query
+          description: Set to ```true``` to retrieve the available values for sortKey.
+          schema:
+            type: boolean
+            description: Set to ```true``` to retrieve the available values for sortKey.
+            example: false
+            default: false
+          example: "false"
+        - name: productFilter
+          in: query
+          description: The ID of a search query definition. Search queries can be used for filtering products. They are defined and managed in Intershop Commerce Management where they are called "predefined product filters".
+          schema:
+            type: string
+            description: The ID of a search query definition. Search queries can be used for filtering products. They are defined and managed in Intershop Commerce Management where they are called "predefined product filters".
+            example: sort_by_price
+          example: sort_by_price
+        - name: searchTerm
+          in: query
+          description: Search term with optional wildcards
+          schema:
+            type: string
+            description: Search term with optional wildcards
+            example: Ph*lips
+          example: Ph*lips
+        - name: attrs
+          in: query
+          description: |-
+            Allows to retrieve specific data for the product stubs.
+
+            Multiple values can be combined using commas. Available values:
+
+            - `productName`
+            - `sku` (product ID)
+            - `shortDescription` (minimal item description)
+            - `manufacturer`
+            - `image[@<type>]` (URL to a product image; `@<type>` is optional, default is `M`)
+            - `defaultCategory`
+            - `listPrice` 
+            - `salePrice`
+            - `productMaster` (true, if the product is a variation master)
+            - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+            - `mastered` (true, if the product is a variation product)
+            - `averageRating` (average user evaluation score)
+            - `roundedAverageRating` (rating)
+            - `numberOfRatings`
+            - `availability` (in stock status, according to Intershop Commerce Management)
+            - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+            - `inStock` (in stock status, according to the Inventory Service)
+            - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+            - `minOrderQuantity`
+            - `packingUnit` (unit in which the product is sold)
+            - `promotions` (applicable promotions)
+            - `retailSet`
+            - `endOfLife`
+            - `lastOrderDate`
+          schema:
+            type: string
+            description: |-
+              Allows to retrieve specific data for the product stubs.
+
+              Multiple values can be combined using commas. Available values:
+
+              - `productName`
+              - `sku` (product ID)
+              - `shortDescription` (minimal item description)
+              - `manufacturer`
+              - `image[@<type>]` (URL to a product image; `@<type>` is optional, default is `M`)
+              - `defaultCategory`
+              - `listPrice` 
+              - `salePrice`
+              - `productMaster` (true, if the product is a variation master)
+              - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+              - `mastered` (true, if the product is a variation product)
+              - `averageRating` (average user evaluation score)
+              - `roundedAverageRating` (rating)
+              - `numberOfRatings`
+              - `availability` (in stock status, according to Intershop Commerce Management)
+              - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+              - `inStock` (in stock status, according to the Inventory Service)
+              - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+              - `minOrderQuantity`
+              - `packingUnit` (unit in which the product is sold)
+              - `promotions` (applicable promotions)
+              - `retailSet`
+              - `endOfLife`
+              - `lastOrderDate`
+            example: sku,listPrice,manufacturer
+          example: sku,listPrice,manufacturer
+        - name: attributeGroup
+          in: query
+          description: |-
+            Use the ID of a product attribute group to retrieve all its attributes and values. Note that the group needs to be flagged with "Available via REST" in Intershop Commerce Management.
+
+            Multiple values can be combined using commas.
+          schema:
+            type: string
+            description: |-
+              Use the ID of a product attribute group to retrieve all its attributes and values. Note that the group needs to be flagged with "Available via REST" in Intershop Commerce Management.
+
+              Multiple values can be combined using commas.
+            example: ORDER_REQUIRED_ATTRIBUTES
+          example: ORDER_REQUIRED_ATTRIBUTES
+        - name: view
+          in: query
+          description: |-
+            ID of a custom view.
+
+            It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+            Can be combined with the `attrs` parameter.
+          schema:
+            type: string
+            description: |-
+              ID of a custom view.
+
+              It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+              Can be combined with the `attrs` parameter.
+            example: default
+            default: default
+          example: default
+      responses:
+        "200":
+          description: OK - The list of products is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductLinkCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductLinkCollectionRO"
+        "400":
+          description: Bad request - The query parameters are invalid.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductLinkCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductListResource.getProducts(java.lang.String,int,int,java.lang.String,java.lang.Boolean,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/links":
+    get:
+      tags:
+        - Product
+      summary: Returns product links of a product
+      description: This operation returns all product links of a product. The links are grouped by type and contain both linked products and categories.
+      operationId: getProductLinksGETProductLinks
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: linkType
+          in: query
+          description: The type of links to retrieve
+          schema:
+            type: string
+            description: The type of links to retrieve
+            example: accessory
+          example: accessory
+        - name: targetObject
+          in: query
+          description: The target of the links to fetch
+          schema:
+            type: string
+            description: The target of the links to fetch
+            example: product
+            enum:
+              - product
+              - category
+          example: product
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The links for the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TypedLinksCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/TypedLinksCollectionRO"
+        "400":
+          description: Bad request - The query parameters are invalid.
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.TypedLinkRO$TypedLinksCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductLinksResource.getProductLinks(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductLinksResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}":
+    get:
+      tags:
+        - Product
+      summary: Returns products by search
+      description: |-
+        This operation returns a list of products for a given search expression. The response contains product stubs which allow to render product lists efficiently.
+
+        # Advanced Variation Handling
+
+        This resource can be filtered by search index attributes (if specified in the back office).
+        However, if you filter specifically by MasterSKU, there is a slightly different behavior: When you pass this parameter, you will get all variations instead of just the default one.
+
+        Example: ```/products?MasterSKU=M123``` will return all variations for the Product Master M123.
+
+        Note: If no other sorting is specified, the sorting configured in the back office will be used for product variations.
+      operationId: getProductsListResource_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: sortKey
+          in: query
+          description: Defines the sorting order of the products. By default, products can be sorted by name (`name-asc` or `name-desc`) or list price (`value-asc` or `value-desc`). Moreover, it is also possible to use the attribute ID of indexed attributes defined in Intershop Commerce Management. They can be configured in the search index settings.
+          schema:
+            type: string
+            description: Defines the sorting order of the products. By default, products can be sorted by name (`name-asc` or `name-desc`) or list price (`value-asc` or `value-desc`). Moreover, it is also possible to use the attribute ID of indexed attributes defined in Intershop Commerce Management. They can be configured in the search index settings.
+            example: name-asc
+            enum:
+              - name-asc
+              - name-desc
+              - value-asc
+              - value-desc
+          example: name-asc
+        - name: returnSortKeys
+          in: query
+          description: Set to ```true``` to retrieve the available values for sortKey.
+          schema:
+            type: boolean
+            description: Set to ```true``` to retrieve the available values for sortKey.
+            example: false
+            default: false
+          example: "false"
+        - name: productFilter
+          in: query
+          description: The ID of a search query definition. Search queries can be used for filtering products. They are defined and managed in Intershop Commerce Management where they are called "predefined product filters".
+          schema:
+            type: string
+            description: The ID of a search query definition. Search queries can be used for filtering products. They are defined and managed in Intershop Commerce Management where they are called "predefined product filters".
+            example: sort_by_price
+          example: sort_by_price
+        - name: searchTerm
+          in: query
+          description: Search term with optional wildcards
+          schema:
+            type: string
+            description: Search term with optional wildcards
+            example: Ph*lips
+          example: Ph*lips
+        - name: attrs
+          in: query
+          description: |-
+            Allows to retrieve specific data for the product stubs.
+
+            Multiple values can be combined using commas. Available values:
+
+            - `productName`
+            - `sku` (product ID)
+            - `shortDescription` (minimal item description)
+            - `manufacturer`
+            - `image[@<type>]` (URL to a product image; `@<type>` is optional, default is `M`)
+            - `defaultCategory`
+            - `listPrice` 
+            - `salePrice`
+            - `productMaster` (true, if the product is a variation master)
+            - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+            - `mastered` (true, if the product is a variation product)
+            - `averageRating` (average user evaluation score)
+            - `roundedAverageRating` (rating)
+            - `numberOfRatings`
+            - `availability` (in stock status, according to Intershop Commerce Management)
+            - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+            - `inStock` (in stock status, according to the Inventory Service)
+            - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+            - `minOrderQuantity`
+            - `packingUnit` (unit in which the product is sold)
+            - `promotions` (applicable promotions)
+            - `retailSet`
+            - `endOfLife`
+            - `lastOrderDate`
+          schema:
+            type: string
+            description: |-
+              Allows to retrieve specific data for the product stubs.
+
+              Multiple values can be combined using commas. Available values:
+
+              - `productName`
+              - `sku` (product ID)
+              - `shortDescription` (minimal item description)
+              - `manufacturer`
+              - `image[@<type>]` (URL to a product image; `@<type>` is optional, default is `M`)
+              - `defaultCategory`
+              - `listPrice` 
+              - `salePrice`
+              - `productMaster` (true, if the product is a variation master)
+              - `productMasterSKU` (the sku of the variation master if the current product is a variation product)
+              - `mastered` (true, if the product is a variation product)
+              - `averageRating` (average user evaluation score)
+              - `roundedAverageRating` (rating)
+              - `numberOfRatings`
+              - `availability` (in stock status, according to Intershop Commerce Management)
+              - `availableStock` (the quantity which is available for sale, according to the Inventory Service)
+              - `inStock` (in stock status, according to the Inventory Service)
+              - `timeToDelivery` (applicable shipping methods estimated delivery time in business days)
+              - `minOrderQuantity`
+              - `packingUnit` (unit in which the product is sold)
+              - `promotions` (applicable promotions)
+              - `retailSet`
+              - `endOfLife`
+              - `lastOrderDate`
+            example: sku,listPrice,manufacturer
+          example: sku,listPrice,manufacturer
+        - name: attributeGroup
+          in: query
+          description: |-
+            Use the ID of a product attribute group to retrieve all its attributes and values. Note that the group needs to be flagged with "Available via REST" in Intershop Commerce Management.
+
+            Multiple values can be combined using commas.
+          schema:
+            type: string
+            description: |-
+              Use the ID of a product attribute group to retrieve all its attributes and values. Note that the group needs to be flagged with "Available via REST" in Intershop Commerce Management.
+
+              Multiple values can be combined using commas.
+            example: ORDER_REQUIRED_ATTRIBUTES
+          example: ORDER_REQUIRED_ATTRIBUTES
+        - name: view
+          in: query
+          description: |-
+            ID of a custom view.
+
+            It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+            Can be combined with the `attrs` parameter.
+          schema:
+            type: string
+            description: |-
+              ID of a custom view.
+
+              It is possible to define custom views for the product stubs (i.e., which attributes shall be returned, instead of listing them all individually in the `attrs` parameter.) This can be done in a *WebshopREST.properties* file on domain level.
+
+              Can be combined with the `attrs` parameter.
+            example: default
+            default: default
+          example: default
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+      responses:
+        "200":
+          description: OK - The list of products is returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductLinkCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ProductLinkCollectionRO"
+        "400":
+          description: Bad request - The query parameters are invalid.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ProductLinkCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductListResource.getProducts(java.lang.String,int,int,java.lang.String,java.lang.Boolean,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/products{spgid}/{productKey}/crosssells":
+    get:
+      tags:
+        - Product
+      summary: Returns product cross sells
+      description: This operation returns a list of cross sells of a product.
+      operationId: getProductCrossSellsGETcross
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The cross sells of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getProductCrossSells()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/partOfRetailSet":
+    get:
+      tags:
+        - Product
+      summary: Returns products of retail set
+      description: This operation returns a list of all products assigned to a retail set.
+      operationId: getPartOfRetailSetGETRetailSet_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: pageable
+          in: query
+          description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+          schema:
+            type: string
+            description: The ID of a specific set of results. Allows to page through long result lists. Each response contains a `pageable` ID which can be used to get the data for the next page. This ensures consistent data. Can be combined with `offset` and `amount`.
+            example: z_AKDgAFmPAAAAF3hRExUPze
+          example: z_AKDgAFmPAAAAF3hRExUPze
+        - name: offset
+          in: query
+          description: |-
+            An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+            The offset is rounded down to the nearest multiple of `amount` to match a full page.
+            Can be combined with `pageable` and `amount`.
+          schema:
+            type: integer
+            description: |-
+              An offset for a specific set of results. Allows to offset the result list by the specified number of items.
+              The offset is rounded down to the nearest multiple of `amount` to match a full page.
+              Can be combined with `pageable` and `amount`.
+            format: int32
+            example: 2
+            default: 0
+          example: "2"
+        - name: amount
+          in: query
+          description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+          schema:
+            type: integer
+            description: Number of items to be returned. The default maximum number of items is 200. Requesting more items is not possible. The maximum number of items per request can be configured.
+            format: int32
+            example: 30
+            default: 50
+          example: "30"
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The products assigned to the retail set are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getPartOfRetailSet(java.lang.String,java.lang.Integer,java.lang.Integer)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}{cur}/categories/{categoriesKey}/products{spgid}/{productKey}/categories":
+    get:
+      tags:
+        - Product
+        - Categories
+      summary: Returns categories of a product
+      description: This operation returns a list of all categories to which the product is explicitly or dynamically assigned.
+      operationId: getCategoriesResource_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/cur"
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: categoriesKey
+          in: path
+          description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+          required: true
+          schema:
+            type: string
+            description: Either a category path that includes the complete path from the catalog to the current category, or a category reference, as given in the `categoryRef` field
+            example: Computers/3001/222
+          example: Computers/3001/222
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product ID
+          required: true
+          schema:
+            type: string
+            description: The product ID
+            example: "10666802"
+          example: "10666802"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The categories of the given product are returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+        "404":
+          description: Not found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.ProductResource.getCategories()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.ProductResource
+      x-AuthorizationRule: "[isAnyUser]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    AttachmentAttributeROObject:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          enum:
+            - Boolean
+            - Date
+            - Decimal
+            - Double
+            - Integer
+            - Long
+            - Money
+            - Quantity
+            - String
+            - Text
+            - MultipleBoolean
+            - MultipleDate
+            - MultipleDecimal
+            - MultipleDouble
+            - MultipleInteger
+            - MultipleLong
+            - MultipleString
+        value:
+          type: object
+    AttachmentRO:
+      type: object
+      properties:
+        description:
+          type: string
+        key:
+          type: string
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: boolean
+          description: Indicates whether the attachment is an external link (true) or an internal file (false)
+        value:
+          type: string
+      xml:
+        name: Attachment
+    AttributeGroupRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributeGroups:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AttributeGroupRO"
+          description: The map of AttributeGroupROs defined by the group, with their IDs as keys
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        displayName:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    CategoryCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/CategoryRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: Categories
+    CategoryPathRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        id:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+      xml:
+        name: CategoryPath
+    CategoryRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        categoryPath:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/CategoryPathRO"
+        categoryRef:
+          type: string
+          description: The categoryRef of this (sub)-category
+          example: 832@inSPIRED-inTRONICS-Cameras-Camcorders
+        description:
+          type: string
+          description: The description of this (sub)-category
+          example: The Vectra products and services catalog.
+        hasOnlineProducts:
+          type: boolean
+          description: Indicates if this (sub)-category has online products
+        hasOnlineSubCategories:
+          type: boolean
+          description: Indicates if this (sub)-category has online sub categories
+        id:
+          type: string
+          description: The ID of this (sub)-category
+          example: Cameras-Camcorders
+        image:
+          $ref: "#/components/schemas/LinkRO"
+        images:
+          type: array
+          description: The images of this (sub)-category
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ImageRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        online:
+          type: string
+          description: The online status of this (sub)-category
+          example: "1"
+        onlineProductsCountInSubCategories:
+          type: integer
+          format: int32
+        productList:
+          type: array
+          description: List of products in this (sub)-category as List of LinkROs
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        products:
+          type: string
+          description: The products in this (sub)-category
+        richContent:
+          type: string
+          description: The content for the category page, maintained in the 'Content' field at the category in Intershop Commerce Management.
+        seoAttributes:
+          $ref: "#/components/schemas/SEOMetaAttributes"
+        subCategories:
+          type: array
+          description: List of subcategories of this (sub)-category
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        subCategoriesCount:
+          type: integer
+          description: The count of sub categories
+          format: int32
+          example: 1
+        thumbnail:
+          $ref: "#/components/schemas/LinkRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Category
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI of this (sub)-category
+          example: PrimeTech-PrimeTechSpecials-Site/b2c-web-shop/categories/Cameras-Camcorders/1290
+      xml:
+        name: Category
+    DanaherProductListRO:
+      type: object
+      properties:
+        skus:
+          type: array
+          items:
+            type: string
+    DefaultCategoryRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        categoryPath:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryPathRO"
+        id:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+      xml:
+        name: DefaultCategory
+    FilterEntryRO:
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int32
+        displayValue:
+          type: string
+        hits:
+          $ref: "#/components/schemas/LinkRO"
+        level:
+          type: integer
+          description: The filter hierarchry level, starting at 0
+          format: int32
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        mappedType:
+          type: string
+          description: A color code
+        mappedValue:
+          type: string
+          description: The name of a color
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        searchParameter:
+          type: string
+        selected:
+          type: boolean
+          description: Indicates whether the filter is selected or not
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        value:
+          type: string
+          description: The value of the selected filter
+      description: The filter entries
+      example: Object of type FilterEntryRO
+    FilterRO:
+      type: object
+      properties:
+        displayType:
+          type: string
+          description: The kind of visualization used for the filter
+          enum:
+            - text
+            - checkbox
+            - swatch
+            - dropdown
+            - text_clear
+        filterEntries:
+          type: array
+          description: The filter entries
+          example: Object of type FilterEntryRO
+          items:
+            $ref: "#/components/schemas/FilterEntryRO"
+        id:
+          type: string
+          description: ID of filter
+          example: CategoryUUIDLevelMulti
+        limitCount:
+          type: integer
+          description: The maximum number of values to appear in the result set
+          format: int32
+          example: -1
+        links:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/LinkRO"
+        minCount:
+          type: integer
+          description: The minimum number of values the filter must have in the result set to appear as a selectable filter
+          format: int32
+          example: 1
+        name:
+          type: string
+          description: The name of an element
+          example: Taxonomic Filter
+          xml:
+            attribute: true
+        scope:
+          type: string
+          description: The scope of the filter. By default, the filter is global, but it can also be limited to categories.
+          example: Global
+        selectionType:
+          type: string
+          description: The selection options for the filter values
+          example: taxonomic
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Filter
+          xml:
+            attribute: true
+      description: Represents a filter
+    ImageRO:
+      type: object
+      properties:
+        actualHeight:
+          type: integer
+          format: int32
+        actualWidth:
+          type: integer
+          format: int32
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        effectiveUrl:
+          type: string
+          description: The effective URL of the image
+          example: /INTERSHOP/static/WFS/PrimeTech-PrimeTechSpecials-Site/b2c-web-shop/PrimeTech/en_US/1XL/350617-1238.jpg
+        imageActualHeight:
+          type: integer
+          description: The actual height of the image type as defined in Intershop Commerce Management
+          format: int32
+          example: 220
+        imageActualWidth:
+          type: integer
+          description: The actual width of the image type as defined in Intershop Commerce Management
+          format: int32
+          example: 220
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        primaryImage:
+          type: boolean
+          description: Indicates if this image is the primary image
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Image
+          xml:
+            attribute: true
+        typeID:
+          type: string
+          description: The type ID of the image
+          example: 1XL
+        viewID:
+          type: string
+          description: The view id of the image
+          example: front
+      xml:
+        name: Image
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    MetadataRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        colorCode:
+          type: string
+        imagePath:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: MetaData
+    ProductLinkCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortableAttributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/SortableAttributeRO"
+          description: The sortable attributes for this search result.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ProductLinkCollection
+    ProductPriceRO:
+      type: object
+      properties:
+        currency:
+          type: string
+        currencyMnemonic:
+          type: string
+        locale:
+          type: object
+          properties:
+            country:
+              type: string
+            displayCountry:
+              type: string
+            displayLanguage:
+              type: string
+            displayName:
+              type: string
+            displayScript:
+              type: string
+            displayVariant:
+              type: string
+            extensionKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            iso3Country:
+              type: string
+            iso3Language:
+              type: string
+            language:
+              type: string
+            script:
+              type: string
+            unicodeLocaleAttributes:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            variant:
+              type: string
+          writeOnly: true
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        priceText:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        value:
+          type: number
+      xml:
+        name: ProductPrice
+    ProductRO:
+      title: ProductRO
+      type: object
+      properties:
+        additionalAttributes:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        attachments:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AttachmentRO"
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributeGroups:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AttributeGroupRO"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        availability:
+          type: boolean
+          description: Indicates whether a product is in stock or not (according to Intershop Commerce Management)
+        availableGiftMessages:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        availableGiftWraps:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        availableStock:
+          type: number
+        availableWarranties:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        averageRating:
+          type: string
+        bundles:
+          type: string
+          description: If there are any bundles containing the product, this parameter holds a link to them
+        crosssells:
+          type: string
+          description: If there are cross sells defined for the product, this parameter holds a link to them
+        currencyCode:
+          type: string
+        defaultCategory:
+          $ref: "#/components/schemas/DefaultCategoryRO"
+        endOfLife:
+          type: integer
+          description: The end-of-life date for the product as specified in Intershop Commerce Management
+          format: int64
+        images:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ImageRO"
+        inStock:
+          type: boolean
+          description: Indicates whether a product is in stock or not (according to the Inventory Service)
+        lastOrderDate:
+          type: integer
+          description: The last date at which the product can be ordered as specified in Intershop Commerce Management
+          format: int64
+        listPrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        longDescription:
+          type: string
+        manufacturer:
+          type: string
+        manufacturerSKU:
+          type: string
+        mastered:
+          type: boolean
+        maxListPrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        maxOrderQuantity:
+          type: number
+        maxSalePrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        minListPrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        minOrderQuantity:
+          type: number
+        minSalePrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        numberOfReviews:
+          type: integer
+          format: int32
+        packingUnit:
+          type: string
+        partOfRetailSet:
+          type: string
+          description: If the product is part of retail sets, this parameter holds a link to them
+        price:
+          type: string
+          description: The price type of a warranty as defined in Intershop Commerce Management. This can either be an absolute price value or a percentage of the product list price.
+        productBundle:
+          type: boolean
+        productMaster:
+          type: boolean
+          description: Indicates whether the product is a variation master or not
+        productMasterSKU:
+          type: string
+        productName:
+          type: string
+        productTypes:
+          type: array
+          items:
+            type: string
+            description: Returns the product type(s) that apply to the product
+            enum:
+              - BUNDLED_PRODUCT
+              - VARIATION_PRODUCT
+              - PRODUCT_BUNDLE
+              - VARIATION_MASTER
+              - RETAIL_SET
+              - PART_OF_RETAIL_SET
+              - PRODUCT
+        promotions:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        readyForShipmentMax:
+          type: integer
+          format: int32
+        readyForShipmentMin:
+          type: integer
+          format: int32
+        retailSet:
+          type: boolean
+          description: Indicates whether the product is a retail set or not
+        reviews:
+          type: string
+        roundedAverageRating:
+          type: string
+        salePrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        seoAttributes:
+          $ref: "#/components/schemas/SEOMetaAttributes"
+        shippingMethods:
+          uniqueItems: true
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ShippingMethodRO"
+        shortDescription:
+          type: string
+        sku:
+          type: string
+        stepOrderQuantity:
+          type: number
+          description: The increment of the order quantity
+        summedUpListPrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        summedUpSalePrice:
+          $ref: "#/components/schemas/ProductPriceRO"
+        supplier:
+          type: string
+        supplierSKU:
+          type: string
+        timeToDelivery:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ProductShippingMethodDeliveryRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        variableVariationAttributes:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationAttributeRO"
+        variationAttributeValues:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationAttributeRO"
+        variationAttributeValuesExtended:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationAttributeExtendedRO"
+        variations:
+          type: string
+          description: If the product is a master product, this parameter holds a link to the variations
+      description: This resource represents a sellable entity that is offered to a customer.
+      xml:
+        name: Product
+    ProductSearchAttributesRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        masterProductSKU:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        prioritySearchAttribute:
+          type: string
+        searchAttributes:
+          type: object
+          additionalProperties:
+            type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: ProductSearchAttributes
+    ProductShippingMethodDeliveryRO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        shippingMethodId:
+          type: string
+        shippingMethodName:
+          type: string
+        timeToDeliveryMax:
+          type: integer
+          description: The maximum time to delivery in days. It is the sum of the maximum time required to get the product ready for shipping and the maximum shipping time.
+          format: int32
+        timeToDeliveryMin:
+          type: integer
+          description: The minimum time to delivery in days. It is the sum of the minimum time required to get the product ready for shipping and the minimum shipping time.
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: ProductShippingMethodDelivery
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROFilterRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/FilterRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROTypedLinkRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TypedLinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    SEOMetaAttributes:
+      type: object
+      properties:
+        metaDescription:
+          type: string
+        metaTitle:
+          type: string
+        robots:
+          type: array
+          items:
+            type: string
+      xml:
+        name: SEOAttributes
+    ShippingMethodRO:
+      title: ShippingMethodRO
+      type: object
+      properties:
+        id:
+          type: string
+          description: the id of the returned element
+          example: STD_GROUND
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        shippingTimeMax:
+          type: integer
+          description: The maximum shipping time in days
+          format: int32
+          example: 7
+        shippingTimeMin:
+          type: integer
+          description: The minimum shipping time in days
+          format: int32
+          example: 3
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ShippingMethod
+          xml:
+            attribute: true
+      description: This resource describes a shipping method that can be selected as delivery option.
+      xml:
+        name: ShippingMethod
+    SortableAttributeRO:
+      type: object
+      properties:
+        direction:
+          type: string
+          description: The direction of the sortable attribute
+          enum:
+            - asc
+            - desc
+        displayName:
+          type: string
+          description: The display name of the sortable attribute
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The sortable attributes for this search result.
+      xml:
+        name: SortableAttribute
+    TypedLinkRO:
+      type: object
+      properties:
+        categoryLinks:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        linkType:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        productLinks:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+      xml:
+        name: TypedLink
+    TypedLinksCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/TypedLinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: TypedLinks
+    VariationAttributeExtendedRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        attributeType:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/MetadataRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        value:
+          $ref: "#/components/schemas/AttachmentAttributeROObject"
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/VariationAttributeValueRO"
+        variationAttributeId:
+          type: string
+      xml:
+        name: VariationAttribute
+    VariationAttributeRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        value:
+          type: string
+        variationAttributeId:
+          type: string
+      xml:
+        name: VariationAttribute
+    VariationAttributeValueRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        metadata:
+          $ref: "#/components/schemas/MetadataRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        value:
+          $ref: "#/components/schemas/AttachmentAttributeROObject"
+      xml:
+        name: VariationAttributeValues
+    VariationCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationLinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: Variations
+    VariationLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+        variableVariationAttributeValues:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationAttributeRO"
+        variableVariationAttributeValuesExtended:
+          type: array
+          xml:
+            name: variableVariationAttributeValues
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/VariationAttributeExtendedRO"
+      description: The list of elements
+      xml:
+        name: VariationLink
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: product
+x-apiCartridge: app_sf_rest
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.ProductListResource,com.intershop.sellside.rest.common.capi.resource.ProductFiltersResource,com.intershop.sellside.rest.common.capi.resource.ProductListResource,com.intershop.sellside.rest.common.capi.resource.ProductFiltersResource,com.intershop.sellside.rest.common.capi.resource.ProductFiltersResource

@@ -1,0 +1,1524 @@
+openapi: 3.0.1
+info:
+  title: Address Check
+  description: |-
+    The _Address Check REST API_ provides resources for validating and updating addresses based on suggestions.
+
+    For this purpose, it is necessary to implement one (or more) AddressValidator services that communicate with an external service to validate the addresses.
+
+    For details, refer to [Concept - Address Check Framework](https://support.intershop.com/kb/index.php/Display/25C051).
+
+    **Note:** In the standard Intershop Commerce Management there is only a dummy implementation that does not actually validate the address and returns an OK.
+
+    ## Changelog
+    - - -
+    ### Version 1.1.1
+    * Added this changelog
+    ### Version 1.1.0
+    * Added read-only attributes `externalID` and `externalUrn` to the `Address` resource object
+  version: 1.1.1
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+paths:
+  /customers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}/suggestions:
+    get:
+      tags:
+        - Address Check
+      summary: Returns links to suggested addresses
+      description: This operation returns a list of resource links for clients to access suggested address details.
+      operationId: getAddressesLinks
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "200":
+          description: OK - The list of links has been successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getSuggestedAddress
+              parameters:
+                CustomerAddressItemSuggestionKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type AddressRO
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer or the address could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource.getAddressesLinks()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /customers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}/suggestions/{CustomerAddressItemSuggestionKey}:
+    get:
+      tags:
+        - Address Check
+      summary: Returns suggested address details
+      description: This operation returns details about a suggested address to the client.
+      operationId: getSuggestedAddress
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+        - name: CustomerAddressItemSuggestionKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      responses:
+        "200":
+          description: OK - The suggested address details have been successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer or the address could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource.getAddress()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Address Check
+      summary: Updates address details as suggested
+      description: This operation updates the address details using information from the suggested address.
+      operationId: update
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+        - name: CustomerAddressItemSuggestionKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      responses:
+        "200":
+          description: OK - The address details have been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer, the address, or the suggestion could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource.update()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}/suggestions:
+    get:
+      tags:
+        - Address Check
+      summary: Returns links to suggested addresses
+      description: This operation returns a list of resource links for clients to access suggested address details.
+      operationId: getAddressesLinks_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+      responses:
+        "200":
+          description: OK - The list of links has been successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getSuggestedAddress_1
+              parameters:
+                CustomerAddressItemSuggestionKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type AddressRO
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer or the address could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource.getAddressesLinks()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/addresses/{DanaherCustomerAddressKey}/suggestions/{CustomerAddressItemSuggestionKey}:
+    get:
+      tags:
+        - Address Check
+      summary: Returns suggested address details
+      description: This operation returns details about a suggested address to the client.
+      operationId: getSuggestedAddress_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+        - name: CustomerAddressItemSuggestionKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      responses:
+        "200":
+          description: OK - The suggested address details have been successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer or the address could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource.getAddress()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Address Check
+      summary: Updates address details as suggested
+      description: This operation updates the address details using information from the suggested address.
+      operationId: update_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: DanaherCustomerAddressKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressListResource
+        - name: CustomerAddressItemSuggestionKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionListResource
+      responses:
+        "200":
+          description: OK - The address details have been successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AddressRO"
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: |-
+            Not found - The customer, the address, or the suggestion could not be found.
+             Possible values for header error-key:
+             - customer.address_not_found
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.AddressRO com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource.update()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    AddressRO:
+      title: Address
+      type: object
+      properties:
+        addressLine1:
+          type: string
+          description: the first address line
+          example: Berliner Str. 20
+        addressLine2:
+          type: string
+          description: the second address line
+          example: 1st Floor
+        addressLine3:
+          type: string
+          description: The third address line
+          example: Second door on the right
+        addressName:
+          type: string
+          description: The name of the address
+          example: customeraddr-ABCDEFGPRMuMCscyXgSRVU
+        aristocraticTitle:
+          type: string
+          description: the aristocratic title of the contact person, like <i>Lord</i> or <i>Lady</i>
+        city:
+          type: string
+          description: The name of the city
+          example: Potsdam
+        companyName1:
+          type: string
+          description: the company name
+          example: PMiller ltd.
+        companyName2:
+          type: string
+          description: The second company name
+        country:
+          type: string
+          description: The display name of the country in the current locale
+          example: Germany
+        countryCode:
+          type: string
+          description: The country code
+          example: DE
+        email:
+          type: string
+          description: the e-mail address of the contact person
+          example: pmiller@intershop.de
+        externalId:
+          type: string
+          description: The ID uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system
+          readOnly: true
+          example: "000123456"
+        externalUrn:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for  data objects that have already been synchronized with the external system
+          readOnly: true
+          example: urn:address:MSDynamics365:MyCorp:000123456
+        externalURN:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system.
+          example: A049364112643
+        fax:
+          type: string
+          description: the fax number
+          example: "049364112643"
+        firstName:
+          type: string
+          description: The (first) given name of the contact person
+          example: Patricia
+        honorific:
+          type: string
+          description: the honorific title of the contact person that denotes the honored person's occupation, like <i>Captain</i>, <i>Coach</i>, <i>Officer</i>, <i>Reverend</i> or the academic title, like <i>PhD</i>
+        id:
+          type: string
+          description: The ID of the returned element
+          example: vagKAB17gg4AAAFGSkFqQASI
+        jobTitle:
+          type: string
+          description: the job title of the contact person
+          example: CEO
+        lastName:
+          type: string
+          description: The last name of the contact person
+          example: Miller
+        mainDivision:
+          type: string
+          description: the main division of the country, e. g. a state or province
+          example: AL
+        mainDivisionName:
+          type: string
+          description: The localized display name of the main division
+          example: Alabama
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        phoneBusiness:
+          type: string
+          description: The phone number of the contact person's company
+          example: "049364112699"
+        phoneBusinessDirect:
+          type: string
+          description: the business phone number of the contact person that allows an outside caller to connect directly to the contact person without any help of an attendant or operator
+          example: "049364112659"
+        phoneHome:
+          type: string
+          description: The phone number of the house or apartment where the contact person lives
+          example: "049364112677"
+        phoneMobile:
+          type: string
+          description: The number of the contact person's cell phone
+          example: "+49364112677"
+        postalCode:
+          type: string
+          description: The postal code
+          example: "14482"
+        postBox:
+          type: string
+          description: the post-office box
+          example: PO Box 42
+        secondLastName:
+          type: string
+          description: the second last name of the contact person
+        secondName:
+          type: string
+          description: the second given name of the contact person
+          example: Luise
+        subDivision:
+          type: string
+          description: The sub division code of the country.
+          example: GB-PKN
+        subDivisionName:
+          type: string
+          description: The localized display name of the sub division
+          example: Perth and Kinross
+        title:
+          type: string
+          description: The (personal) title of the contact person, like 'Mr.' or 'Ms.'
+          example: Mrs.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Address
+          xml:
+            attribute: true
+        urn:
+          type: string
+          description: the URN representation of this address
+          example: urn:address:customer:1234567890:0987654321
+        usage:
+          type: object
+          properties:
+            empty:
+              type: boolean
+          description: " Returns usage information for the address. Every bit in the returned set marks a specific usage type, like ship-from or invoice-to address. If a bit is set, the address may be used for the specific purpose mapped to this bit. Further bits may be used for custom types. Default usage for first 4 bits are Invoice-to, Ship-to, Service-to and Install-to"
+      description: This resource holds the details of an address.
+      xml:
+        name: Address
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: address-check
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource,com.intershop.sellside.rest.common.capi.resource.customer.address.CustomerAddressItemSuggestionItemResource

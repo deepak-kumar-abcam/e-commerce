@@ -1,0 +1,3609 @@
+openapi: 3.0.1
+info:
+  title: System
+  description: "# Intershop System REST Endpoints
+
+
+    These REST endpoints provide access to internal artifacts which are used within ICM.\ 
+
+    This allows developers and technical operators to review or maintain certain aspects of an application server.
+
+
+    ## Note
+
+    Some of the endpoints are considered not to be API and might change in upcoming versions in a non-compatible kind.\ 
+
+    \  "
+  version: 1.0.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Applications
+    description: |-
+      # Applications
+      The applications endpoint allows clients to obtain information about applications available in the system.
+
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationResource
+  - name: Application Types
+    description: |-
+      # Application Types
+      The applications endpoint allows clients to obtain information about application types available in the system.
+      Application types provide context for several functions, like the component model, extensions, the lookup of pipelines, templates and other artifacts.
+      This context is mainly expressed as the list of assigned cartridges.
+
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+  - name: Caches
+    description: |-
+      # Caches
+      The caches endpoint allows clients to obtain information about caches.
+       
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.cache.CacheResource
+  - name: Cartridges
+    description: |-
+      # Cartridges
+      The cartridges endpoint allows clients to obtain information about cartridges.
+      Cartridges are modules and building blocks that contain the functionality of the Application server. 
+
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.cartridge.CartridgeResource
+  - name: Configurations
+    description: |-
+      # Configuration
+      The configurations endpoint allows clients to obtain information about configurations and server properties.
+       
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource
+  - name: Domains
+    description: |-
+      # Domains
+      The domains endpoint allows clients to obtains information about domains.
+       
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+  - name: Organizations
+    description: |-
+      # Organizations
+      The organizations endpoint allows clients to obtain information about organizations.
+       
+      ## Note
+      This endpoint is NO API and might change in upcoming versions
+    x-origin-class: com.intershop.beehive.platformrest.resource.system.organization.OrganizationResource
+paths:
+  /system/applications:
+    get:
+      tags:
+        - Applications
+      summary: Returns a list of applications
+      description: Gets a list of applications
+      operationId: getApplications
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/ApplicationRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationResource.getApplications()
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationResource
+      x-AuthorizationRule: "[]"
+  /system/applications/{applicationID}:
+    get:
+      tags:
+        - Applications
+      summary: Returns an application by UUID or id
+      description: Gets an application by either its UUID or ID
+      operationId: getApplication
+      parameters:
+        - name: applicationID
+          in: path
+          description: The application ID or UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The application ID or UUID
+            example: system
+          examples:
+            "-":
+              value: "-"
+            Myers:
+              value: Myers
+            ResellerChannel:
+              value: ResellerChannel
+            ShoppingLive:
+              value: ShoppingLive
+            ShoppingLive-b2c-responsive:
+              value: ShoppingLive-b2c-responsive
+            b2c-responsive:
+              value: b2c-responsive
+            business-test-sf:
+              value: business-test-sf
+            consumer-test-sf:
+              value: consumer-test-sf
+            enterprise:
+              value: enterprise
+            etest:
+              value: etest
+            inTRONICS:
+              value: inTRONICS
+            inTRONICS-b2c-responsive:
+              value: inTRONICS-b2c-responsive
+            inTRONICS-rest:
+              value: inTRONICS-rest
+            inTRONICS-smb-responsive:
+              value: inTRONICS-smb-responsive
+            inTRONICS_Business:
+              value: inTRONICS_Business
+            inTRONICS_Business-rest:
+              value: inTRONICS_Business-rest
+            inTRONICS_Business-smb-responsive:
+              value: inTRONICS_Business-smb-responsive
+            partnersystem:
+              value: partnersystem
+            rest:
+              value: rest
+            sldsystem:
+              value: sldsystem
+            smb-responsive:
+              value: smb-responsive
+            smc:
+              value: smc
+            system:
+              value: system
+          example: system
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.ApplicationRO com.intershop.beehive.platformrest.resource.system.application.ApplicationResource.getApplication(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationResource
+      x-AuthorizationRule: "[]"
+  /system/applications/{applicationID}/relatedDomains/{relationName}:
+    get:
+      tags:
+        - Applications
+      summary: Returns related domains
+      description: "This operation returns domains related to this application. "
+      operationId: getRelatedDomains
+      parameters:
+        - name: applicationID
+          in: path
+          description: The application ID or UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The application ID or UUID
+          examples:
+            "-":
+              value: "-"
+            Myers:
+              value: Myers
+            ResellerChannel:
+              value: ResellerChannel
+            ShoppingLive:
+              value: ShoppingLive
+            ShoppingLive-b2c-responsive:
+              value: ShoppingLive-b2c-responsive
+            b2c-responsive:
+              value: b2c-responsive
+            business-test-sf:
+              value: business-test-sf
+            consumer-test-sf:
+              value: consumer-test-sf
+            enterprise:
+              value: enterprise
+            etest:
+              value: etest
+            inTRONICS:
+              value: inTRONICS
+            inTRONICS-b2c-responsive:
+              value: inTRONICS-b2c-responsive
+            inTRONICS-rest:
+              value: inTRONICS-rest
+            inTRONICS-smb-responsive:
+              value: inTRONICS-smb-responsive
+            inTRONICS_Business:
+              value: inTRONICS_Business
+            inTRONICS_Business-rest:
+              value: inTRONICS_Business-rest
+            inTRONICS_Business-smb-responsive:
+              value: inTRONICS_Business-smb-responsive
+            partnersystem:
+              value: partnersystem
+            rest:
+              value: rest
+            sldsystem:
+              value: sldsystem
+            smb-responsive:
+              value: smb-responsive
+            smc:
+              value: smc
+            system:
+              value: system
+        - name: relationName
+          in: path
+          description: The relation name
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The relation name
+          examples:
+            CATALOG:
+              value: CATALOG
+            CUSTOMER_REPOSITORY:
+              value: CUSTOMER_REPOSITORY
+            HANDLING_METHOD:
+              value: HANDLING_METHOD
+            LOCALIZATION_REPOSITORY:
+              value: LOCALIZATION_REPOSITORY
+            MANAGED_SERVICE:
+              value: MANAGED_SERVICE
+            PAYMENT_METHOD:
+              value: PAYMENT_METHOD
+            REPOSITORY:
+              value: REPOSITORY
+            SHIPPING_CONFIG:
+              value: SHIPPING_CONFIG
+            SHIPPING_METHOD:
+              value: SHIPPING_METHOD
+            SITE:
+              value: SITE
+            TAX_CLASS:
+              value: TAX_CLASS
+            TAX_JURISDICTION:
+              value: TAX_JURISDICTION
+            DefaultRepository:
+              value: DefaultRepository
+            FlatRateShippingChargePlanBORepository:
+              value: FlatRateShippingChargePlanBORepository
+            FlexShippingChargePlanBORepository:
+              value: FlexShippingChargePlanBORepository
+            FreightClassBORepository:
+              value: FreightClassBORepository
+            GiftCardBORepository:
+              value: GiftCardBORepository
+            ImageTypeBORepository:
+              value: ImageTypeBORepository
+            ImageViewBORepository:
+              value: ImageViewBORepository
+            ImpexRepository:
+              value: ImpexRepository
+            ItemCountShippingChargePlanBORepository:
+              value: ItemCountShippingChargePlanBORepository
+            LabelRepository:
+              value: LabelRepository
+            OrganizationBORepository:
+              value: OrganizationBORepository
+            PersonalDataRequestBORepository:
+              value: PersonalDataRequestBORepository
+            ProcessRepository:
+              value: ProcessRepository
+            ProductShippingChargeOverrideBORepository:
+              value: ProductShippingChargeOverrideBORepository
+            ProductShippingSurchargeBORepository:
+              value: ProductShippingSurchargeBORepository
+            RecycleBinRepository:
+              value: RecycleBinRepository
+            RegionBORepository:
+              value: RegionBORepository
+            ServiceConfigurationBORepository:
+              value: ServiceConfigurationBORepository
+            ShippingBORepository:
+              value: ShippingBORepository
+            ShippingEligibilityBORepository:
+              value: ShippingEligibilityBORepository
+            ShippingMethodBORepository:
+              value: ShippingMethodBORepository
+            ShippingRuleBORepository:
+              value: ShippingRuleBORepository
+            StaticContentRepository:
+              value: StaticContentRepository
+            UserBORepository:
+              value: UserBORepository
+            ValidationResultBORepository:
+              value: ValidationResultBORepository
+            ValueBasedShippingChargePlanBORepository:
+              value: ValueBasedShippingChargePlanBORepository
+            WeightBasedShippingChargePlanBORepository:
+              value: WeightBasedShippingChargePlanBORepository
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationResource.getRelatedDomains(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes:
+    get:
+      tags:
+        - Application Types
+      summary: Returns application types
+      description: This operation returns all application types
+      operationId: getApplicationTypes
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/ApplicationTypeRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getApplicationTypes()
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}:
+    get:
+      tags:
+        - Application Types
+      summary: Returns an application type
+      description: This operation returns an application type by id
+      operationId: getApplicationType
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationTypeRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getApplicationType(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/componentcontext:
+    get:
+      tags:
+        - Application Types
+      summary: Returns the component context of the application type
+      description: This operation returns the component context of an application type. Available context-ids can be used in '''com.intershop.beehive.core.capi.domain.ApplicationType.getNamedObject(String)'''.
+      operationId: getComponentContext
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComponentContextRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.ComponentContextRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getComponentContext(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/elements/{qualifiedName}:
+    get:
+      tags:
+        - Application Types
+      summary: "Returns an element in the context of the application type "
+      description: "This operation gets an element in the context of the application type. See '''com.intershop.beehive.emf.capi.loader.EMFEngine.getElement(Class<?>, EClass, String, EMFEngineContext)''' "
+      operationId: getElement
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: qualifiedName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: modelType
+          in: query
+          description: The Java-type of the main model element
+          schema:
+            type: string
+            description: The Java-type of the main model element
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            WebForm:
+              value: com.intershop.beehive.core.capi.request.WebForm
+            PageletModel:
+              value: com.intershop.component.pmc.capi.definition.pagelet.PageletModel
+            UIDefinitionModel:
+              value: com.intershop.sellside.enterprise.internal.uidefinition.UIDefinitionModel
+        - name: elementEType
+          in: query
+          description: The (EMF) element type. See '''*.ecore-models'''
+          schema:
+            type: string
+            description: The (EMF) element type. See '''*.ecore-models'''
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            ExtensionPoint:
+              value: ExtensionPoint
+            Parameter:
+              value: Parameter
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            StartNode:
+              value: StartNode
+            PipelineNodeNode:
+              value: PipelineNodeNode
+            EndNode:
+              value: EndNode
+            WebFormDefinition:
+              value: WebFormDefinition
+            ValidatorDefinition:
+              value: ValidatorDefinition
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                title: EObject
+                type: object
+                properties:
+                  empty:
+                    type: boolean
+                additionalProperties:
+                  type: object
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.EObjectRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getElement(java.lang.String,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/injector:
+    get:
+      tags:
+        - Application Types
+      summary: Returns the bindings of the Google-Guice-Injector
+      description: This operation gets the bindings of the Google-Guice-Injector that are active in the context of the application type. See '''com.intershop.beehive.core.capi.domain.ApplicationType.getLocalObjectGraph()'''
+      operationId: getInjector
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InjectorRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.InjectorRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getInjector(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/instance:
+    get:
+      tags:
+        - Application Types
+      summary: Returns an object by type
+      description: This operation returns an object by type. See '''com.intershop.beehive.core.capi.domain.ApplicationType.get(Class)'''
+      operationId: getInstance
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: typeName
+          in: query
+          schema:
+            type: string
+            example: java.util.logging.Logger
+          example: java.util.logging.Logger
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeanRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.BeanRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getInstance(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/javaextensions:
+    get:
+      tags:
+        - Application Types
+      summary: Returns Java-Extensions
+      description: This operation returns the Java-Extensions in the context of the application type. See '''com.intershop.beehive.core.capi.domain.ApplicationType.getJavaExtensions(Class<T>, String)'''
+      operationId: getJavaExtensions
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: extensionClassName
+          in: query
+          schema:
+            type: string
+        - name: extensionPointID
+          in: query
+          schema:
+            type: string
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/JavaExtensionRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getJavaExtensions(java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/models:
+    get:
+      tags:
+        - Application Types
+      summary: Returns models
+      description: This operation returns models in context of the application type. See '''com.intershop.beehive.emf.capi.loader.EMFEngine.getModels(Class<T>, EMFEngineContext)'''
+      operationId: getModels
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: modelType
+          in: query
+          description: The Java-type of the main model element
+          schema:
+            type: string
+            description: The Java-type of the main model element
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            WebForm:
+              value: com.intershop.beehive.core.capi.request.WebForm
+            PageletModel:
+              value: com.intershop.component.pmc.capi.definition.pagelet.PageletModel
+            UIDefinitionModel:
+              value: com.intershop.sellside.enterprise.internal.uidefinition.UIDefinitionModel
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/EObjectRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getModels(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/models/{modelName}:
+    get:
+      tags:
+        - Application Types
+      summary: Returns a model
+      description: This operation returns a model by name in context of the application type. See '''com.intershop.beehive.emf.capi.loader.EMFEngine.getModels(Class<T>, EMFEngineContext)'''
+      operationId: getModel
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: modelName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: modelType
+          in: query
+          description: The Java-type of the main model element
+          schema:
+            type: string
+            description: The Java-type of the main model element
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            WebForm:
+              value: com.intershop.beehive.core.capi.request.WebForm
+            PageletModel:
+              value: com.intershop.component.pmc.capi.definition.pagelet.PageletModel
+            UIDefinitionModel:
+              value: com.intershop.sellside.enterprise.internal.uidefinition.UIDefinitionModel
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistryElementObject"
+      x-origin-method: public com.intershop.beehive.emf.core.RegistryElement com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getModel(java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/namedobject:
+    get:
+      tags:
+        - Application Types
+      summary: Returns a component by name
+      description: This operation returns a component by name. See '''com.intershop.beehive.core.capi.domain.ApplicationType.getNamedObject(String)'''
+      operationId: getNamedObject
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: name
+          in: query
+          schema:
+            type: string
+            description: The name of the returned element
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NamedObjectRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.NamedObjectRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getNamedObject(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/properties:
+    get:
+      tags:
+        - Application Types
+      summary: Returns the configuration properties
+      description: This operation returns the configuration of the application type. See '''com.intershop.beehive.core.capi.configuration.ConfigurationMgr.getConfiguration(App)'''
+      operationId: getProperties_1
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                description: default response
+      x-origin-method: public java.util.Properties com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getProperties(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/refelements:
+    get:
+      tags:
+        - Application Types
+      summary: Returns a referencable model element
+      description: This operation returns a referenceable model elements in the context of the application type
+      operationId: getReferencableElements
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: modelType
+          in: query
+          description: The Java-type of the main model element
+          schema:
+            type: string
+            description: The Java-type of the main model element
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            WebForm:
+              value: com.intershop.beehive.core.capi.request.WebForm
+            PageletModel:
+              value: com.intershop.component.pmc.capi.definition.pagelet.PageletModel
+            UIDefinitionModel:
+              value: com.intershop.sellside.enterprise.internal.uidefinition.UIDefinitionModel
+        - name: elementEType
+          in: query
+          description: The (EMF) element type. See '''*.ecore-models'''
+          schema:
+            type: string
+            description: The (EMF) element type. See '''*.ecore-models'''
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            ExtensionPoint:
+              value: ExtensionPoint
+            Parameter:
+              value: Parameter
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            StartNode:
+              value: StartNode
+            PipelineNodeNode:
+              value: PipelineNodeNode
+            EndNode:
+              value: EndNode
+            WebFormDefinition:
+              value: WebFormDefinition
+            ValidatorDefinition:
+              value: ValidatorDefinition
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/EObjectRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getReferencableElements(java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/applicationtypes/{applicationTypeID}/refelements/{qualifiedName}:
+    get:
+      tags:
+        - Application Types
+      summary: Returns a referencable model element
+      description: This operation returns a referenceable model element by its qualified name in the context of the application type
+      operationId: getReferencable
+      parameters:
+        - name: applicationTypeID
+          in: path
+          description: The id of the application type
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The id of the application type
+          examples:
+            B2CBackoffice:
+              description: B2C-Backoffice application type
+              value: intershop.B2CBackoffice
+            B2CResponsive:
+              description: B2CResponsive application type
+              value: intershop.B2CResponsive
+            CC:
+              description: Contact Center application type
+              value: intershop.CC
+            ETest:
+              description: ETest application type (for testing only)
+              value: intershop.ETest
+            EnterpriseBackoffice:
+              description: Enterprise Backoffice application type
+              value: intershop.EnterpriseBackoffice
+            PartnerBackoffice:
+              description: Partner-Backoffice application type
+              value: intershop.PartnerBackoffice
+            REST:
+              description: REST application type
+              value: intershop.REST
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            intershop.SMBResponsive:
+              value: intershop.SMBResponsive
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            System:
+              description: System application type (contains all cartridges)
+              value: intershop.System
+        - name: qualifiedName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: modelType
+          in: query
+          description: The Java-type of the main model element
+          schema:
+            type: string
+            description: The Java-type of the main model element
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            WebForm:
+              value: com.intershop.beehive.core.capi.request.WebForm
+            PageletModel:
+              value: com.intershop.component.pmc.capi.definition.pagelet.PageletModel
+            UIDefinitionModel:
+              value: com.intershop.sellside.enterprise.internal.uidefinition.UIDefinitionModel
+        - name: elementEType
+          in: query
+          description: The (EMF) element type. See '''*.ecore-models'''
+          schema:
+            type: string
+            description: The (EMF) element type. See '''*.ecore-models'''
+          examples:
+            ExtensionPointModel:
+              value: com.intershop.platform.extension.emf.extensionpoint.ExtensionPointModel
+            ExtensionPoint:
+              value: ExtensionPoint
+            Parameter:
+              value: Parameter
+            Pipeline:
+              value: com.intershop.beehive.emf.pipeline.Pipeline
+            StartNode:
+              value: StartNode
+            PipelineNodeNode:
+              value: PipelineNodeNode
+            EndNode:
+              value: EndNode
+            WebFormDefinition:
+              value: WebFormDefinition
+            ValidatorDefinition:
+              value: ValidatorDefinition
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                title: EObject
+                type: object
+                properties:
+                  empty:
+                    type: boolean
+                additionalProperties:
+                  type: object
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.application.EObjectRO com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource.getReferencable(java.lang.String,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.application.ApplicationTypeResource
+      x-AuthorizationRule: "[]"
+  /system/caches:
+    get:
+      tags:
+        - Caches
+      summary: Returns data and statistics of registered caches
+      description: This operation returns data and statistics of all registered caches
+      operationId: getCaches
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/CacheGroupRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.cache.CacheResource.getCaches()
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.cache.CacheResource
+      x-AuthorizationRule: "[]"
+  /system/caches/{cacheID}:
+    get:
+      tags:
+        - Caches
+      summary: Returns data and statistics of a cache
+      description: This operation returns data and statistics of a cache with the provided id
+      operationId: getCache
+      parameters:
+        - name: cacheID
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            example: ORMCache
+          example: ORMCache
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CacheROObject"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.cache.CacheRO com.intershop.beehive.platformrest.resource.system.cache.CacheResource.getCache(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.cache.CacheResource
+      x-AuthorizationRule: "[]"
+  /system/cartridges:
+    get:
+      tags:
+        - Cartridges
+      summary: Returns a list of cartridges
+      description: This operation returns a list of cartridges
+      operationId: getCartridges
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/Cartridge"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.cartridge.CartridgeResource.getCartridges()
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.cartridge.CartridgeResource
+      x-AuthorizationRule: "[]"
+  /system/cartridges/{cartridgeName}:
+    get:
+      tags:
+        - Cartridges
+      summary: Returns a cartridge
+      description: This operation returns cartridge details
+      operationId: getCartridge
+      parameters:
+        - name: cartridgeName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            example: core
+          example: core
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cartridge"
+      x-origin-method: public com.intershop.platform.cartridge.capi.Cartridge com.intershop.beehive.platformrest.resource.system.cartridge.CartridgeResource.getCartridge(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.cartridge.CartridgeResource
+      x-AuthorizationRule: "[]"
+  /system/configurations/{scope}/details:
+    get:
+      tags:
+        - Configurations
+      summary: Returns details of configurations
+      description: This operation returns details of configurations
+      operationId: getInformation
+      parameters:
+        - name: scope
+          in: path
+          description: The scope of the configuration
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The scope of the configuration
+          examples:
+            server:
+              description: Server scope
+              value: server
+            cluster:
+              description: Cluster scope
+              value: cluster
+            instance:
+              description: Instance scope
+              value: instance
+        - name: key
+          in: query
+          description: A filter
+          schema:
+            type: string
+            description: A filter
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/ConfigurationInformation"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource.getInformation(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource
+      x-AuthorizationRule: "[]"
+  /system/configurations/{scope}/properties:
+    get:
+      tags:
+        - Configurations
+      summary: "Returns configuration as properties "
+      description: This operation returns the configuration as properties.
+      operationId: getProperties
+      parameters:
+        - name: scope
+          in: path
+          description: The scope of the configuration
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The scope of the configuration
+          examples:
+            server:
+              description: Server scope
+              value: server
+            cluster:
+              description: Cluster scope
+              value: cluster
+            instance:
+              description: Instance scope
+              value: instance
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                description: default response
+      x-origin-method: public java.util.Properties com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource.getProperties(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource
+      x-AuthorizationRule: "[]"
+  /system/configurations/{scope}/property:
+    get:
+      tags:
+        - Configurations
+      summary: Returns a configuration property
+      description: This operation returns a property for a given key.
+      operationId: getProperty
+      parameters:
+        - name: scope
+          in: path
+          description: The scope of the configuration
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The scope of the configuration
+          examples:
+            server:
+              description: Server scope
+              value: server
+            cluster:
+              description: Cluster scope
+              value: cluster
+            instance:
+              description: Instance scope
+              value: instance
+        - name: key
+          in: query
+          schema:
+            type: string
+            example: intershop.ServerName
+          example: intershop.ServerName
+      responses:
+        default:
+          description: default response
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: default response
+      x-origin-method: public java.lang.String com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource.getProperty(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.configuration.ConfigurationResource
+      x-AuthorizationRule: "[]"
+  /system/domains:
+    get:
+      tags:
+        - Domains
+      summary: Returns a domain
+      description: This operation returns domains
+      operationId: getDomains
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getDomains()
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}:
+    get:
+      tags:
+        - Domains
+      summary: Returns a domain
+      description: This operation returns details about a domain
+      operationId: getDomain
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.domain.DomainRO com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getDomain(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}/applications:
+    get:
+      tags:
+        - Domains
+      summary: Returns applications of a domain
+      description: This operation returns applications of a domain which is a site
+      operationId: getUnits
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/ApplicationRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getApplications(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}/otherrelatedto/{relationName}:
+    get:
+      tags:
+        - Domains
+      summary: Returns a related domain (other to this)
+      description: This operation returns a related domain (direction from other to this)
+      operationId: getRelatedFromDomain
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+        - name: relationName
+          in: path
+          description: The relation name
+          required: true
+          schema:
+            pattern: '" + RestConstants.REGEX_NODASH + "'
+            type: string
+            description: The relation name
+          examples:
+            CATALOG:
+              value: CATALOG
+            CUSTOMER_REPOSITORY:
+              value: CUSTOMER_REPOSITORY
+            HANDLING_METHOD:
+              value: HANDLING_METHOD
+            LOCALIZATION_REPOSITORY:
+              value: LOCALIZATION_REPOSITORY
+            MANAGED_SERVICE:
+              value: MANAGED_SERVICE
+            PAYMENT_METHOD:
+              value: PAYMENT_METHOD
+            REPOSITORY:
+              value: REPOSITORY
+            SHIPPING_CONFIG:
+              value: SHIPPING_CONFIG
+            SHIPPING_METHOD:
+              value: SHIPPING_METHOD
+            SITE:
+              value: SITE
+            TAX_CLASS:
+              value: TAX_CLASS
+            TAX_JURISDICTION:
+              value: TAX_JURISDICTION
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.domain.DomainRO com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getRelatedFromDomain(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}/relatedto/{relationName}:
+    get:
+      tags:
+        - Domains
+      summary: Returns a related domain (from this to other)
+      description: This operation returns a related domain (direction from this to other)
+      operationId: getRelatedToDomain
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+        - name: relationName
+          in: path
+          description: The relation name
+          required: true
+          schema:
+            pattern: '" + RestConstants.REGEX_NODASH + "'
+            type: string
+            description: The relation name
+          examples:
+            CATALOG:
+              value: CATALOG
+            CUSTOMER_REPOSITORY:
+              value: CUSTOMER_REPOSITORY
+            HANDLING_METHOD:
+              value: HANDLING_METHOD
+            LOCALIZATION_REPOSITORY:
+              value: LOCALIZATION_REPOSITORY
+            MANAGED_SERVICE:
+              value: MANAGED_SERVICE
+            PAYMENT_METHOD:
+              value: PAYMENT_METHOD
+            REPOSITORY:
+              value: REPOSITORY
+            SHIPPING_CONFIG:
+              value: SHIPPING_CONFIG
+            SHIPPING_METHOD:
+              value: SHIPPING_METHOD
+            SITE:
+              value: SITE
+            TAX_CLASS:
+              value: TAX_CLASS
+            TAX_JURISDICTION:
+              value: TAX_JURISDICTION
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.domain.DomainRO com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getRelatedToDomain(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}/subsites:
+    get:
+      tags:
+        - Domains
+      summary: Returns sub-sites of a domain
+      description: This operation returns sub-site of a domain which is a site
+      operationId: getSubSites
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getSubSites(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/domains/{domainNameOrID}/units:
+    get:
+      tags:
+        - Domains
+      summary: Returns units of a domain
+      description: This operation returns units of a domain which is a site
+      operationId: getUnits
+      parameters:
+        - name: domainNameOrID
+          in: path
+          description: The domain name of ID/UUID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The domain name of ID/UUID
+          examples:
+            root:
+              value: root
+            system:
+              value: system
+            SMC:
+              description: Server Management Console (SMC) application type
+              value: intershop.SMC
+            SLDSystem:
+              description: Sellside System (SLDSystem) application type
+              value: intershop.SLDSystem
+            Operations:
+              value: Operations
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/DomainRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.domain.DomainResource.getUnits(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.domain.DomainResource
+      x-AuthorizationRule: "[]"
+  /system/organizations:
+    get:
+      tags:
+        - Organizations
+      summary: Returns organizations
+      description: This operations returns operations filtered by type, owner or organization domain
+      operationId: getOrganizationByFilter
+      parameters:
+        - name: ownerDomainNameOrID
+          in: query
+          schema:
+            type: string
+        - name: organizationDomainNameOrID
+          in: query
+          schema:
+            type: string
+        - name: organizationType
+          in: query
+          schema:
+            type: string
+          examples:
+            b2b_enterprise:
+              value: b2b_enterprise
+            b2b_buying:
+              value: b2b_buying
+            b2b_partner:
+              value: b2b_partner
+            buying:
+              value: buying
+            supplying:
+              value: supplying
+            system:
+              value: system
+            sld_system:
+              value: sld_system
+            b2c_consumer:
+              value: b2c_consumer
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                type: array
+                description: default response
+                items:
+                  $ref: "#/components/schemas/OrganizationRO"
+      x-origin-method: public java.util.Collection com.intershop.beehive.platformrest.resource.system.organization.OrganizationResource.getOrganizationByFilter(java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.organization.OrganizationResource
+      x-AuthorizationRule: "[]"
+  /system/organizations/{organizationID}:
+    get:
+      tags:
+        - Organizations
+      summary: Returns an organization
+      description: This operation returns an operation
+      operationId: getOrganization
+      parameters:
+        - name: organizationID
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+          examples:
+            TestOrganization:
+              value: TestOrganization
+            Operations:
+              value: Operations
+            TestEnterprise:
+              value: TestEnterprise
+            TestEnterprise-TestSalesChannel-Anonymous:
+              value: TestEnterprise-TestSalesChannel-Anonymous
+            TestEnterprise-TestSalesChannelWithBusinessStorefront-Anonymous:
+              value: TestEnterprise-TestSalesChannelWithBusinessStorefront-Anonymous
+            inSPIRED:
+              value: inSPIRED
+            inSPIRED-inTRONICS-Anonymous:
+              value: inSPIRED-inTRONICS-Anonymous
+            inSPIRED-inTRONICS_Business-Anonymous:
+              value: inSPIRED-inTRONICS_Business-Anonymous
+            Myers:
+              value: Myers
+            Myers-ShoppingLive-Anonymous:
+              value: Myers-ShoppingLive-Anonymous
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.system.organization.OrganizationRO com.intershop.beehive.platformrest.resource.system.organization.OrganizationResource.getOrganization(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.system.organization.OrganizationResource
+      x-AuthorizationRule: "[]"
+components:
+  schemas:
+    ApplicationRO:
+      title: Application
+      type: object
+      properties:
+        applicationID:
+          type: string
+          description: The application ID.
+          readOnly: true
+          example: consumer-test-sf
+        applicationType:
+          $ref: "#/components/schemas/ApplicationTypeRO"
+        defaultLocale:
+          type: object
+          properties:
+            country:
+              type: string
+            displayCountry:
+              type: string
+            displayLanguage:
+              type: string
+            displayName:
+              type: string
+            displayScript:
+              type: string
+            displayVariant:
+              type: string
+            extensionKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            iso3Country:
+              type: string
+            iso3Language:
+              type: string
+            language:
+              type: string
+            script:
+              type: string
+            unicodeLocaleAttributes:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            unicodeLocaleKeys:
+              uniqueItems: true
+              type: array
+              items:
+                type: string
+            variant:
+              type: string
+          description: The application's default locale
+          readOnly: true
+          example: en_US
+        description:
+          type: string
+          description: More detailed application description.
+          readOnly: true
+          example: The REST endpoint for customers.
+        displayName:
+          type: string
+          description: The application's display name
+          readOnly: true
+          example: REST
+        enabled:
+          type: boolean
+          description: Is the application enabled.
+          readOnly: true
+          example: true
+        id:
+          type: string
+          description: The internal application ID.
+          readOnly: true
+          example: AuZ_AAEBmPMAAAF.vKtt0Gg6
+        locales:
+          type: array
+          description: Locales supported by the application.
+          readOnly: true
+          items:
+            type: object
+            properties:
+              country:
+                type: string
+              displayCountry:
+                type: string
+              displayLanguage:
+                type: string
+              displayName:
+                type: string
+              displayScript:
+                type: string
+              displayVariant:
+                type: string
+              extensionKeys:
+                uniqueItems: true
+                type: array
+                items:
+                  type: string
+              iso3Country:
+                type: string
+              iso3Language:
+                type: string
+              language:
+                type: string
+              script:
+                type: string
+              unicodeLocaleAttributes:
+                uniqueItems: true
+                type: array
+                items:
+                  type: string
+              unicodeLocaleKeys:
+                uniqueItems: true
+                type: array
+                items:
+                  type: string
+              variant:
+                type: string
+            description: Locales supported by the application.
+            readOnly: true
+        urlIdentifier:
+          type: string
+          description: The application URL identifier.
+          readOnly: true
+          example: rest
+      description: This resource holds information on an application and the URLs to use it.
+    ApplicationTypeRO:
+      type: object
+      properties:
+        cartridgeListProvider:
+          $ref: "#/components/schemas/CartridgeListProviderRO"
+        cartridgeNamesList:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+    BeanRO:
+      type: object
+      properties:
+        toString:
+          type: string
+        typeName:
+          type: string
+    BindingRO:
+      type: object
+      properties:
+        annotations:
+          type: string
+        bindingStringified:
+          type: string
+        boundType:
+          type: string
+        moduleSource:
+          type: string
+        scope:
+          type: string
+        toInstance:
+          $ref: "#/components/schemas/BeanRO"
+        toProvider:
+          $ref: "#/components/schemas/BeanRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+    CacheGroupRO:
+      type: object
+      properties:
+        caches:
+          type: array
+          items:
+            $ref: "#/components/schemas/CacheROObject"
+        id:
+          type: string
+    CacheROObject:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+    Cartridge:
+      type: object
+      properties:
+        artifactDirectory:
+          type: object
+          properties:
+            absolute:
+              type: boolean
+            fileName:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+            fileSystem:
+              type: object
+              properties:
+                fileStores:
+                  type: object
+                open:
+                  type: boolean
+                readOnly:
+                  type: boolean
+                rootDirectories:
+                  type: object
+                separator:
+                  type: string
+                userPrincipalLookupService:
+                  type: object
+            nameCount:
+              type: integer
+              format: int32
+            parent:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileName:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+                root:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileName:
+                      type: object
+                      properties:
+                        absolute:
+                          type: boolean
+                        fileSystem:
+                          type: object
+                          properties:
+                            fileStores:
+                              type: object
+                            open:
+                              type: boolean
+                            readOnly:
+                              type: boolean
+                            rootDirectories:
+                              type: object
+                            separator:
+                              type: string
+                            userPrincipalLookupService:
+                              type: object
+                        nameCount:
+                          type: integer
+                          format: int32
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+            root:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileName:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+        cartridgeDirectory:
+          type: string
+        dependsOn:
+          type: array
+          items:
+            type: string
+        displayName:
+          type: string
+        layout:
+          $ref: "#/components/schemas/CartridgeLayout"
+        name:
+          type: string
+          description: The name of an element
+        shortCartridgeDesc:
+          type: string
+        version:
+          type: string
+    CartridgeLayout:
+      type: object
+      properties:
+        artifactDirectory:
+          type: object
+          properties:
+            absolute:
+              type: boolean
+            fileName:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+            fileSystem:
+              type: object
+              properties:
+                fileStores:
+                  type: object
+                open:
+                  type: boolean
+                readOnly:
+                  type: boolean
+                rootDirectories:
+                  type: object
+                separator:
+                  type: string
+                userPrincipalLookupService:
+                  type: object
+            nameCount:
+              type: integer
+              format: int32
+            parent:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileName:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+                root:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileName:
+                      type: object
+                      properties:
+                        absolute:
+                          type: boolean
+                        fileSystem:
+                          type: object
+                          properties:
+                            fileStores:
+                              type: object
+                            open:
+                              type: boolean
+                            readOnly:
+                              type: boolean
+                            rootDirectories:
+                              type: object
+                            separator:
+                              type: string
+                            userPrincipalLookupService:
+                              type: object
+                        nameCount:
+                          type: integer
+                          format: int32
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+            root:
+              type: object
+              properties:
+                absolute:
+                  type: boolean
+                fileName:
+                  type: object
+                  properties:
+                    absolute:
+                      type: boolean
+                    fileSystem:
+                      type: object
+                      properties:
+                        fileStores:
+                          type: object
+                        open:
+                          type: boolean
+                        readOnly:
+                          type: boolean
+                        rootDirectories:
+                          type: object
+                        separator:
+                          type: string
+                        userPrincipalLookupService:
+                          type: object
+                    nameCount:
+                      type: integer
+                      format: int32
+                fileSystem:
+                  type: object
+                  properties:
+                    fileStores:
+                      type: object
+                    open:
+                      type: boolean
+                    readOnly:
+                      type: boolean
+                    rootDirectories:
+                      type: object
+                    separator:
+                      type: string
+                    userPrincipalLookupService:
+                      type: object
+                nameCount:
+                  type: integer
+                  format: int32
+        classPathDirectories:
+          type: array
+          items:
+            type: object
+            properties:
+              absolute:
+                type: boolean
+              fileName:
+                type: object
+                properties:
+                  absolute:
+                    type: boolean
+                  fileSystem:
+                    type: object
+                    properties:
+                      fileStores:
+                        type: object
+                      open:
+                        type: boolean
+                      readOnly:
+                        type: boolean
+                      rootDirectories:
+                        type: object
+                      separator:
+                        type: string
+                      userPrincipalLookupService:
+                        type: object
+                  nameCount:
+                    type: integer
+                    format: int32
+              fileSystem:
+                type: object
+                properties:
+                  fileStores:
+                    type: object
+                  open:
+                    type: boolean
+                  readOnly:
+                    type: boolean
+                  rootDirectories:
+                    type: object
+                  separator:
+                    type: string
+                  userPrincipalLookupService:
+                    type: object
+              nameCount:
+                type: integer
+                format: int32
+              parent:
+                type: object
+                properties:
+                  absolute:
+                    type: boolean
+                  fileName:
+                    type: object
+                    properties:
+                      absolute:
+                        type: boolean
+                      fileSystem:
+                        type: object
+                        properties:
+                          fileStores:
+                            type: object
+                          open:
+                            type: boolean
+                          readOnly:
+                            type: boolean
+                          rootDirectories:
+                            type: object
+                          separator:
+                            type: string
+                          userPrincipalLookupService:
+                            type: object
+                      nameCount:
+                        type: integer
+                        format: int32
+                  fileSystem:
+                    type: object
+                    properties:
+                      fileStores:
+                        type: object
+                      open:
+                        type: boolean
+                      readOnly:
+                        type: boolean
+                      rootDirectories:
+                        type: object
+                      separator:
+                        type: string
+                      userPrincipalLookupService:
+                        type: object
+                  nameCount:
+                    type: integer
+                    format: int32
+                  root:
+                    type: object
+                    properties:
+                      absolute:
+                        type: boolean
+                      fileName:
+                        type: object
+                        properties:
+                          absolute:
+                            type: boolean
+                          fileSystem:
+                            type: object
+                            properties:
+                              fileStores:
+                                type: object
+                              open:
+                                type: boolean
+                              readOnly:
+                                type: boolean
+                              rootDirectories:
+                                type: object
+                              separator:
+                                type: string
+                              userPrincipalLookupService:
+                                type: object
+                          nameCount:
+                            type: integer
+                            format: int32
+                      fileSystem:
+                        type: object
+                        properties:
+                          fileStores:
+                            type: object
+                          open:
+                            type: boolean
+                          readOnly:
+                            type: boolean
+                          rootDirectories:
+                            type: object
+                          separator:
+                            type: string
+                          userPrincipalLookupService:
+                            type: object
+                      nameCount:
+                        type: integer
+                        format: int32
+              root:
+                type: object
+                properties:
+                  absolute:
+                    type: boolean
+                  fileName:
+                    type: object
+                    properties:
+                      absolute:
+                        type: boolean
+                      fileSystem:
+                        type: object
+                        properties:
+                          fileStores:
+                            type: object
+                          open:
+                            type: boolean
+                          readOnly:
+                            type: boolean
+                          rootDirectories:
+                            type: object
+                          separator:
+                            type: string
+                          userPrincipalLookupService:
+                            type: object
+                      nameCount:
+                        type: integer
+                        format: int32
+                  fileSystem:
+                    type: object
+                    properties:
+                      fileStores:
+                        type: object
+                      open:
+                        type: boolean
+                      readOnly:
+                        type: boolean
+                      rootDirectories:
+                        type: object
+                      separator:
+                        type: string
+                      userPrincipalLookupService:
+                        type: object
+                  nameCount:
+                    type: integer
+                    format: int32
+    CartridgeListProviderRO:
+      type: object
+      properties:
+        localSelectedCartridges:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+          description: The name of an element
+        selectedCartridges:
+          type: array
+          items:
+            type: string
+        subCartridgeListProvider:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartridgeListProviderRO"
+    ComponentContextRO:
+      type: object
+      properties:
+        configurationIDs:
+          uniqueItems: true
+          type: array
+          items:
+            type: string
+        contextID:
+          type: string
+        parent:
+          $ref: "#/components/schemas/ComponentContextRO"
+    ConfigurationInformation:
+      type: object
+      properties:
+        key:
+          type: string
+        secret:
+          type: boolean
+        value:
+          type: string
+        valueInformation:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfigurationValueInformation"
+    ConfigurationValueInformation:
+      type: object
+      properties:
+        rawValue:
+          type: string
+        source:
+          type: string
+    DomainRO:
+      title: Domain
+      type: object
+      properties:
+        description:
+          type: string
+          description: the description
+        displayName:
+          type: string
+          description: the display name
+        domainID:
+          type: string
+        domainName:
+          type: string
+        site:
+          type: boolean
+        status:
+          type: integer
+          description: "the status of the returned element. One out of STATUS_LIVE = 1, STATUS_MAINTENANCE = 2, STATUS_DISABLED = 3, STATUS_TOBEDELETED = 4 "
+          format: int32
+        systemDomain:
+          type: boolean
+        typeCode:
+          type: integer
+          format: int32
+        unit:
+          type: boolean
+        uuid:
+          type: string
+      description: Information about a domain
+    EObjectRO:
+      type: object
+      properties:
+        empty:
+          type: boolean
+      additionalProperties:
+        type: object
+    InjectorRO:
+      type: object
+      properties:
+        bindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/BindingRO"
+        boundTypes:
+          type: array
+          items:
+            type: string
+        parent:
+          $ref: "#/components/schemas/InjectorRO"
+    JavaExtensionRO:
+      type: object
+      properties:
+        toString:
+          type: string
+        typeName:
+          type: string
+    NamedObjectRO:
+      type: object
+      properties:
+        toString:
+          type: string
+        typeName:
+          type: string
+    OrganizationRO:
+      type: object
+      properties:
+        displayName:
+          type: string
+        domain:
+          $ref: "#/components/schemas/DomainRO"
+        id:
+          type: string
+        organizationDomain:
+          $ref: "#/components/schemas/DomainRO"
+        owningDomain:
+          $ref: "#/components/schemas/DomainRO"
+        state:
+          type: integer
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+        typeCode:
+          type: integer
+          format: int32
+        uuid:
+          type: string
+    RegistryElementObject:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        registry:
+          type: object
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: system
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.beehive.platformrest.resource.system.SystemResource

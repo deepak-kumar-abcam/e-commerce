@@ -1,0 +1,1019 @@
+openapi: 3.0.1
+info:
+  title: Internal API
+  description: ICM REST-End points for internal use only.
+  version: 1.2.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Staging
+    description: "Provides capabilities for data exchange between edit- and live-server. "
+    x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+paths:
+  /staging/executeStagingPhase:
+    post:
+      tags:
+        - Staging
+      summary: "Runs a particular phase of a staging process "
+      description: "Executes a staging-phase "
+      operationId: executeStagingPhase
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StagingPhaseExecutionRO"
+      responses:
+        default:
+          description: default response
+          content:
+            text/plain:
+              schema:
+                type: string
+      x-origin-method: public java.lang.String com.intershop.beehive.platformrest.resource.staging.StagingResource.executeStagingPhase(com.intershop.beehive.platformrest.resource.staging.StagingPhaseExecutionRO)
+      x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+      x-AuthorizationRule: "[]"
+  /staging/executionStatus:
+    get:
+      tags:
+        - Staging
+      operationId: getExecutionStatus
+      parameters:
+        - name: executionID
+          in: query
+          schema:
+            type: string
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagingExecutionResultRO"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.staging.StagingExecutionResultRO com.intershop.beehive.platformrest.resource.staging.StagingResource.getExecutionStatus(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+      x-AuthorizationRule: "[]"
+  /staging/refreshcaches:
+    post:
+      tags:
+        - Staging
+      summary: Refreshes caches associated with a process-ID
+      description: Causes a cache-refresh of caches that are associated with the given id waiting until the cache refresh is completed.
+      operationId: refreshCaches
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CacheClearObjectsRO"
+      responses:
+        "204":
+          description: The cache clear request has been sent successfully.
+        "500":
+          description: There was an error while running the pipeline.
+      deprecated: true
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.beehive.platformrest.resource.staging.StagingResource.refreshCaches(com.intershop.beehive.platformrest.resource.staging.CacheClearObjectsRO)
+      x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+      x-AuthorizationRule: "[]"
+  /staging/refreshcachesasync:
+    post:
+      tags:
+        - Staging
+      summary: Refreshes caches associated with a process-ID
+      description: Causes a cache-refresh of caches that are associated with the given id not waiting until the cache refresh is completed.
+      operationId: refreshCachesAsync
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CacheClearObjectsRO"
+      responses:
+        "204":
+          description: The request to trigger a cache clear request has been received.
+        "500":
+          description: There was an unexpected technical error.
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.beehive.platformrest.resource.staging.StagingResource.refreshCachesAsync(com.intershop.beehive.platformrest.resource.staging.CacheClearObjectsRO)
+      x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+      x-AuthorizationRule: "[]"
+  /staging/webobjects:
+    post:
+      tags:
+        - Staging
+      summary: Accepts data from the live- or edit-server
+      operationId: insert
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InsertWebObjectsRO"
+      responses:
+        "200":
+          description: Returns an array of response messages.
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Returns an array of response messages.
+                items:
+                  type: string
+        "500":
+          description: There was an error while running the pipeline.
+      x-origin-method: public java.lang.String[] com.intershop.beehive.platformrest.resource.staging.StagingResource.insert(com.intershop.beehive.platformrest.resource.staging.InsertWebObjectsRO)
+      x-origin-class: com.intershop.beehive.platformrest.resource.staging.StagingResource
+      x-AuthorizationRule: "[]"
+components:
+  schemas:
+    CacheClearObjectsRO:
+      title: CacheClearObjects
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        processID:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    InsertWebObjectsRO:
+      title: InsertWebObjects
+      type: object
+      properties:
+        downloadURL:
+          type: string
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+        stagingPermissionID:
+          type: string
+        targetSystemTransferType:
+          $ref: "#/components/schemas/TargetSystemTransferType"
+        type:
+          type: string
+          description: The type of the returned element
+          readOnly: true
+          xml:
+            attribute: true
+        webObjects:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebObject"
+    StagingExecutionFailureRO:
+      type: object
+      properties:
+        cause:
+          $ref: "#/components/schemas/StagingExecutionFailureRO"
+        message:
+          type: string
+        stackTrace:
+          type: array
+          items:
+            type: string
+    StagingExecutionResultRO:
+      type: object
+      properties:
+        executionState:
+          type: string
+          enum:
+            - none
+            - running
+            - success
+            - failed
+        failure:
+          $ref: "#/components/schemas/StagingExecutionFailureRO"
+    StagingPhaseExecutionRO:
+      type: object
+      properties:
+        serializedStagingContext:
+          type: string
+          format: byte
+        stagingPhases:
+          type: array
+          items:
+            type: string
+            enum:
+              - AcquireResources
+              - Preparation
+              - AcquireResourcesLive
+              - Synchronization
+              - Replication
+              - SaveNoneUndoContent
+              - RestoreUndoContent
+              - Publication
+              - RefreshCache
+              - CompletionLive
+              - ReleaseResourcesLive
+              - CompletionEdit
+              - ReleaseResources
+              - Finalize
+    TargetSystemTransferType:
+      type: object
+      properties:
+        targetSystemBytes:
+          type: string
+          format: byte
+    WebAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        value:
+          type: string
+    WebObject:
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebAttribute"
+        containerOnly:
+          type: boolean
+        dependendFiles:
+          type: array
+          items:
+            type: string
+        dependents:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebObject"
+        name:
+          type: string
+          description: The name of an element
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: internal
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.beehive.platformrest.resource.staging.StagingResource

@@ -1,0 +1,4036 @@
+openapi: 3.0.1
+info:
+  title: Basket
+  description: |+
+    **Note:** This version is deprecated. Please use version 1.0 or higher. However, note that the Basket v1 REST API may not yet support all features of the Basket v0 REST API. Therefore, Intershop will continue to support the Basket v0 REST API until all functionalities are transitioned to the new version. 
+
+    The _Basket REST API_ contains resources that cover aspects of basket handling and preparation of the checkout process.
+
+    A typical checkout process requires a series of REST requests, some of which are based on one another and must therefore take place in a defined sequence. This cannot be sufficiently represented by the OpenAPI documentation only. 
+    Detailed descriptions of various checkout scenarios can be found in the [Business Guide "Basket & Checkout REST API"](https://knowledge.intershop.com/kb/2873B2) in the Intershop Knowledge Base.
+
+    Please also refer to the _Order REST API_, which is used to create an order from the appropriately prepared basket and complete the checkout process.
+
+    ## Changelog
+    - - -
+    ### Version 0.2.1
+    * Added this changelog
+
+    ### Version 0.2.0
+    * Added read-only attributes `externalID` and `externalUrn` to the `Address` resource object
+
+  version: 0.2.1
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: General
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketResource
+  - name: Line Item
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+  - name: Payment
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource
+  - name: Quote
+    description: This section covers operations for managing quotes within a basket. This includes viewing, creating, and deleting quote requests.
+    x-origin-class: com.intershop.sellside.rest.b2b.capi.basket.v1.quote.resource.BasketQuoteItemResource
+paths:
+  /baskets:
+    get:
+      tags:
+        - General
+      summary: Gets all open baskets for the current user
+      description: Gets a list of all open baskets for the user given by the authentication token.
+      operationId: getBaskets
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getBasketByID
+              parameters:
+                BasketResourceKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type BasketRO
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_user_required.error
+      deprecated: true
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource.getBaskets()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      x-AuthorizationRule: "[isAnyUser]"
+    post:
+      tags:
+        - General
+      summary: Creates a new basket.
+      description: |-
+        The request creates a new basket. The client gets a link to the new cart.The server will return the headers `authentication-token` and `Location`. These are required for anonymous users, who have not logged in yet, by providing their credentials. In this case the token has any subsequent request to the basket,because a basket can only be accessed by that user who created it.
+         Registered users, that have been logged in before basket creation are not required to sendthe token with subsequent requests.
+      operationId: createBasket
+      responses:
+        "201":
+          description: Created
+      deprecated: true
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource.createBasket()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /baskets/{BasketResourceKey}:
+    get:
+      tags:
+        - General
+      summary: |-
+        Returns the basket's summary.
+         Alternatively you may use the URL `/baskets/-` to get the active basket.
+      description: |-
+        Get baskets summary, containing
+         - Customer related basket information, like taxation ID, external order reference ID
+         - Shipping buckets with line item references
+         - Invoice-to address
+         - Promotions applied to the basket
+         - Payment methods applied to the basket
+         - Sales and shipping taxes
+         - Surcharges
+         - Promotional discounts
+         - Basket totals
+         - Recurrence information
+         - Document number (is currently only set if basket is in status waiting for approval after submitting)
+         - Recurring Order Document number (is only set when Basket is recurring)
+         - Affiliate information
+         
+         In case of basket not found or other error, a status code 400 is returned as a result.
+         
+         Depending on the flag `isMultipleShippmentSupported` the get request returns the availableshipping methods at the basket level or at the line item level:
+         - `isMultipleShippmentSupported = true`:  the shipping methods are available at the line item level and not at the basket level
+         - `isMultipleShippmentSupported = false`: the shipping methods are available at the basket level and not at the line item level
+      operationId: getBasketByID
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/BasketRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketRO com.intershop.sellside.rest.common.capi.resource.basket.BasketResource.getBasketByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    put:
+      tags:
+        - General
+      summary: Sets / updates basket related data, marks the basket as recurrent and sets recurrence information
+      description: |-
+        Sets following basket related data:
+         - commonShipToAddress
+         
+         If a complete address is specified, this address is set after validation successfully finished. Alternatively, a URN of an existing address (e.g., of an address of a registered customer or a store address) may be passed to use this address if possible. Note that an existing address may only be used if it is marked as an invoice-to address.
+         - invoiceToAddress
+         
+         If a complete address is specified, this address is set after validation successfully finished. Alternatively, a URN of an existing address (e.g., of an address of a registered customer or a store address) may be passed to use this address if possible. Note that an existing address may only be used if it is marked as a ship-to address.
+         - commonShippingMethod
+         - promotionCode
+         
+          If the specified promotion code is valid, it is applied to the basket.If the promotion code is not valid, then a validation result is returned.
+         - department
+         
+         Option to set the buyer's department at the basket in case of unregistered checkout.
+         - taxationID
+         
+         Option to set buyer's taxation ID at the basket in case of unregistered checkout.
+         - taxExempt
+         - purchaseCurrency
+         - dynamicMessages
+         - externalOrderReferenceID
+         
+         Option to set a buyer specific order reference ID at the basket.
+         - owningUser
+         
+          Assigns the basket to another user. It is intended to be used to transfer the basket of an anonymous user to a registered user, when the anonymous user logs-in during the checkout. In order to change the owner a valid authentication token of the new user has to be applied.After changing the owner, the current user has no access to this basket anymore!
+         - multipleShippmentsSupported
+         - recurrence (required fields: StartDate, Recurrence Interval; optional fields: EndDate, Number of repetitions)
+         
+         The recurrence Interval is defined as Java period Object, that supports ISO 8601. It allows numerous possibilities to set the interval.
+         The string always starts with a 'P' for period. The interval can contain a number of years (Y), months (M) weeks (W) or Days (D) or any combination of them.
+         The number is placed in front of the unit. Weeks are transformed to days by multiplying with 7 -> (P4W = P28D).
+         
+         
+        NOTE: 
+         By default the subscriptions feature is disabled for the channel. 
+      operationId: editBasketByID
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasketRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/BasketRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/BasketRO"
+        "400":
+          description: |-
+            Bad request 
+             Possible values for header 'error-key:
+             - basket.addreess_not_found_error
+             - basket.basket_id_required.error
+             - basket.invalid_address.error
+             - basket.store_addresses_not_allowed.error
+             - customer.address.missing_fields.error
+             - basket.recurring_not_allowed.error
+             - basket.cost_center.no_customer.error
+             - basket.cost_center.invalid_customer.error
+             - basket.cost_center.not_found.error
+             - basket.affiliate.invalid.error
+             - basket.promotioncode.invalid.error.{xxx}
+             
+             Possible messages for missing attributes:
+             - interval
+             - startDate
+        "401":
+          description: Unauthorized
+        "404":
+          description: |-
+            Not found
+             possible values for header 'error-key':
+             - basket.basket_not_found.error
+        "501":
+          description: |-
+            Not implemented (if the recurring order feature is disabled),
+             possible values for header 'error-key':
+             - error.recurring_orders.disabled
+        "503":
+          description: Service unavailable (if Microservice is not available and/or cannot be discovered)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketRO com.intershop.sellside.rest.common.capi.resource.basket.BasketResource.editBasketByID(com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    options:
+      tags:
+        - General
+      summary: Returns all available options for the given basket
+      description: |-
+        Returns the following available options for the given basket:
+         - common shipping methods
+
+         Depending on the flag `isMultipleShippmentSupported` the option request returnsall available shipping methods for the whole basket or the option request returns nothing:
+         - `isMultipleShippmentSupported = true`: There are no shipping methods for the whole basket availablebecause the shipping methods are only available at the line item level
+         - `isMultipleShippmentSupported = false`: The option request returns all available shipping methodsfor the whole basket (shipping methods on basket level)
+      operationId: getBasketOptions
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/BasketOptionsRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketOptionsRO com.intershop.sellside.rest.common.capi.resource.basket.BasketResource.getBasketOptions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/costobjects:
+    get:
+      tags:
+        - Cost Object
+      summary: (Deprecated) Returns the cost objects assigned to the selected basket
+      description: |-
+        This operation is deprecated. The Cost Object feature is no longer supported.
+
+         ResourceCollectionRO contains elements of type LinkRO
+      operationId: getBasketCostObjectAssignments
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getBasketCostObjectAssignment
+              parameters:
+                BasketCostObjectAssignmentKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type CostObjectAssignmentRO
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             Requires authentication with a user who has been assigned the following permissions:
+             - View Cost Object (APP_B2B_VIEW_COSTOBJECT)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource.getBasketCostObjectAssignments()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource
+      x-AuthorizationRule: "[hasPermission[Organization:APP_B2B_VIEW_COSTOBJECT], hasPermission[Organization:APP_B2B_VIEW_COSTOBJECT], ((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    post:
+      tags:
+        - Cost Object
+      summary: (Deprecated) Assigns a cost object to the basket
+      description: This operation is deprecated. The Cost Object feature is no longer supported.
+      operationId: createCostObjectAssignment
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CostObjectAssignmentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CostObjectAssignmentRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - basket.cost_object.missing_body.error
+             - basket.cost_object.missing_attributes.error
+             - basket.cost_object.invalid_attributes.error
+             - basket.cost_object.already_set.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             Requires authentication with a user who has been assigned the following permissions:
+             - Assign Cost Object To Basket (APP_B2B_ASSIGN_COSTOBJECT_TO_BASKET)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource.createCostObjectAssignment(com.intershop.application.storefront.rest.b2b.capi.costobject.resourceobject.CostObjectAssignmentRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource
+      x-AuthorizationRule: "[hasPermission[Organization:APP_B2B_ASSIGN_COSTOBJECT_TO_BASKET], hasPermission[Organization:APP_B2B_ASSIGN_COSTOBJECT_TO_BASKET], ((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/costobjects/{BasketCostObjectAssignmentKey}:
+    get:
+      tags:
+        - Cost Object
+      summary: (Deprecated) Returns a specific cost object assigned to the selected basket
+      description: This operation is deprecated. The Cost Object feature is no longer supported.
+      operationId: getBasketCostObjectAssignment
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketCostObjectAssignmentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostObjectAssignmentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CostObjectAssignmentRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             Requires authentication with a user who has been assigned the following permissions:
+             - View Cost Object (APP_B2B_VIEW_COSTOBJECT)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.application.storefront.rest.b2b.capi.costobject.resourceobject.CostObjectAssignmentRO com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource.getBasketCostObjectAssignment()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource
+      x-AuthorizationRule: "[hasPermission[Organization:APP_B2B_VIEW_COSTOBJECT], hasPermission[Organization:APP_B2B_VIEW_COSTOBJECT], ((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    delete:
+      tags:
+        - Cost Object
+      summary: (Deprecated) Removes a cost object from the basket
+      description: This operation is deprecated beacuse the Cost Object feature is no longer supported.
+      operationId: deleteCostObjectAssignment
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketCostObjectAssignmentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN
+             Requires authentication with a user who has been assigned the following permissions:
+             - Delete Cost Object (APP_B2B_DELETE_COSTOBJECT)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource.deleteCostObjectAssignment()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource
+      x-AuthorizationRule: "[hasPermission[Organization:APP_B2B_DELETE_COSTOBJECT], hasPermission[Organization:APP_B2B_DELETE_COSTOBJECT], ((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/items:
+    get:
+      tags:
+        - Line Item
+      summary: Gets all line items contained in the given basket.
+      description: |-
+        Gets a collection of all line items contained in the basket. The line items are provided as simple list without any structuring according to shipping buckets the line items are assigned to.
+         If the basket is not found a status code 404 is returned, otherwise - status code 200.
+      operationId: getBasketContent
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource.getBasketContent()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    post:
+      tags:
+        - Line Item
+      summary: Adds a list of items or line items of a quote to an existing basket
+      description: |-
+        Adds a list of items to the basket.The items are either specified in the request body, or come from quote that will be specified with the quote ID. If a quote contains invalid products (delete, offline etc.) then all available products from the quote are added to the basket. If the quote contains no valid products at all an error occurs (400 - quote.no_valid_items.error).
+         For every item `sku` and `quantity` has to be specified. For gift certificates additional information are required. That is recipient email, recipient name, sender email, sender name and greeting message.
+         If basket is not found, a status code 404 is returned as a response. If any error occurs when adding products to the basket, then a status code 400 is returned.
+      operationId: addItemsToBasket
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExtendedLineItemCollectionRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/ExtendedLineItemCollectionRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.gift.message.to_required.error
+             - basket.gift.message.from_required.error
+             - basket.gift.message.message_required.error
+             - basket.product.add_to_basket_unsuccessful.error
+             - basket.product.not_found.error
+             - basket.product.sku_required.error
+             - basket.product.quantity_invalid.error
+             - quote.no_valid_items.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN possible values for header error-key:
+             - quote.expired.error
+             - quote.rejected.error
+             
+             Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+             - basket.product.not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource.addItemsToBasket(com.intershop.sellside.rest.common.capi.resourceobject.basket.ExtendedLineItemCollectionRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/items/{BasketLineKey}:
+    get:
+      tags:
+        - Line Item
+      summary: Get the specified line item from basket.
+      description: |-
+        Gets the line item with the specified ID.
+         Status code 404 is returned, if basket or basket item could not be found.
+      operationId: getItemFromBasketByID
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.lineitem.id_required.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+             - basket.lineitem.not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.getItemFromBasketByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    put:
+      tags:
+        - Line Item
+      summary: Sets line item related data
+      description: |-
+        Sets following line item related data:
+         - Quantity
+         - Product variation option
+         - Ship-to address
+         - Shipping method
+         - Gift certificate data
+
+         If basket or basket line item is not found then a status code 404 is returned as a result.
+         Depending on the flag `MultipleShipmentsSupported` the shipping methods and addresses can be set at the line item level:
+         - `MultipleShipmentsSupported = true`: the shipping methods and addresses can be set on line item level (not at basket level)
+         - `MultipleShipmentsSupported = false`: the shipping methods and addresses cannot be set on line item level (only at basket level)
+      operationId: updateItemsFromBasket
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasketLineItemRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/BasketLineItemRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.gift.message.to_required.error
+             - basket.gift.message.from_required.error
+             - basket.gift.message.message_required.error
+             - basket.lineitem.id_required.error
+             - basket.product.sku_required.error
+             - basket.product.variation.update_not_successful.error
+             - basket.product.update_quantity.error
+             - basket.invalid_address.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+             - basket.lineitem.not_found.error
+             - basket.product.not_found.error
+             - basket.warranty.not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.updateItemsFromBasket(com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketLineItemRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    delete:
+      tags:
+        - Line Item
+      summary: Removes the specified line item from basket.
+      description: |-
+        Removes the line item with the given ID from the basket. The result basket's summary.
+         Status code 404 is returned if the basket or the line item could not be found.
+      operationId: removeItemFromBasket
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        "303":
+          description: See other
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.lineitem.id_required.error
+             - basket.basket_id_required.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.removeItemFromBasket()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    options:
+      tags:
+        - Line Item
+      summary: Returns all available options for the given line item
+      description: |-
+        Returns the following available options for the given basket line item:
+         - Eligible shipping methods
+         - Warranties
+         - Gift wraps
+         - Gift messages
+         - Product variation options
+      operationId: getBasketLineItemOptions
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketLineItemRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/BasketLineItemRO"
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketLineItemOptionsRO com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.getBasketLineItemOptions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/items/{BasketLineKey}/sublineitems:
+    get:
+      tags:
+        - Line Item
+      summary: Get basket subline items
+      operationId: getSubLineItemsFromBasketByID
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        default:
+          description: default response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.getSubLineItemsFromBasketByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/items/{BasketLineKey}/sublineitems/{subLineItemName}:
+    get:
+      tags:
+        - Line Item
+      summary: Get the sub-line type of a specific basket item.
+      description: Get the sub-line type of a specific basket item. Valid types are warranty, gift wrap and gift message. If basket or basket item, or sub-line type is not found then a status code 404 is returned as a result.
+      operationId: getSublineItem
+      parameters:
+        - name: subLineItemName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BasketDependentLineItemRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/BasketDependentLineItemRO"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.lineitem.id_required.error
+             - basket.item.sublinetype.missing_fields.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+             - basket.item.unknown_sublinetype.error
+             - basket.lineitem.not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketDependentLineItemRO com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.getSublineItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    put:
+      tags:
+        - Line Item
+      summary: Modify the sublinetype of a specific basket item
+      description: Modify the sublinetype of a specific basket item. Valid types are warranty, giftwrap and giftmessage. If basket or basket item, or subline type is not found then a status code 404 is returned as a result. If product sku is not provided a status code 400 is returned as a result.
+      operationId: updateSublineItem
+      parameters:
+        - name: subLineItemName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/BasketDependentLineItemRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/AbstractResourceObject"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_sku_required.error
+             - basket.lineitem.id_required.error
+             - basket.product.sku_required.error
+             - basket.product.not_found.error
+             - basket.gift.message.from_required.error
+             - basket.gift.message.to_required.error
+             - basket.gift.message.message_required.error      
+             - basket.lineitem.product.no_applicable.error
+             - basket.basket_id_required.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.lineitem.not_found.error
+             - basket.lineitem.subline_type_required.error
+             - basket.basket_not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.AbstractResourceObject com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.updateSublineItem(java.lang.String,com.intershop.sellside.rest.common.capi.resourceobject.basket.BasketDependentLineItemRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    delete:
+      tags:
+        - Line Item
+      summary: Delete the sublinetype of a specific basket item
+      description: Delete the sublinetype of a specific basket item. Valid types are warranty, giftwrap and giftmessage.If basket or basket item, or subline type is not found then a status code 404 is returned as a result.
+      operationId: removeSublineItem
+      parameters:
+        - name: subLineItemName
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemListResource
+      responses:
+        "303":
+          description: See other
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - basket.basket_id_required.error
+             - basket.lineitem.id_required.error
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+             - basket.lineitem.id_required.error
+             - basket.lineitem.subline_type_required.error
+             - basket.lineitem.id_required.error
+             - basket.lineitem.not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource.removeSublineItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/payments:
+    get:
+      tags:
+        - Payment
+      summary: Returns a list with all selected payments for the basket
+      description: Returns a list of links of all selected payment methods for the basket
+      operationId: getBasketPayments
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getBasketPayment
+              parameters:
+                BasketPaymentKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type PaymentRO
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource.getBasketPayments()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    post:
+      tags:
+        - Payment
+      summary: Adds a payment method to the basket
+      description: Adds a payment method to the basket. If the user is logged in a registered payment method can be referenced via ID (for payments that have been created with POST /customers/-/payments)
+      operationId: addPaymentToBasket
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: |-
+            Bad request possible values for header error-key:
+             - shopping_cart.payment.paymentdata.error (e.g., wrong giftcard number)
+             - shopping_cart.payment.missing_fields.error
+             - shopping_cart.payment.invalid_fields.error
+             - shopping_cart.payment.name.error (Payment method not found)
+             - shopping_cart.payment.dublicate.error
+             - shopping_cart.payment.available.error (also thrown if basket contains NO items)
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: |-
+            Not found possible values for header error-key:
+             - basket.basket_not_found.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource.addPaymentToBasket(com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    options:
+      tags:
+        - Payment
+      summary: Returns all available payment methods and their parameters available for this basket
+      description: Returns all available payment methods and their parameters, which are available for this basket
+      operationId: getBasketPaymentOptions
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentOptionsRO com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource.getBasketPaymentOptions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/payments/{BasketPaymentKey}:
+    get:
+      tags:
+        - Payment
+      summary: "Returns details of the payment method "
+      description: Returns detailed information of the payment method
+      operationId: getBasketPayment
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentItemResource.getBasketPayment()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    delete:
+      tags:
+        - Payment
+      summary: Removes selected payment method from basket payments.
+      description: Removes selected payment method from basket payments.
+      operationId: removePaymentFromBasket
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      responses:
+        "303":
+          description: See other(link to basket)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentItemResource.removePaymentFromBasket()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentItemResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/payments/{BasketPaymentKey}/redirect:
+    put:
+      tags:
+        - Payment
+      summary: REST client delivers the return URLs to the system
+      description: The REST client sends the return URLs to the system, so that the redirect URL for the payment service provider can be created. This redirect URL will be send as response to the REST client so that the client can process the redirect action. After that, the user will be redirected back to his REST client based on the return URLs.
+      operationId: createPaymentRedirectURL
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRedirectRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRedirectRO"
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource.createRedirectURL(com.intershop.sellside.rest.common.capi.resource.basket.PaymentRedirectRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+    post:
+      tags:
+        - Payment
+      summary: Transfer payment transaction information from the payment service provider, via the REST client to the shop system to activate there the payment transaction
+      description: |-
+        If the user has processed his payment transaction successfully at the payment providers system, he will be redirected back to his REST client. This return redirect contains various payment transaction attributes which must be transferred from the REST client back to the shop system to process the payment transaction. The redirect POST requests transfers this data from the REST client into the shop system so that the payment transaction can be activated there. For instance:
+         - transaction ID
+         - transaction status
+         - and so on
+      operationId: addPaymentRedirectResponseData
+      parameters:
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+        - name: BasketPaymentKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRedirectResponseRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PaymentRedirectResponseRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PaymentRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: |-
+            FORBIDDEN Requires authentication with user having assigned the following permissions:
+             - Purchase (APP_B2B_PURCHASE, only in B2B applications)
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.basket.PaymentRO com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource.addRedirectResponseData(com.intershop.sellside.rest.common.capi.resource.basket.PaymentRedirectResponseRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+  /baskets/{BasketResourceKey}/switchcurrency:
+    post:
+      operationId: updateCartCurrency
+      parameters:
+        - name: include
+          in: query
+          schema:
+            type: string
+        - name: BasketResourceKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.basket.BasketListResource
+      responses:
+        default:
+          description: default response
+          content:
+            "*/*": {}
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.BasketCurrencySwitchResource.updateCartCurrency(com.intershop.sellside.rest.common.capi.resource.CurrencyRO,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.BasketCurrencySwitchResource
+      x-AuthorizationRule: "[((((NOT isAuthenticated[Organization] OR isCustomerType) OR hasPermission[Organization:APP_B2B_PURCHASE]) OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]) OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    AddressRO:
+      title: Address
+      type: object
+      properties:
+        addressLine1:
+          type: string
+          description: the first address line
+          example: Berliner Str. 20
+        addressLine2:
+          type: string
+          description: the second address line
+          example: 1st Floor
+        addressLine3:
+          type: string
+          description: The third address line
+          example: Second door on the right
+        addressName:
+          type: string
+          description: The name of the address
+          example: customeraddr-ABCDEFGPRMuMCscyXgSRVU
+        aristocraticTitle:
+          type: string
+          description: the aristocratic title of the contact person, like <i>Lord</i> or <i>Lady</i>
+        city:
+          type: string
+          description: The name of the city
+          example: Potsdam
+        companyName1:
+          type: string
+          description: the company name
+          example: PMiller ltd.
+        companyName2:
+          type: string
+          description: The second company name
+        country:
+          type: string
+          description: The display name of the country in the current locale
+          example: Germany
+        countryCode:
+          type: string
+          description: The country code
+          example: DE
+        email:
+          type: string
+          description: the e-mail address of the contact person
+          example: pmiller@intershop.de
+        externalId:
+          type: string
+          description: The ID uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system
+          readOnly: true
+          example: "000123456"
+        externalUrn:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for  data objects that have already been synchronized with the external system
+          readOnly: true
+          example: urn:address:MSDynamics365:MyCorp:000123456
+        externalURN:
+          type: string
+          description: The URN uniquely identifying the address in an external system; required only for data objects that have already been synchronized with the external system.
+          example: A049364112643
+        fax:
+          type: string
+          description: the fax number
+          example: "049364112643"
+        firstName:
+          type: string
+          description: The (first) given name of the contact person
+          example: Patricia
+        honorific:
+          type: string
+          description: the honorific title of the contact person that denotes the honored person's occupation, like <i>Captain</i>, <i>Coach</i>, <i>Officer</i>, <i>Reverend</i> or the academic title, like <i>PhD</i>
+        id:
+          type: string
+          description: The ID of the returned element
+          example: vagKAB17gg4AAAFGSkFqQASI
+        jobTitle:
+          type: string
+          description: the job title of the contact person
+          example: CEO
+        lastName:
+          type: string
+          description: The last name of the contact person
+          example: Miller
+        mainDivision:
+          type: string
+          description: the main division of the country, e. g. a state or province
+          example: AL
+        mainDivisionName:
+          type: string
+          description: The localized display name of the main division
+          example: Alabama
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        phoneBusiness:
+          type: string
+          description: The phone number of the contact person's company
+          example: "049364112699"
+        phoneBusinessDirect:
+          type: string
+          description: the business phone number of the contact person that allows an outside caller to connect directly to the contact person without any help of an attendant or operator
+          example: "049364112659"
+        phoneHome:
+          type: string
+          description: The phone number of the house or apartment where the contact person lives
+          example: "049364112677"
+        phoneMobile:
+          type: string
+          description: The number of the contact person's cell phone
+          example: "+49364112677"
+        postalCode:
+          type: string
+          description: The postal code
+          example: "14482"
+        postBox:
+          type: string
+          description: the post-office box
+          example: PO Box 42
+        secondLastName:
+          type: string
+          description: the second last name of the contact person
+        secondName:
+          type: string
+          description: the second given name of the contact person
+          example: Luise
+        subDivision:
+          type: string
+          description: The sub division code of the country.
+          example: GB-PKN
+        subDivisionName:
+          type: string
+          description: The localized display name of the sub division
+          example: Perth and Kinross
+        title:
+          type: string
+          description: The (personal) title of the contact person, like 'Mr.' or 'Ms.'
+          example: Mrs.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Address
+          xml:
+            attribute: true
+        urn:
+          type: string
+          description: the URN representation of this address
+          example: urn:address:customer:1234567890:0987654321
+        usage:
+          type: object
+          properties:
+            empty:
+              type: boolean
+          description: " Returns usage information for the address. Every bit in the returned set marks a specific usage type, like ship-from or invoice-to address. If a bit is set, the address may be used for the specific purpose mapped to this bit. Further bits may be used for custom types. Default usage for first 4 bits are Invoice-to, Ship-to, Service-to and Install-to"
+      description: This resource holds the details of an address.
+      xml:
+        name: Address
+    ApplicableGiftMessagesRO:
+      type: object
+      properties:
+        description:
+          type: string
+        giftMessages:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: ApplicableGiftMessagesRO
+    ApplicableGiftWrapsRO:
+      type: object
+      properties:
+        description:
+          type: string
+        giftWraps:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: ApplicableGiftWrapsRO
+    AppliedRebateRO:
+      type: object
+      properties:
+        amount:
+          $ref: "#/components/schemas/MoneyRO"
+        code:
+          type: string
+          description: the code of the applied rebate
+          example: INTERSHOP
+        description:
+          type: string
+          description: The description of the applied rebate
+          example: For orders over 200 USD, a 10 USD Order discount is guaranteed for the Promo Code 'INTERSHOP'.
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        rebateType:
+          type: string
+          description: the type of the applied rebate
+          example: OrderValueOffDiscount
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: AppliedRebate
+          xml:
+            attribute: true
+      xml:
+        name: AppliedRebate
+    AppliedTaxRO:
+      type: object
+      properties:
+        amount:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        rate:
+          type: number
+          description: the tax rate, 100 = 100%
+          example: 19
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: AppliedTax
+          xml:
+            attribute: true
+      description: the taxes applied to the surcharge amount as collection of AppliedTaxRO
+      xml:
+        name: AppliedTax
+    AvailableProductVariationsRO:
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        variations:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+      xml:
+        name: AvailableProductVariationsRO
+    AvailableShippingMethodsRO:
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        shippingMethods:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ShippingMethodRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: AvailableShippingMethods
+    AvailableWarrantiesRO:
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        warranties:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+      xml:
+        name: AvailableWarrantiesRO
+    BasketDependentLineItemRO:
+      type: object
+      properties:
+        displayName:
+          type: string
+        from:
+          type: string
+        id:
+          type: string
+        image:
+          type: string
+        message:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        price:
+          $ref: "#/components/schemas/MoneyRO"
+        sku:
+          type: string
+        subType:
+          type: string
+          enum:
+            - WARRANTY
+            - GIFTWRAP
+            - GIFTMESSAGE
+        to:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: BasketDependentLineItem
+    BasketLineItemOptionsRO:
+      type: object
+      properties:
+        applicableGiftMessages:
+          $ref: "#/components/schemas/ApplicableGiftMessagesRO"
+        applicableGiftWraps:
+          $ref: "#/components/schemas/ApplicableGiftWrapsRO"
+        availableVariations:
+          $ref: "#/components/schemas/AvailableProductVariationsRO"
+        availableWarranties:
+          $ref: "#/components/schemas/AvailableWarrantiesRO"
+        eligibleShippingMethods:
+          $ref: "#/components/schemas/EligibleShippingMethodsRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: BasketLineItemOptions
+    BasketLineItemRO:
+      type: object
+      properties:
+        availability:
+          type: boolean
+        bundleProduct:
+          type: boolean
+        giftMessage:
+          $ref: "#/components/schemas/LinkRO"
+        giftwrap:
+          $ref: "#/components/schemas/LinkRO"
+        greetingMessage:
+          type: string
+        id:
+          type: string
+        inStock:
+          type: boolean
+        isFreeGift:
+          type: boolean
+        isHiddenGift:
+          type: boolean
+        itemImportSurcharges:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        itemSurcharges:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        position:
+          type: integer
+          format: int32
+        price:
+          $ref: "#/components/schemas/MoneyRO"
+        product:
+          $ref: "#/components/schemas/LinkRO"
+        quantity:
+          $ref: "#/components/schemas/QuantityRO"
+        recipientEmail:
+          type: string
+        recipientName:
+          type: string
+        salesTaxes:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedTaxRO"
+        senderEmail:
+          type: string
+        senderName:
+          type: string
+        shippingMethod:
+          $ref: "#/components/schemas/ShippingMethodRO"
+        shippingRebates:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedRebateRO"
+        shippingTaxes:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedTaxRO"
+        shipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        singleBasePrice:
+          $ref: "#/components/schemas/MoneyRO"
+        sku:
+          type: string
+        thumbnail:
+          $ref: "#/components/schemas/LinkRO"
+        totals:
+          $ref: "#/components/schemas/BasketLineItemTotalsRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        valueRebates:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedRebateRO"
+        variationProduct:
+          type: boolean
+        warranty:
+          $ref: "#/components/schemas/LinkRO"
+      xml:
+        name: BasketLineItem
+    BasketLineItemTotalsRO:
+      type: object
+      properties:
+        giftingTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        salesTaxTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        shippingRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        shippingTaxTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        shippingTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        total:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        valueRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+      xml:
+        name: BasketLineItemTotals
+    BasketOptionsRO:
+      type: object
+      properties:
+        availableShippingMethods:
+          $ref: "#/components/schemas/AvailableShippingMethodsRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: BasketOptions
+    BasketRO:
+      type: object
+      properties:
+        affiliatePartnerID:
+          type: string
+          description: The AffiliatePartnerID for this basket
+        affiliateProgramID:
+          type: string
+          description: The AffiliateProgramID for this basket
+        bucketSurchargeTotalsByType:
+          type: array
+          description: The Bucket Surcharge Totals by type for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        commonShippingMethod:
+          $ref: "#/components/schemas/ShippingMethodRO"
+        commonShipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        costCenterID:
+          type: string
+          description: The cost Center ID of the basket
+          example: "511288"
+        department:
+          type: string
+          description: the buyers department in case of unregistered checkout
+          example: Sales
+        documentNumber:
+          type: string
+          description: the document number of the basket
+          example: "0000042"
+        dynamicMessages:
+          type: array
+          items:
+            type: string
+        externalOrderReferenceID:
+          type: string
+        id:
+          type: string
+          description: The id of the basket
+          example: zP8KAB17ceUAAAFGntJqQASH
+        invoiceToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        itemSurchargeTotalsByType:
+          type: array
+          description: The Item Surcharge Totals by type for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        multipleShippmentsSupported:
+          type: boolean
+          description: true, if multiple shipments are supported
+          example: true
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        newOwnerAuthenticationToken:
+          type: string
+        paymentMethods:
+          type: array
+          description: The Payment methods for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PaymentMethodRO"
+        promotions:
+          type: array
+          description: The Promotions for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PromotionLinkRO"
+        purchaseCurrency:
+          type: string
+          description: The purchase currency of the basket
+          example: USD
+        recurrence:
+          $ref: "#/components/schemas/RecurrenceRO"
+        recurringOrderDocumentNo:
+          type: string
+          description: the recurring order document number, if basket is configured as recurring
+          example: "0000009"
+        salesTaxTotalsByTaxRate:
+          type: array
+          description: The Sales Tax Totals by tax rate for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedTaxRO"
+        shippingBuckets:
+          type: array
+          description: The Shipping Buckets in this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/BasketShippingBucketRO"
+        shippingRebates:
+          type: array
+          description: The Applied Shipping Rebates for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedRebateRO"
+        shippingTaxTotalsByTaxRate:
+          type: array
+          description: The Shipping Tax Totals by tax rate for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedTaxRO"
+        taxationID:
+          type: string
+          description: the taxation ID associated with the basket
+          example: "99999999999"
+        taxExempt:
+          type: boolean
+          description: is the basket tax exempt?
+          example: false
+        totals:
+          $ref: "#/components/schemas/BasketTotalsRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Basket
+          xml:
+            attribute: true
+        valueRebates:
+          type: array
+          description: The Applied Rebates for this basket
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedRebateRO"
+      xml:
+        name: Basket
+    BasketShippingBucketRO:
+      type: object
+      properties:
+        bucketSurcharges:
+          type: array
+          description: the surcharges of the bucket as SurchargeRO
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        lineItems:
+          type: array
+          description: the line items of the bucket as Collection of LinkROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        packSlipMessage:
+          type: string
+          description: the pack slip message of the bucket
+          example: Your order is here!
+        shippingInstructions:
+          type: string
+          description: the shipping instrucations of the bucket
+          example: Keep away from water
+        shippingMethod:
+          $ref: "#/components/schemas/BasketShippingMethodRO"
+        shippingRebates:
+          type: array
+          description: the shipping rebates of the bucket as AppliedRebateRO
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedRebateRO"
+        shipToAddress:
+          $ref: "#/components/schemas/AddressRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: BasketShippingBucket
+          xml:
+            attribute: true
+      description: The Shipping Buckets in this basket
+      xml:
+        name: BasketShippingBucket
+    BasketShippingMethodRO:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The id of the returned element
+          example: STD_GROUND
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        shippingTimeMax:
+          type: integer
+          description: The maximum shipping time in days
+          format: int32
+          example: 7
+        shippingTimeMin:
+          type: integer
+          description: The minimum shipping time in days
+          format: int32
+          example: 3
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: BasketShippingMethod
+          xml:
+            attribute: true
+      description: the shippingMethod of the bucket as ShippingMethodRO
+      xml:
+        name: BasketShippingMethod
+    BasketTotalsRO:
+      type: object
+      properties:
+        basketShippingRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        basketTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        basketTotalMinusLimitedTender:
+          $ref: "#/components/schemas/MoneyRO"
+        basketValueRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        bucketShippingRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        dutiesAndSurchargesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        itemRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        itemShippingRebatesTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        itemTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        limitedTenderTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        paymentCostsTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        shippingTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        taxTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: BasketTotals
+          xml:
+            attribute: true
+      description: The totals for this basket
+      xml:
+        name: BasketTotals
+    CostObjectAssignmentRO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          example: "451"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Project
+      xml:
+        name: CostObjectAssignment
+    CreditCardRO:
+      type: object
+      xml:
+        name: CreditCard
+      allOf:
+        - $ref: "#/components/schemas/PaymentMethodRO"
+        - type: object
+          properties:
+            creditCardExpiryMonth:
+              type: string
+            creditCardExpiryYear:
+              type: string
+            creditCardNumber:
+              type: string
+            creditCardSecurityCode:
+              type: string
+            creditCardType:
+              type: string
+            id:
+              type: string
+    CurrencyRO:
+      type: object
+      properties:
+        currency:
+          type: string
+    DebitTransferAccountRO:
+      type: object
+      xml:
+        name: DebitTransferAccount
+      allOf:
+        - $ref: "#/components/schemas/PaymentMethodRO"
+        - type: object
+          properties:
+            accountHolder:
+              type: string
+            accountNumber:
+              type: string
+            bankCode:
+              type: string
+            directDebitInputFieldUUID:
+              type: string
+            dummyID:
+              type: string
+            id:
+              type: string
+    EligibleShippingMethodsRO:
+      type: object
+      properties:
+        description:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        shippingMethods:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ShippingMethodRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: EligibleShippingMethodsRO
+    ExtendedLineItemCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/BasketLineItemRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        quoteID:
+          type: string
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: LineItems
+    GenericPropertyROObject:
+      type: object
+      properties:
+        displayName:
+          type: string
+        key:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        property:
+          type: object
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: Property
+    GiftCertificatePaymentMethodRO:
+      type: object
+      xml:
+        name: GiftCertificate
+      allOf:
+        - $ref: "#/components/schemas/PaymentMethodRO"
+        - type: object
+          properties:
+            appliedAmount:
+              $ref: "#/components/schemas/MoneyRO"
+            id:
+              type: string
+            number:
+              type: string
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    MoneyRO:
+      title: Money
+      type: object
+      properties:
+        currency:
+          type: string
+          description: Three-letter currency code (ISO 4217) of the monetary value
+          example: USD
+        currencyMnemonic:
+          type: string
+          deprecated: true
+        type:
+          type: string
+          description: "This is a constant: **Money**"
+          readOnly: true
+          example: Money
+          xml:
+            attribute: true
+        value:
+          type: number
+          description: The monetary value
+          example: 10.99
+      description: Money combines a currency and a money amount.
+      xml:
+        name: Money
+    PaymentCostRO:
+      type: object
+      properties:
+        cost:
+          $ref: "#/components/schemas/MoneyRO"
+        maxOrderAmount:
+          $ref: "#/components/schemas/MoneyRO"
+        minOrderAmount:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        threshold:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: the costs of this PaymentMethod as list of PaymentCostRO objects
+    PaymentMethodRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        costs:
+          type: array
+          description: the costs of this PaymentMethod as list of PaymentCostRO objects
+          items:
+            $ref: "#/components/schemas/PaymentCostRO"
+        default:
+          type: boolean
+          description: is this payment method the default one?
+          example: true
+        displayName:
+          type: string
+          description: the display name of the payment method
+          example: Intershop Credit Card
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        openTender:
+          type: boolean
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentMethod
+          xml:
+            attribute: true
+        uri:
+          type: string
+      description: The Payment methods for this basket
+      xml:
+        name: PaymentMethod
+      discriminator:
+        propertyName: type
+    PaymentOptionRO:
+      title: PaymentOption
+      type: object
+      properties:
+        applicability:
+          type: string
+          example: Applicable
+        displayName:
+          type: string
+          description: The display name of the payment option
+          example: Invoice
+        id:
+          type: string
+          description: The ID of the payment option
+          example: ISH_INVOICE
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        paymentParameters:
+          type: array
+          description: The parameters for this payment option
+          xml:
+            name: parameters
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/GenericPropertyROObject"
+        restrictions:
+          type: array
+          description: The restrictions for this payment option
+          xml:
+            wrapped: true
+          items:
+            type: string
+            xml:
+              name: restriction
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOption
+          xml:
+            attribute: true
+      description: This resource holds information on a payment option.
+      xml:
+        name: PaymentOption
+    PaymentOptionsForMethodRO:
+      title: PaymentOptionsForMethod
+      type: object
+      properties:
+        method:
+          type: string
+          description: The HTTP method to use when adding this method
+          example: POST
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        payments:
+          type: array
+          description: The payments
+          items:
+            $ref: "#/components/schemas/PaymentOptionRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOptionsForMethodRO
+          xml:
+            attribute: true
+      description: This resource holds information about payment methods that can be added and the HTTP method to be used.
+      xml:
+        name: PaymentOptionsForMethodRO
+    PaymentOptionsRO:
+      title: PaymentOptions
+      type: object
+      properties:
+        methods:
+          type: array
+          description: The payment methods that can be added via HTTP
+          items:
+            $ref: "#/components/schemas/PaymentOptionsForMethodRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PaymentOptions
+          xml:
+            attribute: true
+      description: This resource holds one or more PaymentOptionsForMethodRO.
+      xml:
+        name: PaymentOptions
+    PaymentRedirectResponseRO:
+      title: PaymentRedirectResponse
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        id:
+          type: string
+          example: The ID
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        parameters:
+          type: array
+          description: The parameters for this redirect response
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/GenericPropertyROObject"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          example: PaymentRedirectResponse
+          xml:
+            attribute: true
+      xml:
+        name: PaymentRedirectResponse
+    PaymentRedirectRO:
+      title: PaymentRedirect
+      type: object
+      properties:
+        cancelURL:
+          type: string
+          description: The URL to return to when canceled
+        failURL:
+          type: string
+          description: The URL to return to when failed
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        successURL:
+          type: string
+          description: The URL to return to when succeeded
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          example: PaymentRedirect
+          xml:
+            attribute: true
+      xml:
+        name: PaymentRedirect
+    PaymentRO:
+      title: Payment
+      type: object
+      properties:
+        accountIdentifier:
+          type: string
+          description: The optional account identifier for this payment instrument
+          readOnly: true
+          example: DE12****7890
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        id:
+          type: string
+          description: The payment ID
+          example: dhKsEmZRPyEAAAF2hyV6dB2n
+        limitedTenderBalance:
+          $ref: "#/components/schemas/MoneyRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        parameters:
+          type: array
+          description: The parameters for this payment
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/GenericPropertyROObject"
+        paymentTotalAmount:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Payment
+          xml:
+            attribute: true
+      xml:
+        name: Payment
+    PromotionLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        code:
+          type: string
+          description: the code of the promotion
+          example: INTERSHOP
+        description:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PromotionLink
+          xml:
+            attribute: true
+        uri:
+          type: string
+      description: The Promotions for this basket
+      xml:
+        name: PromotionLink
+    QuantityRO:
+      title: Quantity
+      type: object
+      properties:
+        type:
+          type: string
+          description: "This is a constant: **Quantity**"
+          readOnly: true
+          example: Quantity
+          xml:
+            attribute: true
+        unit:
+          type: string
+          description: The quantity's ISO unit code.
+          example: PIEC
+        value:
+          type: number
+          description: The quantity's value
+          example: 10.99
+      description: Quantity combines a quantity value and the ISO unit code the value is defined in.
+      xml:
+        name: Quantity
+    RecurrenceRO:
+      type: object
+      properties:
+        endDate:
+          type: string
+          description: the end date of the reccurence
+          format: date-time
+          xml:
+            attribute: true
+        executeMissedOrders:
+          type: boolean
+          xml:
+            attribute: true
+        interval:
+          type: object
+          properties:
+            chronology:
+              type: object
+              properties:
+                calendarType:
+                  type: string
+                id:
+                  type: string
+                isoBased:
+                  type: boolean
+            days:
+              type: integer
+              format: int32
+            months:
+              type: integer
+              format: int32
+            negative:
+              type: boolean
+            units:
+              type: array
+              items:
+                type: object
+                properties:
+                  dateBased:
+                    type: boolean
+                  duration:
+                    type: object
+                    properties:
+                      nano:
+                        type: integer
+                        format: int32
+                      negative:
+                        type: boolean
+                      positive:
+                        type: boolean
+                      seconds:
+                        type: integer
+                        format: int64
+                      zero:
+                        type: boolean
+                  durationEstimated:
+                    type: boolean
+                  timeBased:
+                    type: boolean
+            years:
+              type: integer
+              format: int32
+            zero:
+              type: boolean
+          description: the reccurence interval
+          example: P3M
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        repetitions:
+          type: integer
+          description: the number of repetitions for this reccurence
+          format: int32
+          example: 42
+          xml:
+            attribute: true
+        startDate:
+          type: string
+          description: the start date of the reccurence
+          format: date-time
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Recurrence
+          xml:
+            attribute: true
+      description: The ReccurenceRO for this basket
+      xml:
+        name: Recurrence
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    ShippingMethodRO:
+      title: ShippingMethodRO
+      type: object
+      properties:
+        description:
+          type: string
+          description: The description of the Shipping Method
+          example: 3-7 Day Ground - Delivered to you 3-7 business days after we process your order
+        id:
+          type: string
+          description: the id of the returned element
+          example: STD_GROUND
+        name:
+          type: string
+          description: The name of an element
+          example: Standard Ground
+        shippingTimeMax:
+          type: integer
+          description: The maximum shipping time in days
+          format: int32
+          example: 7
+        shippingTimeMin:
+          type: integer
+          description: The minimum shipping time in days
+          format: int32
+          example: 3
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource describes a shipping method that can be selected as delivery option.
+      xml:
+        name: ShippingMethod
+    SurchargeRO:
+      title: SurchargeRO
+      type: object
+      properties:
+        amount:
+          $ref: "#/components/schemas/MoneyRO"
+        description:
+          type: string
+          description: the description of the surcharge
+        displayName:
+          type: string
+          description: the display name of the surcharge
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        taxes:
+          type: array
+          description: the taxes applied to the surcharge amount as collection of AppliedTaxRO
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AppliedTaxRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Surcharge
+          xml:
+            attribute: true
+      description: This resource describes a single surcharge incurred to a shipping bucket.
+      xml:
+        name: Surcharge
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: basket_v010
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketResource,com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource,com.intershop.application.storefront.rest.b2b.capi.order.costobject.resource.BasketCostObjectAssignmentItemResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketPaymentRedirectResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource,com.intershop.sellside.rest.common.capi.resource.basket.BasketLineItemResource

@@ -1,0 +1,1628 @@
+openapi: 3.0.1
+info:
+  title: Rating & Review
+  description: |-
+    The Rating & Review REST API contains operations that allow to create, retrieve and delete reviews. 
+
+    ## Changelog
+
+    ### Version 1.2.0
+    * Changed caching behavior: List requests with only own reviews and detail requests of an own review are not cached anymore.
+    * Improved documentation
+    * Added this changelog
+  version: 1.2.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Rating and Review
+    description: This section covers operations for creating, retrieving, and deleting product reviews.
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource
+paths:
+  /categories/{categoriesKey}/products/{productKey}/reviews:
+    post:
+      tags:
+        - Rating and Review
+      summary: Creates a review for product
+      description: This operation creates a user review for a product. The user must be authenticated.
+      operationId: addReview_1
+      parameters:
+        - name: categoriesKey
+          in: path
+          description: The category ID
+          required: true
+          schema:
+            type: string
+            description: The category ID
+            example: "153"
+          example: "153"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewReviewRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/NewReviewRO"
+      responses:
+        "201":
+          description: Created - The review was successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad Request - At least one attribute is missing or invalid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product could not be found.
+        "422":
+          description: Unprocessable Entity - The customer already created a review for this product.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource.addReview(com.intershop.sellside.rest.common.capi.resourceobject.NewReviewRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      x-AuthorizationRule: "[]"
+  /categories/{categoriesKey}/products/{productKey}/reviews/{ReviewKey}:
+    delete:
+      tags:
+        - Rating and Review
+      summary: Deletes product review by ID
+      description: This operation deletes a specific user review of a specific product. The review can only be deleted by the user who created it. The user must be authenticated.
+      operationId: deleteProductReviewByIDDELETEReviews_1
+      parameters:
+        - name: categoriesKey
+          in: path
+          description: The category ID
+          required: true
+          schema:
+            type: string
+            description: The category ID
+            example: "153"
+          example: "153"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+        - name: ReviewKey
+          in: path
+          description: The review ID
+          required: true
+          schema:
+            type: string
+            description: The review ID
+            example: aUAKDgAFMa8AAAF2XvNMKHUM
+          example: aUAKDgAFMa8AAAF2XvNMKHUM
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      responses:
+        "204":
+          description: No Content - The review was successfully deleted.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product or review could not be found.
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource.deleteProductReviewByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource
+      x-AuthorizationRule: "[]"
+  /products/{productKey}/reviews:
+    post:
+      tags:
+        - Rating and Review
+      summary: Creates review for a product
+      description: This operation creates a user review for a product. The user must be authenticated.
+      operationId: addReview
+      parameters:
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewReviewRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/NewReviewRO"
+      responses:
+        "201":
+          description: Created - The review was successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad Request - At least one attribute is missing or invalid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product could not be found.
+        "422":
+          description: Unprocessable Entity - The customer already created a review for this product.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource.addReview(com.intershop.sellside.rest.common.capi.resourceobject.NewReviewRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      x-AuthorizationRule: "[isAuthenticated[Organization]]"
+  /products/{productKey}/reviews/{ReviewKey}:
+    delete:
+      tags:
+        - Rating and Review
+      summary: Deletes product review by ID
+      description: This operation deletes a specific user review of a specific product. The review can only be deleted by the user who created it. The user must be authenticated.
+      operationId: deleteProductReviewByIDDELETEReviews
+      parameters:
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+        - name: ReviewKey
+          in: path
+          description: The review ID
+          required: true
+          schema:
+            type: string
+            description: The review ID
+            example: aUAKDgAFMa8AAAF2XvNMKHUM
+          example: aUAKDgAFMa8AAAF2XvNMKHUM
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      responses:
+        "204":
+          description: No Content - The review was successfully deleted.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product or review could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource.deleteProductReviewByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource
+      x-AuthorizationRule: "[isAuthenticated[Organization]]"
+  /categories/{categoriesKey}/products{spgid}/{productKey}/reviews/{ReviewKey}:
+    get:
+      tags:
+        - Rating and Review
+      summary: Returns product review by ID
+      description: |-
+        This operation returns a specific user review of a specific product.
+
+        If the user is logged in and owns the review, the result is not cached.
+      operationId: getProductReviewByIDGETReviews_1
+      parameters:
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: categoriesKey
+          in: path
+          description: The category ID
+          required: true
+          schema:
+            type: string
+            description: The category ID
+            example: "153"
+          example: "153"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+        - name: ReviewKey
+          in: path
+          description: The review ID
+          required: true
+          schema:
+            type: string
+            description: The review ID
+            example: aUAKDgAFMa8AAAF2XvNMKHUM
+          example: aUAKDgAFMa8AAAF2XvNMKHUM
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      responses:
+        "200":
+          description: OK - The review with the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ReviewRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not found - The product or review could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ReviewRO com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource.getProductReviewByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /products{spgid}/{productKey}/reviews:
+    get:
+      tags:
+        - Rating and Review
+      summary: Returns reviews of a product
+      description: |-
+        This operation returns a list of all user reviews for a product.
+
+        If the user is logged in and uses the query parameter `own=true`, the result is not cached.
+      operationId: getProductReviewsGET
+      parameters:
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: attrs
+          in: query
+          description: |-
+            `attrs` can contain the following attribute names separated by comma:
+
+            - `authorname`: Name of the author (firstname and lastname, showAuthorNameFlag)
+            - `content`: Content of the review
+            - `creationdate`: Creation date of the review
+            - `rating`: Rating of the review (0..5)
+            - `status`: Status of the review (NEW, APPROVED)
+            - `title`: Title of the review
+            - `localeid`: Locale ID of the review
+            - `own`: Flag determining whether the review is owned by the requested user
+          schema:
+            type: string
+            description: |-
+              `attrs` can contain the following attribute names separated by comma:
+
+              - `authorname`: Name of the author (firstname and lastname, showAuthorNameFlag)
+              - `content`: Content of the review
+              - `creationdate`: Creation date of the review
+              - `rating`: Rating of the review (0..5)
+              - `status`: Status of the review (NEW, APPROVED)
+              - `title`: Title of the review
+              - `localeid`: Locale ID of the review
+              - `own`: Flag determining whether the review is owned by the requested user
+            example: status,rating
+          example: status,rating
+        - name: own
+          in: query
+          description: Flag that determines whether the review list should contain only reviews owned by the requested user or only reviews from other authors. If the flag is omitted, all reviews are returned.
+          schema:
+            type: boolean
+            description: Flag that determines whether the review list should contain only reviews owned by the requested user or only reviews from other authors. If the flag is omitted, all reviews are returned.
+            example: false
+          example: "false"
+        - name: localespecific
+          in: query
+          description: Flag that determines whether the review list contains reviews for the requested locale only or all reviews regardless of locale
+          schema:
+            type: boolean
+            description: Flag that determines whether the review list contains reviews for the requested locale only or all reviews regardless of locale
+            example: false
+            default: false
+          example: "false"
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The reviews for the given product.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource.getProductReviews(java.lang.String,java.lang.Boolean,java.lang.Boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /products{spgid}/{productKey}/reviews/{ReviewKey}:
+    get:
+      tags:
+        - Rating and Review
+      summary: Returns product review by ID
+      description: |-
+        This operation returns a specific user review of a specific product.
+
+        If the user is logged in and owns the review, the result is not cached.
+      operationId: getProductReviewByIDGETReviews
+      parameters:
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+        - name: ReviewKey
+          in: path
+          description: The review ID
+          required: true
+          schema:
+            type: string
+            description: The review ID
+            example: aUAKDgAFMa8AAAF2XvNMKHUM
+          example: aUAKDgAFMa8AAAF2XvNMKHUM
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      responses:
+        "200":
+          description: OK - The review with the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ReviewRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not found - The product or review could not be found.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.ReviewRO com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource.getProductReviewByID()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /categories/{categoriesKey}/products{spgid}/{productKey}/reviews:
+    get:
+      tags:
+        - Rating and Review
+      summary: Returns reviews of a product
+      description: |-
+        This operation returns a list of all user reviews for a product.
+
+        If the user is logged in and uses the query parameter `own=true`, the result is not cached.
+      operationId: getProductReviewsGET_1
+      parameters:
+        - $ref: "#/components/parameters/spgid"
+          x-matrixParamPath: products
+        - name: attrs
+          in: query
+          description: |-
+            `attrs` can contain the following attribute names separated by comma:
+
+            - `authorname`: Name of the author (firstname and lastname, showAuthorNameFlag)
+            - `content`: Content of the review
+            - `creationdate`: Creation date of the review
+            - `rating`: Rating of the review (0..5)
+            - `status`: Status of the review (NEW, APPROVED)
+            - `title`: Title of the review
+            - `localeid`: Locale ID of the review
+            - `own`: Flag determining whether the review is owned by the requested user
+          schema:
+            type: string
+            description: |-
+              `attrs` can contain the following attribute names separated by comma:
+
+              - `authorname`: Name of the author (firstname and lastname, showAuthorNameFlag)
+              - `content`: Content of the review
+              - `creationdate`: Creation date of the review
+              - `rating`: Rating of the review (0..5)
+              - `status`: Status of the review (NEW, APPROVED)
+              - `title`: Title of the review
+              - `localeid`: Locale ID of the review
+              - `own`: Flag determining whether the review is owned by the requested user
+            example: status,rating
+          example: status,rating
+        - name: own
+          in: query
+          description: Flag that determines whether the review list should contain only reviews owned by the requested user or only reviews from other authors. If the flag is omitted, all reviews are returned.
+          schema:
+            type: boolean
+            description: Flag that determines whether the review list should contain only reviews owned by the requested user or only reviews from other authors. If the flag is omitted, all reviews are returned.
+            example: false
+          example: "false"
+        - name: localespecific
+          in: query
+          description: Flag that determines whether the review list contains reviews for the requested locale only or all reviews regardless of locale
+          schema:
+            type: boolean
+            description: Flag that determines whether the review list contains reviews for the requested locale only or all reviews regardless of locale
+            example: false
+            default: false
+          example: "false"
+        - name: categoriesKey
+          in: path
+          description: The category ID
+          required: true
+          schema:
+            type: string
+            description: The category ID
+            example: "153"
+          example: "153"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.category.CategoryListResource
+        - name: productKey
+          in: path
+          description: The product SKU
+          required: true
+          schema:
+            type: string
+            description: The product SKU
+            example: "10809311"
+          example: "10809311"
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.ProductListResource
+      responses:
+        "200":
+          description: OK - The reviews for the given product.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "404":
+          description: Not Found - The product could not be found.
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource.getProductReviews(java.lang.String,java.lang.Boolean,java.lang.Boolean)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource
+      x-AuthorizationRule: "[isAnyUser]"
+components:
+  schemas:
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    LinkROResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of Link-ResourceObjects
+      xml:
+        name: ResourceCollection
+    NewReviewRO:
+      title: NewReview
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        content:
+          type: string
+          description: The content of the review
+          example: I am satisfied with my purchase. The quality is very good for the price. I still wish there were more features.
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        rating:
+          type: integer
+          description: The rating of the product from 0 to 5
+          format: int32
+          example: 5
+        showAuthorNameFlag:
+          type: boolean
+          description: If rendered and true the reviewer can decide to show the name
+          example: true
+        title:
+          type: string
+          description: The title of the new review
+          example: Good choice
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: NewReview
+          xml:
+            attribute: true
+      xml:
+        name: Review
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    ReviewRO:
+      title: Review
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        authorFirstName:
+          type: string
+          description: The first name of the author
+          example: Jane
+        authorLastName:
+          type: string
+          description: The last name of the author
+          example: Doe
+        content:
+          type: string
+          description: The content of the review
+          example: I am satisfied with my purchase. The quality is very good for the price. I still wish there were more features.
+        creationDate:
+          type: string
+          description: The creation date of the review
+          format: date-time
+        id:
+          type: string
+          description: The ID of the review
+          example: y60KDACwgR8AAAFB0MKGQOQj
+        localeID:
+          type: string
+          description: The ID of the review's locale
+          example: en_US
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        own:
+          type: boolean
+          description: Flag that shows whether the review is created and owned by the currently authenticated user
+          example: false
+        rating:
+          type: integer
+          description: The rating of the product from 0 to 5
+          format: int32
+          example: 5
+        showAuthorNameFlag:
+          type: boolean
+          description: If rendered and true the reviewer can decide to show the name
+          example: true
+        status:
+          type: string
+          description: The status of the review
+          example: NEW (NOT APPROVED)
+        statusCode:
+          type: string
+          description: The status code of the review. If no approval is necessary for reviews, all created reviews are automatically in status "APPROVED".
+          example: "[NEW, APPROVED, REJECTED]"
+        title:
+          type: string
+          description: The title of the review
+          example: Good choice
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Review
+          xml:
+            attribute: true
+      xml:
+        name: Review
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: rating-review
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource,com.intershop.sellside.rest.common.capi.resource.review.ReviewListResource

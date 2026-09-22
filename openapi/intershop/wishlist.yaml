@@ -1,0 +1,2475 @@
+openapi: 3.0.1
+info:
+  title: Wishlist / Order Template
+  description: |-
+    The _Wishlist / Order Template REST API_ provides operations for managing customer wishlists, which also serve as the basis for implementing order templates in the Intershop Progressive Web App (PWA). 
+
+    ## Changelog
+
+    ### Version 1.4.0
+    * Added additional information (public, shared, preferred, items count and creation date) to wishlist links in wishlist list endpoint
+
+    ### Version 1.3.1
+    * Updated name and description of the API to include order templates
+
+    ### Version 1.3.0
+    * Added `WishlistSharingResponseRO` as response body for the `share` subresource
+    * Added a new matrix parameter `secureCode` to the `/wishlists/<id>` resource for accessing private shared wish lists
+    * Added a new property `shared` to `WishListRO` that indicates whether the wish list is shared 
+
+    ### Version 1.2.0
+    * Added this changelog
+    * Deprecated the http OPTIONS method for the request data sharing capabilities example
+    * Added a fallback value of `-1` for `creationDate` if the value is not available
+  version: 1.4.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+paths:
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns the customer's wishlists
+      description: This operation returns a list of links to the customer's wishlist resources.
+      operationId: getWishlists
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: OK - The list of wishlist links was successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getWishlist
+              parameters:
+                CustomerWishlistKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type WishListRO
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource.getWishlists()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    post:
+      tags:
+        - Wishlist
+      summary: Creates a new customer wishlist
+      description: This operation creates a new customer wishlist using POST data provided by the client.
+      operationId: createWishlist
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+      responses:
+        "201":
+          description: Created - The new wishlist was successfully created.
+        "400":
+          description: Bad Request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "409":
+          description: Conflict - The maximum number of wishlists for the customer has been reached.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource.createWishlist(com.intershop.sellside.rest.common.capi.resourceobject.WishListRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists/settings:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns the customer's wishlist settings
+      description: This operation returns the customer's wishlist settings.
+      operationId: getWishlistSettings
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: OK - The wishlist settings were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource.getWishlistSettings()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Wishlist
+      summary: Updates the customer's wishlist settings
+      description: This operation updates the customer's wishlist settings with data provided by the client.
+      operationId: updateWishlistSettings
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistSettingsRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishlistSettingsRO"
+      responses:
+        "200":
+          description: OK - The wishlist settings were successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+        "400":
+          description: Bad request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource.updateWishlistSettings(com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists/{CustomerWishlistKey}:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns public wishlists
+      description: |-
+        This operation returns a list of links to public wishlists created by private customers or users of business customers. 
+        The results can be filtered using search parameters such as first name, last name, and e-mail. 
+        However, only the wishlists of the first 100 matching owners are returned. 
+        If none of these owners have a public wishlist, the result set may be empty. 
+
+        A 200 (OK) status code is returned when there is at least one public wishlist. If no wishlists are found, 
+        an empty `ResourceCollection` is returned.
+      operationId: getPublicWishlists
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "200":
+          description: OK - The wishlist details were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.WishListRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.getWishlist()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Wishlist
+      summary: Updates a customer's wishlist
+      description: This operation updates a customer's wishlist.
+      operationId: updateWishlist
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+      responses:
+        "200":
+          description: OK - The wishlist was successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.WishListRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.updateWishlist(com.intershop.sellside.rest.common.capi.resourceobject.WishListRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Deletes a customer's wishlist
+      description: This operation deletes a customer's wishlist.
+      operationId: deleteWishList
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.deleteWishList()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists/{CustomerWishlistKey}/products/{productSKU}:
+    post:
+      tags:
+        - Wishlist
+      summary: Adds a product to a wishlist
+      description: This operation adds a product to a specified or preferred wishlist.
+      operationId: addItemToWishlist
+      parameters:
+        - name: productSKU
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: quantity
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "201":
+          description: Created - The product has been added to the wishlist.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer, wishlist, or product could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource.addItem(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Removes a product from a wishlist
+      description: This operation removes a product from a specified or preferred wishlist.
+      operationId: deleteItem
+      parameters:
+        - name: productSKU
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer, wishlist, or product could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource.deleteItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists/{CustomerWishlistKey}/share:
+    post:
+      tags:
+        - Wishlist
+      summary: Shares a wishlist with a given recipient
+      description: This operation shares a customer's wishlist with a given recipient.
+      operationId: share
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistSharingRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishlistSharingRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingResponseRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingResponseRO"
+        "400":
+          description: |-
+            Bad request - The request was invalid.
+             Possible values for header error-key:
+             - account.wishlist.invalid_fields.error
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.shareWishlist(com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.share.WishlistSharingRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Unshares a wishlist
+      description: This operation cancels the sharing of a wishlist. It removes the shared secure code and marks the wishlist as private.
+      operationId: unshare
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The wishlist was successfully unshared.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.unshare()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    options:
+      tags:
+        - Wishlist
+      summary: Returns an example request data for the sharing capabilities. This endpoint is deprecated and planned to be removed in the future.
+      operationId: getExample
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingRO"
+        "400":
+          description: Bad request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.share.WishlistSharingRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.getExample()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/wishlists/{CustomerWishlistKey}/{CustomerPurchaseWishlistKey}/purchase:
+    post:
+      tags:
+        - Wishlist
+      summary: Adds a wishlist item to a basket
+      description: This operation adds a wishlist item to the basket. The query parameter `quantity` is optional.
+      operationId: addWishlistItemToBasket
+      parameters:
+        - name: quantity
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+        - name: CustomerPurchaseWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      responses:
+        "201":
+          description: Created - The wishlist item has been added to the basket.
+        "400":
+          description: |-
+            Bad request - The request was invalid.
+             Possible values for header error-key:
+             - wishlist.quantity.invalid.error
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerPurchaseWishlistItemResource.addItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerPurchaseWishlistItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns the customer's wishlists
+      description: This operation returns a list of links to the customer's wishlist resources.
+      operationId: getWishlists_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK - The list of wishlist links was successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getWishlist_1
+              parameters:
+                CustomerWishlistKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type WishListRO
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource.getWishlists()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    post:
+      tags:
+        - Wishlist
+      summary: Creates a new customer wishlist
+      description: This operation creates a new customer wishlist using POST data provided by the client.
+      operationId: createWishlist_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+      responses:
+        "201":
+          description: Created - The new wishlist was successfully created.
+        "400":
+          description: Bad Request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "409":
+          description: Conflict - The maximum number of wishlists for the customer has been reached.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource.createWishlist(com.intershop.sellside.rest.common.capi.resourceobject.WishListRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists/settings:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns the customer's wishlist settings
+      description: This operation returns the customer's wishlist settings.
+      operationId: getWishlistSettings_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      responses:
+        "200":
+          description: OK - The wishlist settings were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource.getWishlistSettings()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Wishlist
+      summary: Updates the customer's wishlist settings
+      description: This operation updates the customer's wishlist settings with data provided by the client.
+      operationId: updateWishlistSettings_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistSettingsRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishlistSettingsRO"
+      responses:
+        "200":
+          description: OK - The wishlist settings were successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSettingsRO"
+        "400":
+          description: Bad request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource.updateWishlistSettings(com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.WishlistSettingsRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSettingsResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists/{CustomerWishlistKey}:
+    get:
+      tags:
+        - Wishlist
+      summary: Returns public wishlists
+      description: |-
+        This operation returns a list of links to public wishlists created by private customers or users of business customers. 
+        The results can be filtered using search parameters such as first name, last name, and e-mail. 
+        However, only the wishlists of the first 100 matching owners are returned. 
+        If none of these owners have a public wishlist, the result set may be empty. 
+
+        A 200 (OK) status code is returned when there is at least one public wishlist. If no wishlists are found, 
+        an empty `ResourceCollection` is returned.
+      operationId: getPublicWishlists
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "200":
+          description: OK - The wishlist details were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.WishListRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.getWishlist()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    put:
+      tags:
+        - Wishlist
+      summary: Updates a customer's wishlist
+      description: This operation updates a customer's wishlist.
+      operationId: updateWishlist_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishListRO"
+      responses:
+        "200":
+          description: OK - The wishlist was successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.WishListRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.updateWishlist(com.intershop.sellside.rest.common.capi.resourceobject.WishListRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Deletes a customer's wishlist
+      description: This operation deletes a customer's wishlist.
+      operationId: deleteWishList_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource.deleteWishList()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists/{CustomerWishlistKey}/products/{productSKU}:
+    post:
+      tags:
+        - Wishlist
+      summary: Adds a product to a wishlist
+      description: This operation adds a product to a specified or preferred wishlist.
+      operationId: addItemToWishlist_1
+      parameters:
+        - name: productSKU
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: quantity
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "201":
+          description: Created - The product has been added to the wishlist.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer, wishlist, or product could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource.addItem(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Removes a product from a wishlist
+      description: This operation removes a product from a specified or preferred wishlist.
+      operationId: deleteItem_1
+      parameters:
+        - name: productSKU
+          in: path
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The operation was successful without returned content.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer, wishlist, or product could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource.deleteItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemProductItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists/{CustomerWishlistKey}/share:
+    post:
+      tags:
+        - Wishlist
+      summary: Shares a wishlist with a given recipient
+      description: This operation shares a customer's wishlist with a given recipient.
+      operationId: share_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishlistSharingRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/WishlistSharingRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingResponseRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingResponseRO"
+        "400":
+          description: |-
+            Bad request - The request was invalid.
+             Possible values for header error-key:
+             - account.wishlist.invalid_fields.error
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.shareWishlist(com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.share.WishlistSharingRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    delete:
+      tags:
+        - Wishlist
+      summary: Unshares a wishlist
+      description: This operation cancels the sharing of a wishlist. It removes the shared secure code and marks the wishlist as private.
+      operationId: unshare_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "204":
+          description: No content - The wishlist was successfully unshared.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.unshare()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+    options:
+      tags:
+        - Wishlist
+      summary: Returns an example request data for the sharing capabilities. This endpoint is deprecated and planned to be removed in the future.
+      operationId: getExample_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishlistSharingRO"
+        "400":
+          description: Bad request - The request was invalid.
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.customer.wishlist.share.WishlistSharingRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource.getExample()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistSharingResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/wishlists/{CustomerWishlistKey}/{CustomerPurchaseWishlistKey}/purchase:
+    post:
+      tags:
+        - Wishlist
+      summary: Adds a wishlist item to a basket
+      description: This operation adds a wishlist item to the basket. The query parameter `quantity` is optional.
+      operationId: addWishlistItemToBasket_1
+      parameters:
+        - name: quantity
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+        - name: CustomerWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistListResource
+        - name: CustomerPurchaseWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerWishlistItemResource
+      responses:
+        "201":
+          description: Created - The wishlist item has been added to the basket.
+        "400":
+          description: |-
+            Bad request - The request was invalid.
+             Possible values for header error-key:
+             - wishlist.quantity.invalid.error
+        "401":
+          description: Unauthorized - Authentication information is missing or invalid.
+        "404":
+          description: Not found - The requested customer or wishlist could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.LinkRO com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerPurchaseWishlistItemResource.addItem(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.wishlist.CustomerPurchaseWishlistItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /wishlists:
+    get:
+      tags:
+        - Public Wishlists
+      summary: Returns public wishlists
+      description: |-
+        This operation returns a list of links to public wishlists created by private customers or users of business customers. 
+        The results can be filtered using search parameters such as first name, last name, and e-mail. 
+        However, only the wishlists of the first 100 matching owners are returned. 
+        If none of these owners have a public wishlist, the result set may be empty. 
+
+        A 200 (OK) status code is returned when there is at least one public wishlist. If no wishlists are found, 
+        an empty `ResourceCollection` is returned.
+      operationId: getPublicWishlists
+      parameters:
+        - name: firstname
+          in: query
+          description: The first name of the wishlist owner
+          schema:
+            type: string
+        - name: lastname
+          in: query
+          description: The last name of the wishlist owner
+          schema:
+            type: string
+        - name: email
+          in: query
+          description: The e-mail address of the wishlist owner
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getPublicWishlist
+              parameters:
+                PublicWishlistKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type WishListRO
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistListResource.getWishlist(java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /wishlists/{PublicWishlistKey}:
+    get:
+      tags:
+        - Public Wishlists
+      summary: Returns public wishlist details
+      description: This operation returns details about a public wishlist created by a private customer or a user of a business customer.
+      operationId: getPublicWishlist
+      parameters:
+        - name: PublicWishlistKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistListResource
+      responses:
+        "200":
+          description: OK - The details of the public wishlist were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/WishListRO"
+        "404":
+          description: |-
+            Not found
+             - The provided ID is wrong or invalid.
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.WishListRO com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource.getWishlist()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      readOnly: true
+      xml:
+        name: Link
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    WishListRO:
+      type: object
+      properties:
+        creationDate:
+          type: integer
+          description: The creation date of the wishlist. If the creationDate is not available, -1 will be returned.
+          format: int64
+          readOnly: true
+          example: 1401710462448
+          deprecated: true
+        items:
+          type: array
+          description: The wishlist items as LinkROs
+          readOnly: true
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        itemsCount:
+          type: integer
+          description: The count of the wishlists items
+          format: int32
+          readOnly: true
+          example: 1
+        name:
+          type: string
+          description: The name of an element
+          readOnly: true
+          example: WishList
+          xml:
+            attribute: true
+        preferred:
+          type: boolean
+          description: Indicates whether this wishlist is the preferred one
+        public:
+          type: boolean
+          description: Indicates whether this wishlist is public
+        shared:
+          type: boolean
+          description: Indicates whether this wishlist is shared
+        title:
+          type: string
+          description: The title of the wishlist
+          example: Patricias wishlist
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          example: WishList
+          xml:
+            attribute: true
+      xml:
+        name: WishList
+    WishlistSettingsRO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: WishlistSettings
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: the uri of the wishlist settings
+        usePreferredWishlist:
+          type: boolean
+          description: indicates whether this is the preferred wishlist
+      xml:
+        name: WishlistSettings
+    WishlistSharingResponseRO:
+      type: object
+      properties:
+        owner:
+          type: string
+          description: The owner ID of the wishlist
+        secureCode:
+          type: string
+          description: The secure code that should be used when viewing the wishlist
+        wishlistId:
+          type: string
+          description: The ID of the wishlist
+      xml:
+        name: WishlistSharingResponse
+    WishlistSharingRO:
+      type: object
+      properties:
+        message:
+          type: string
+          description: the sharing message
+          example: Hey, this is my wishlist!
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        recipients:
+          type: string
+          description: a list of valid email-addresses to whom a wishlist sharing invitation would be sent
+          example: alice@web.de,alexandra@web.de
+        sender:
+          type: string
+          description: the sender of the wishlist sharing invitation
+          example: John Doe
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: WishlistSharing
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: wishlist
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource,com.intershop.sellside.rest.common.capi.resource.wishlist.PublicWishlistItemResource

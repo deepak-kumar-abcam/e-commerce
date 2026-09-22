@@ -1,0 +1,2712 @@
+openapi: 3.0.1
+info:
+  title: Requisition Approval
+  description: |-
+    The Intershop Requisition Approval REST API contains resources that reflect the main aspects of the requisition approval workflow.
+    Requisition approval allows certain users of a customer (approvers) to evaluate and reject a requisition before it is submitted as an order to the seller.
+
+    You can use this API to retrieve or update information on roles, budgets, and requisitions.
+
+    ## Changelog
+
+    ### Version 1.5.0
+    * Support of custom fields feature (added new attribute `customFields` to `RequisitionRO` and `LineItemRO`)
+
+    ### Version 1.4.0
+    * Added this changelog
+    * Added new attribute `budgetPriceType` to `UserBudgetsRO`
+
+    ### Version 1.3.0
+    * Deprecated `externalOrderReference` in `RequisitionRO` for later removal, use the new `customerOrderID` instead
+    * Added new attributes `customerProductID` and `partialOrderNo` to `LineItemRO`
+
+    ### Version 1.2.1
+    * Documentation changes: Improved description for `externalOrderReference` in `RequisitionRO`
+
+    ### Version 1.2.0
+    * Added new attribute `systemRejectErrors` to `RequisitionRO`. `systemRejectErrors` contains the reasons for system rejection of a requisition.
+
+    ### Version 1.1.0
+    * Added new attributes to `RequisitionRO`
+      * `approvalStatuses` containing all approval steps that have already been handled
+      * `systemRejected` indicating if a requisition has been rejected by the system
+  version: 1.5.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Budget
+    description: |-
+      A budget is a means to define spending limits for users or certain parts of an organization within a definable time frame.
+      The following operations are available:
+    x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.budget.UserBudgetResource
+  - name: Requisition
+    description: "A requisition is a submitted shopping cart that is subject to an approval process and has not yet been converted into an order. The following operations are available:"
+    x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionItemResource
+  - name: Role
+    description: |-
+      The B2B storefront features four different roles with different permissions, which are defined via DBInit. These are Buyer, Approver, Cost Center Manager, Administrator. 
+      For details on the individual permissions, please refer to: [Guide - B2B Storefront Functionality](https://support.intershop.com/kb/index.php/Display/N29331).  
+      The following operations are available:
+    x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.role.UserRoleResource
+paths:
+  /customers/{CustomerKey}/roles:
+    get:
+      tags:
+        - Role
+      summary: Returns user roles for the customer
+      description: This operation returns the complete list of user roles (assignable & implicit) for the customer. The list contains implicitly assigned roles as well roles that can be explicitly assigned. The role information consists of the role ID, the localized display name and a list of localized names of the included permissions. The flag 'fixed' indicates that the role is implicitly assigned and can't be removed.
+      operationId: getCustomerRoles
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The list of user roles.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRolesRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.role.CustomerRoleResource.getCustomerRoles()
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.role.CustomerRoleResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/budgets:
+    get:
+      tags:
+        - Budget
+      summary: Returns the budgets for the user
+      description: This operation returns budgets for the user based on the provided keys. The budget information consists of threshold amount for single orders, budget and corresponding budget period (weekly, monthly etc.) as well as the calculated values spent budget and remaining budget.
+      operationId: getUserBudgets
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: Ok - The user budgets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserBudgetsRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer or the user for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer or the user for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.budget.UserBudgetResource.getUserBudgets()
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.budget.UserBudgetResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasSameIdentity OR hasPermission[Organization:APP_B2B_MANAGE_USERS])), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Budget
+      summary: Updates the budgets for the user
+      description: This operation updates budgets for the user. The budget information consists of threshold amount for single orders, budget and corresponding budget period (weekly, monthly etc.) as well as the calculated values spent budget and remaining budget.
+      operationId: setUserBudgets
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserBudgetsRO"
+      responses:
+        "200":
+          description: Ok - The updated user budget.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserBudgetsRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer or the user for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer or the user for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.budget.UserBudgetResource.setUserBudgets(com.intershop.sellside.rest.b2b.approval.capi.resourceobject.budget.UserBudgetsRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.budget.UserBudgetResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/requisitions:
+    get:
+      tags:
+        - Requisition
+      summary: Returns the list of requisitions for the user
+      description: This operations returns a list of the user's requisitions. Depending on the 'view' attribute, the list of requisitions consists either of purchases made by the user (buyer view) or of purchases the user (with role 'approver') has to approve. The requisition information consists of creation date, amount of line items and the total overall line items.
+      operationId: getRequisitions
+      parameters:
+        - name: status
+          in: query
+          description: "The optional approval status to filter. Possible values: 'pending', 'approved', 'rejected', 'all'. If parameter is missing or empty, the option 'all' is returned."
+          schema:
+            type: string
+            description: "The optional approval status to filter. Possible values: 'pending', 'approved', 'rejected', 'all'. If parameter is missing or empty, the option 'all' is returned."
+            example: approved
+          example: approved
+        - name: type
+          in: query
+          description: "The optional requisition type to filter. Possible values: 'one-time', 'recurring', 'all'. If parameter is missing or empty, the option 'all' is returned."
+          schema:
+            type: string
+            description: "The optional requisition type to filter. Possible values: 'one-time', 'recurring', 'all'. If parameter is missing or empty, the option 'all' is returned."
+            example: one-time
+          example: one-time
+        - name: view
+          in: query
+          description: "The optional view attribute defines if the buyer view (purchases of the user) or approver view (purchases the user has to approve) is applied. Possible values: 'buyer', 'approver'. If parameter is missing or empty, the option 'buyer' is returned."
+          schema:
+            type: string
+            description: "The optional view attribute defines if the buyer view (purchases of the user) or approver view (purchases the user has to approve) is applied. Possible values: 'buyer', 'approver'. If parameter is missing or empty, the option 'buyer' is returned."
+            example: approver
+          example: approver
+        - name: include
+          in: query
+          description: Related objects (as a comma separated list) which are to be included with the response
+          schema:
+            type: string
+            description: Related objects (as a comma separated list) which are to be included with the response
+            default: ""
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: Ok - The list of requisitions for the user (buyer, approver). If the list is requested with approver view and the given user is not an approver, an empty list will be returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequisitionListCtnrRO"
+        "400":
+          description: Bad request - A query parameter contains an invalid value.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Bad request - A query parameter contains an invalid value.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer or user for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer or user for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource.getRequisitions(java.lang.String,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/requisitions/{RequisitionKey}:
+    get:
+      tags:
+        - Requisition
+      summary: Returns the requisition with the given ID
+      description: This operation returns details for a specific requisition based on the provided keys. The requisition information consists of creation date, the amount of line items and the total overall line items.
+      operationId: getRequisition
+      parameters:
+        - name: include
+          in: query
+          description: Related objects (as a comma separated list) which are to be included with the response
+          schema:
+            type: string
+            description: Related objects (as a comma separated list) which are to be included with the response
+            default: ""
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: RequisitionKey
+          in: path
+          description: The requisition ID
+          required: true
+          schema:
+            type: string
+            description: The requisition ID
+            example: eBwKDgAFba0AAAF0C4NAPHh3
+          example: eBwKDgAFba0AAAF0C4NAPHh3
+          x-item-key: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource
+      responses:
+        "200":
+          description: Ok - The requisition with the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequisitionItemCtnrRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required access privileges.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user does not have the required access privileges.
+        "404":
+          description: Not found - The customer, the user or the requisition for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackRO_v1"
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionItemResource.getRequisition(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    patch:
+      tags:
+        - Requisition
+      summary: Changes the approval status of a requisition
+      description: This operation changes the approval status of a specific requisition and returns its information. The requisition information consists of creation date, amount of line items and the total overall line items.
+      operationId: changeStatus
+      parameters:
+        - name: include
+          in: query
+          description: Related objects (as a comma separated list) which are to be included with the response
+          schema:
+            type: string
+            description: Related objects (as a comma separated list) which are to be included with the response
+            default: ""
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: RequisitionKey
+          in: path
+          description: The requisition ID
+          required: true
+          schema:
+            type: string
+            description: The requisition ID
+            example: eBwKDgAFba0AAAF0C4NAPHh3
+          example: eBwKDgAFba0AAAF0C4NAPHh3
+          x-item-key: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalStatusChangeRO"
+      responses:
+        "200":
+          description: Ok - The requisition was successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequisitionItemCtnrRO"
+        "404":
+          description: Not found - The customer, the user or the requisition for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackRO_v1"
+        "422":
+          description: Unprocessable Entity - The requisition could not be updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackRO_v1"
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionItemResource.changeStatus(com.intershop.sellside.rest.b2b.approval.capi.resourceobject.approval.ApprovalStatusChangeRO,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionItemResource
+      x-AuthorizationRule: "[((isMemberOfCustomer AND hasSameIdentity) AND (hasPermission[Organization:APP_B2B_ORDER_APPROVAL] OR hasPermission[Organization:APP_B2B_MANAGE_COSTCENTER])), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/roles:
+    get:
+      tags:
+        - Role
+      summary: Returns a list of assigned user roles
+      description: This operation returns the list of roles that are assigned to the user. The role information consists of the role ID, the localized display name and a list of localized names of the included permissions. The flag 'fixed' indicates that the role is implicitly assigned and cannot be removed.
+      operationId: getUserRoles
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: Ok - The list of user roles.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRolesRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer or the user for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer or the user for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.role.UserRoleResource.getUserRoles()
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.role.UserRoleResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasSameIdentity OR hasPermission[Organization:APP_B2B_MANAGE_USERS])), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Role
+      summary: Updates a list of assigned user roles
+      description: This operation updates the list of roles that are assigned to the user. Some roles might be implicitly assigned and cannot be removed. An empty list will remove all roles despite the ones that cannot be removed. The updated list of user roles is returned.
+      operationId: setUserRoles
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRolesInputRO"
+      responses:
+        "200":
+          description: Ok - The list of user roles.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRolesRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user is not allowed to access this resource.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Forbidden - The user is not allowed to access this resource.
+        "404":
+          description: Not found - The customer or the user for the given ID could not be found.
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Not found - The customer or the user for the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.approval.capi.resource.role.UserRoleResource.setUserRoles(com.intershop.sellside.rest.b2b.approval.capi.resourceobject.role.UserRolesInputRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.approval.capi.resource.role.UserRoleResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_USERS]), (isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+components:
+  schemas:
+    ApprovalCostCenterRO:
+      title: ApprovalCostCenterRO
+      type: object
+      properties:
+        approvers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserRO"
+        costCenterID:
+          type: string
+        costCenterName:
+          type: string
+      description: This resource represents a cost center approval.
+    ApprovalCustomerRO:
+      title: ApprovalCustomerRO
+      type: object
+      properties:
+        approvers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserRO"
+      description: This resource represents a customer approval.
+    ApprovalRO:
+      title: ApprovalRO
+      type: object
+      properties:
+        approvalRequired:
+          type: boolean
+        costCenterApproval:
+          $ref: "#/components/schemas/ApprovalCostCenterRO"
+        customerApproval:
+          $ref: "#/components/schemas/ApprovalCustomerRO"
+      description: This resource represents a basket approval.
+    ApprovalStatusChangeRO:
+      title: ApprovalStatusChangeRO
+      type: object
+      properties:
+        approvalComment:
+          type: string
+          description: The approval comment for rejection
+          example: The costs are way over budget.
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        statusCode:
+          type: string
+          description: The approval status to be changed
+          example: APPROVED, REJECTED
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      description: This resource holds information about approval status changes.
+    ApprovalStatusRO:
+      title: ApprovalStatusRO
+      type: object
+      properties:
+        approvalComment:
+          type: string
+        approvalDate:
+          type: string
+          format: date-time
+        approver:
+          $ref: "#/components/schemas/UserRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        status:
+          type: string
+        statusCode:
+          type: string
+        systemRejected:
+          type: boolean
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      description: This resource holds information about the approval status.
+    AttributeRO_v1:
+      required:
+        - name
+        - type
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          enum:
+            - Boolean
+            - Date
+            - Decimal
+            - Double
+            - Integer
+            - Long
+            - Money
+            - Quantity
+            - String
+            - Text
+            - MultipleBoolean
+            - MultipleDate
+            - MultipleDecimal
+            - MultipleDouble
+            - MultipleInteger
+            - MultipleLong
+            - MultipleString
+        value:
+          type: object
+      description: A representation of an attribute
+      readOnly: true
+      discriminator:
+        propertyName: type
+        mapping:
+          Boolean: "#/components/schemas/BooleanAttributeRO_v1"
+          Date: "#/components/schemas/DateAttributeRO_v1"
+          Decimal: "#/components/schemas/DecimalAttributeRO_v1"
+          Double: "#/components/schemas/DoubleAttributeRO_v1"
+          Integer: "#/components/schemas/IntegerAttributeRO_v1"
+          Long: "#/components/schemas/LongAttributeRO_v1"
+          Money: "#/components/schemas/MoneyAttributeRO_v1"
+          Quantity: "#/components/schemas/QuantityAttributeRO_v1"
+          String: "#/components/schemas/StringAttributeRO_v1"
+          Text: "#/components/schemas/TextAttributeRO_v1"
+          MultipleBoolean: "#/components/schemas/MultipleBooleanAttributeRO_v1"
+          MultipleDate: "#/components/schemas/MultipleDateAttributeRO_v1"
+          MultipleDecimal: "#/components/schemas/MultipleDecimalAttributeRO_v1"
+          MultipleDouble: "#/components/schemas/MultipleDoubleAttributeRO_v1"
+          MultipleInteger: "#/components/schemas/MultipleIntegerAttributeRO_v1"
+          MultipleLong: "#/components/schemas/MultipleLongAttributeRO_v1"
+          MultipleString: "#/components/schemas/MultipleStringAttributeRO_v1"
+      oneOf:
+        - $ref: "#/components/schemas/BooleanAttributeRO_v1"
+        - $ref: "#/components/schemas/DateAttributeRO_v1"
+        - $ref: "#/components/schemas/DecimalAttributeRO_v1"
+        - $ref: "#/components/schemas/DoubleAttributeRO_v1"
+        - $ref: "#/components/schemas/IntegerAttributeRO_v1"
+        - $ref: "#/components/schemas/LongAttributeRO_v1"
+        - $ref: "#/components/schemas/MoneyAttributeRO_v1"
+        - $ref: "#/components/schemas/QuantityAttributeRO_v1"
+        - $ref: "#/components/schemas/StringAttributeRO_v1"
+        - $ref: "#/components/schemas/TextAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleBooleanAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDateAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDecimalAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleDoubleAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleIntegerAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleLongAttributeRO_v1"
+        - $ref: "#/components/schemas/MultipleStringAttributeRO_v1"
+    BooleanAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a boolean attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: boolean
+              description: The boolean attribute value
+    BooleanFieldRO:
+      required:
+        - name
+        - type
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CustomField_v1"
+        - type: object
+          properties:
+            value:
+              type: boolean
+              description: The boolean value
+    CustomField_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          enum:
+            - String
+            - Date
+            - Integer
+            - Boolean
+        value:
+          type: object
+          description: The value of the custom field. Must match the type of the custom field definition and cannot be changed afterwards
+      description: __BETA__ | A representation of a custom field value
+      discriminator:
+        propertyName: type
+        mapping:
+          String: "#/components/schemas/StringAttributeRO_v1"
+          Date: "#/components/schemas/DateFieldRO"
+          Integer: "#/components/schemas/IntegerFieldRO"
+          Boolean: "#/components/schemas/BooleanFieldRO"
+      oneOf:
+        - $ref: "#/components/schemas/StringFieldRO"
+    DateAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a date/time attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The date/time attribute value
+              format: date-time
+              example: 2020-05-23T13:23:45+02:00
+    DateFieldRO:
+      required:
+        - name
+        - type
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CustomField_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The date/time value
+              format: date-time
+              example: 2020-05-23T13:23:45+02:00
+    DecimalAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a decimal attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: number
+              description: The decimal attribute value
+    DiscountsRO:
+      title: DiscountsRO
+      type: object
+      properties:
+        dynamicMessages:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+        freeGiftDiscounts:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+        shippingBasedDiscounts:
+          type: array
+          description: The IDs of all discounts granted on shipping and handling costs.
+          readOnly: true
+          items:
+            type: string
+            description: The IDs of all discounts granted on shipping and handling costs.
+            readOnly: true
+        valueBasedDiscounts:
+          type: array
+          readOnly: true
+          items:
+            type: string
+            readOnly: true
+      description: This resource holds information on the applied discounts.
+      readOnly: true
+    DoubleAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a double attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: number
+              description: The double attribute value
+              format: double
+    FeedbackCauseRO_v1:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: An unique identifier for this particular occurrence of the problem (may be used for localization on client-side).
+          example: invoiceToAddress.address.postalcode.invalid
+        message:
+          type: string
+          description: A human readable message in request's locale (server falls back to lead locale if requested local is not supported).
+          example: The specified postal code is invalid. Valid values are numbers 10000 to 99999.
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            description: A map of several parameters that are used to assemble the message.
+          description: A map of several parameters that are used to assemble the message.
+        paths:
+          type: array
+          description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+          externalDocs:
+            url: https://github.com/json-path/JsonPath
+          items:
+            type: string
+            description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+            externalDocs:
+              url: https://github.com/json-path/JsonPath
+      description: A representation for the common feedback informations.
+    FeedbackRO_v1:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        causes:
+          type: array
+          description: A collection of errors/infos that caused this feedback.
+          items:
+            $ref: "#/components/schemas/FeedbackCauseRO_v1"
+        code:
+          type: string
+          description: An unique identifier for this particular occurrence of the problem (may be used for localization on client-side).
+          example: invoiceToAddress.address.postalcode.invalid
+        message:
+          type: string
+          description: A human readable message in request's locale (server falls back to lead locale if requested local is not supported).
+          example: The specified postal code is invalid. Valid values are numbers 10000 to 99999.
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            description: A map of several parameters that are used to assemble the message.
+          description: A map of several parameters that are used to assemble the message.
+        paths:
+          type: array
+          description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+          externalDocs:
+            url: https://github.com/json-path/JsonPath
+          items:
+            type: string
+            description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+            externalDocs:
+              url: https://github.com/json-path/JsonPath
+        status:
+          type: string
+          description: The HTTP status code, that is applicable to this problem.
+          example: "400"
+      description: An error or information representation regarding the current request.
+    IntegerAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of an integer attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: integer
+              description: The integer attribute value
+              format: int32
+    IntegerFieldRO:
+      required:
+        - name
+        - type
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CustomField_v1"
+        - type: object
+          properties:
+            value:
+              type: integer
+              description: The integer value
+              format: int32
+    JurisdictionRO_v1:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The jurisdiction ID
+          example: CANADA
+        level:
+          type: string
+          description: The level of the jurisdiction for which the tax is applied
+          example: COUNTRY
+          enum:
+            - APO
+            - BOROUGH
+            - CITY
+            - COUNTRY
+            - COUNTY
+            - DISTRICT
+            - FPO
+            - LOCAL_IMPROVEMENT_DISTRICT
+            - PARISH
+            - PROVINCE
+            - SPECIAL_PURPOSE_DISTRICT
+            - STATE
+            - TERRITORY
+            - TOWNSHIP
+            - TRADE_BLOCK
+            - TRANSIT_DISTRICT
+      description: Describes the jurisdiction, an area subject to its own distinct tax regulations,such as a municipality, city, county, or country
+      readOnly: true
+    LongAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a long attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: integer
+              description: The long attribute value
+              format: int64
+    MoneyAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a money attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              $ref: "#/components/schemas/MoneyRO_v1"
+    MoneyRO_v1:
+      title: MoneyRO_v1
+      type: object
+      properties:
+        currency:
+          type: string
+          description: Three-letter currency code (ISO 4217) of the monetary value
+          example: USD
+        value:
+          type: number
+          description: The monetary value
+          example: 10.99
+      description: Describes a money object
+      readOnly: true
+    MultipleBooleanAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple boolean attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple boolean attribute value
+              items:
+                type: boolean
+                description: The multiple boolean attribute value
+    MultipleDateAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple date/time attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple date/time attribute value
+              items:
+                type: string
+                description: The multiple date/time attribute value
+                format: date-time
+    MultipleDecimalAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple decimal attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple decimal attribute value
+              items:
+                type: number
+                description: The multiple decimal attribute value
+    MultipleDoubleAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple double attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple double attribute value
+              items:
+                type: number
+                description: The multiple double attribute value
+                format: double
+    MultipleIntegerAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple integer attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple integer attribute value
+              items:
+                type: integer
+                description: The multiple integer attribute value
+                format: int32
+    MultipleLongAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple long attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple long attribute value
+              items:
+                type: integer
+                description: The multiple long attribute value
+                format: int64
+    MultipleStringAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a multiple string attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: array
+              description: The multiple string attribute value
+              items:
+                type: string
+                description: The multiple string attribute value
+    OrderLinkRO:
+      title: OrderLinkRO
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+        itemId:
+          type: string
+          example: owkKAE2l14QAAAF1CpAXi0XN
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          example: owkKAE2l14QAAAF1CpAXi0XN
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+          example: https://jxdemoserver6.intershop.de/INTERSHOP/rest/WFS/inSPIRED-inTRONICS_Business-Site/-/orders/owkKAE2l14QAAAF1CpAXi0XN
+      description: This resource represents an order link.
+      xml:
+        name: Link
+    PriceRO_v1:
+      type: object
+      properties:
+        gross:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        net:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        priceQuantity:
+          $ref: "#/components/schemas/QuantityRO_v1"
+        tax:
+          $ref: "#/components/schemas/MoneyRO_v1"
+      description: Describes a price. A price has a monetary net, gross, and tax value and a quantity the price refers to (optional).
+      readOnly: true
+    QuantityAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a quantity attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              $ref: "#/components/schemas/QuantityRO_v1"
+    QuantityRO_v1:
+      required:
+        - value
+      type: object
+      properties:
+        unit:
+          type: string
+          description: The unit of the quantity
+          example: kg
+        value:
+          type: number
+          description: The quantity's value
+          example: 10
+      description: The quantity of a business entity
+      readOnly: true
+    RequisitionItemCtnrRO:
+      title: RequisitionItemCtnrRO
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/RequisitionRO"
+        errors:
+          type: array
+          description: List of errors related to the request
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        included:
+          type: object
+          additionalProperties:
+            type: object
+            description: Optionally included related data objects
+          description: Optionally included related data objects
+        infos:
+          type: array
+          description: List of information related to the request (e.g., value adjustments)
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        links:
+          type: object
+          additionalProperties:
+            type: object
+            description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+            readOnly: true
+          description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+          readOnly: true
+    RequisitionListCtnrRO:
+      title: RequisitionListCtnrRO
+      type: object
+      properties:
+        data:
+          type: array
+          description: The core data of the response object
+          items:
+            $ref: "#/components/schemas/RequisitionRO"
+        errors:
+          type: array
+          description: List of errors related to the request
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        included:
+          type: object
+          additionalProperties:
+            type: object
+            description: Optionally included related data objects
+          description: Optionally included related data objects
+        infos:
+          type: array
+          description: List of information related to the request (e.g., value adjustments)
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        links:
+          type: object
+          additionalProperties:
+            type: object
+            description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+            readOnly: true
+          description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+          readOnly: true
+    RequisitionRecurrenceRO:
+      title: RequisitionRecurrenceRO
+      required:
+        - endDate
+        - interval
+        - repetitions
+        - startDate
+      type: object
+      properties:
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        endDate:
+          type: string
+          format: date-time
+        executeMissedOrders:
+          type: boolean
+        interval:
+          type: object
+          properties:
+            chronology:
+              type: object
+              properties:
+                calendarType:
+                  type: string
+                id:
+                  type: string
+                isoBased:
+                  type: boolean
+            days:
+              type: integer
+              format: int32
+            months:
+              type: integer
+              format: int32
+            negative:
+              type: boolean
+            units:
+              type: array
+              items:
+                type: object
+                properties:
+                  dateBased:
+                    type: boolean
+                  duration:
+                    type: object
+                    properties:
+                      nano:
+                        type: integer
+                        format: int32
+                      negative:
+                        type: boolean
+                      positive:
+                        type: boolean
+                      seconds:
+                        type: integer
+                        format: int64
+                      zero:
+                        type: boolean
+                  durationEstimated:
+                    type: boolean
+                  timeBased:
+                    type: boolean
+            years:
+              type: integer
+              format: int32
+            zero:
+              type: boolean
+        repetitions:
+          type: integer
+          format: int32
+        startDate:
+          type: string
+          format: date-time
+      description: This resource holds recurrence data associated with a requisition.
+    RequisitionRO:
+      title: RequisitionRO
+      type: object
+      properties:
+        affiliatePartner:
+          type: string
+        affiliateProgram:
+          type: string
+        approval:
+          $ref: "#/components/schemas/ApprovalRO"
+        approvalStatus:
+          $ref: "#/components/schemas/ApprovalStatusRO"
+        approvalStatuses:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalStatusRO"
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeRO_v1"
+        buckets:
+          type: array
+          items:
+            type: string
+        commonShippingMethod:
+          type: string
+        commonShipToAddress:
+          type: string
+        costCenter:
+          type: string
+        creationDate:
+          type: string
+          format: date-time
+        customer:
+          type: string
+          readOnly: true
+        customerOrderID:
+          type: string
+          description: The customer order id specified by the customer/buyer.
+          example: "30000008899"
+        customFields:
+          type: array
+          description: __BETA__ | List of custom field values<br/>
+          items:
+            $ref: "#/components/schemas/CustomField_v1"
+        department:
+          type: string
+        discounts:
+          $ref: "#/components/schemas/DiscountsRO"
+        documentNumber:
+          type: string
+          readOnly: true
+        externalOrderReference:
+          type: string
+          deprecated: true
+        id:
+          type: string
+        invoiceToAddress:
+          type: string
+        lineItemCount:
+          type: integer
+          format: int32
+        lineItems:
+          type: array
+          items:
+            type: string
+        messageToMerchant:
+          type: string
+        order:
+          $ref: "#/components/schemas/OrderLinkRO"
+        orderNo:
+          type: string
+        payments:
+          type: array
+          items:
+            type: string
+        promotionCodes:
+          type: array
+          items:
+            type: string
+        purchaseCurrency:
+          type: string
+          readOnly: true
+        recurrence:
+          $ref: "#/components/schemas/RequisitionRecurrenceRO"
+        recurringOrderDocumentNo:
+          type: string
+          readOnly: true
+        requisitionNo:
+          type: string
+        surcharges:
+          $ref: "#/components/schemas/RequisitionSurchargesRO"
+        systemRejected:
+          type: boolean
+        systemRejectErrors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        taxIdentificationNumber:
+          type: string
+        totalGross:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        totalNet:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        totalProductQuantity:
+          type: number
+          readOnly: true
+        totals:
+          $ref: "#/components/schemas/RequisitionTotalsRO"
+        user:
+          type: string
+          readOnly: true
+        userBudgets:
+          $ref: "#/components/schemas/UserBudgetsRO"
+        userInformation:
+          $ref: "#/components/schemas/UserRO"
+      description: This resource holds information about the requisition.
+    RequisitionSurchargesRO:
+      title: RequisitionSurchargesRO
+      type: object
+      properties:
+        bucketSurcharges:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+        itemSurcharges:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/SurchargeRO"
+      description: This resource holds information on surcharges that are applied to a requisition.
+      readOnly: true
+    RequisitionTotalsRO:
+      title: RequisitionTotalsRO
+      type: object
+      properties:
+        bucketShippingDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        discountTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        giftingTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        grandTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        itemShippingDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        itemTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        itemValueDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        paymentCostsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        requisitionShippingDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        requisitionValueDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        salesTaxTotalsByTaxRate:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/TaxItemRO_v1"
+        shippingDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        shippingTaxTotalsByTaxRate:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/TaxItemRO_v1"
+        shippingTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        surchargeTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        taxTotalsByTaxRate:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/TaxItemRO_v1"
+        undiscountedItemTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        undiscountedShippingTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+        valueDiscountsTotal:
+          $ref: "#/components/schemas/PriceRO_v1"
+      description: This resource holds total price values for a requisition.
+      readOnly: true
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    RolePermissionRO:
+      title: RolePermissionRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        permissionDisplayName:
+          type: string
+          description: The localized name of the permission
+          example: Assign a cost object to a basket
+        permissionID:
+          type: string
+          description: The ID of the permission
+          example: APP_B2B_ASSIGN_COSTOBJECT_TO_BASKET
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: RolePermission
+          xml:
+            attribute: true
+      description: This resource holds a list of permissions assigned to the role, including ID and the localized display name.
+    StringAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a string attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The string attribute value
+    StringFieldRO:
+      required:
+        - name
+        - type
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/CustomField_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The string value
+    SurchargeRO:
+      title: SurchargeRO
+      type: object
+      properties:
+        amount:
+          $ref: "#/components/schemas/PriceRO_v1"
+        description:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          description: The name of an element
+          readOnly: true
+        taxes:
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/TaxItemRO_v1"
+      description: This resource describes a single surcharge incurred to a shipping bucket.
+      readOnly: true
+    TaxItemRO_v1:
+      required:
+        - calculatedTax
+        - effectiveTaxRate
+      type: object
+      properties:
+        calculatedTax:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        effectiveTaxRate:
+          type: number
+          description: The effective rate used to calculate the tax
+        jurisdiction:
+          $ref: "#/components/schemas/JurisdictionRO_v1"
+        nonTaxableAmount:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        situs:
+          type: string
+          description: The situs/place of taxation
+          readOnly: true
+          example: DESTINATION
+          enum:
+            - "NULL"
+            - ADMINISTRATIVE_DESTINATION
+            - ADMINISTRATIVE_ORIGIN
+            - DESTINATION
+            - ORIGIN
+        taxableAmount:
+          $ref: "#/components/schemas/MoneyRO_v1"
+      description: Represents a single tax item
+      readOnly: true
+    TextAttributeRO_v1:
+      required:
+        - name
+        - type
+        - value
+      type: object
+      description: A representation of a text attribute
+      allOf:
+        - $ref: "#/components/schemas/AttributeRO_v1"
+        - type: object
+          properties:
+            value:
+              type: string
+              description: The text attribute value
+    UserBudgetsRO:
+      title: UserBudgetsRO
+      type: object
+      properties:
+        budget:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        budgetPeriod:
+          type: string
+          description: The user budget period
+          example: monthly
+        budgetPriceType:
+          type: string
+          description: The user budget price type
+          readOnly: true
+          example: gross
+          enum:
+            - gross
+            - net
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        orderSpentLimit:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        remainingBudget:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        remainingBudgetIncludingThisRequisition:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        spentBudget:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        spentBudgetIncludingThisRequisition:
+          $ref: "#/components/schemas/MoneyRO_v1"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: UserBudgets
+          xml:
+            attribute: true
+      description: This resource represents the user's budget.
+    UserRO:
+      title: UserRO
+      type: object
+      properties:
+        customer:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        login:
+          type: string
+        title:
+          type: string
+      description: This resource represents a user.
+    UserRoleRO:
+      title: UserRoleRO
+      type: object
+      properties:
+        fixed:
+          type: boolean
+          description: Flag that indicates if the role is fixed (implicitly assigned) and cannot be deselected
+          example: true
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        permissions:
+          type: array
+          description: The list of permissions assigned to the role containing ID and localized display name
+          items:
+            $ref: "#/components/schemas/RolePermissionRO"
+        roleDescription:
+          type: string
+          description: The localized description of the role
+          example: The approver is responsible for the requisition approval.
+        roleDisplayName:
+          type: string
+          description: The localized name of the role
+          example: Approver
+        roleID:
+          type: string
+          description: The ID of the role
+          example: APP_B2B_APPROVER
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: UserRole
+          xml:
+            attribute: true
+      description: This resource represents the assigned user roles.
+    UserRolesInputRO:
+      title: UserRolesInputRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: UserRoles
+          xml:
+            attribute: true
+        userRoles:
+          type: array
+          description: The assigned user roles
+          example:
+            - APP_B2B_APPROVER
+            - APP_B2B_ACCOUNT_OWNER
+          items:
+            type: string
+      description: This resource object holds information about the user roles to be assigned.
+    UserRolesRO:
+      title: UserRolesRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: UserRoles
+          xml:
+            attribute: true
+        userRoles:
+          type: array
+          description: The assigned user roles
+          items:
+            $ref: "#/components/schemas/UserRoleRO"
+      description: This resource holds information on user roles.
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: requisition-approval
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource,com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource,com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource,com.intershop.sellside.rest.b2b.approval.capi.resource.requisition.RequisitionListResource

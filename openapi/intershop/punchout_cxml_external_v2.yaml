@@ -1,0 +1,3799 @@
+openapi: 3.0.1
+info:
+  title: Punchout cXML External
+  description: |-
+    The Intershop Punchout cXML ‘External’ REST API contains the external endpoints that are called directly from external systems, such as procurement systems, to start and end a Punchout session.
+
+    Unlike other Intershop REST APIs, this REST API does not use version-based content negotiation, as this is not supported by the cXML standard.
+    Therefore, there is only one endpoint under the specified URL, which generates the cXML content as `text/xml` without any version information. 
+
+    ## Accept Header
+    The accept header does not contain any version information. Just use `text/xml`, `*` or `*.*`.
+
+    ## Changelog
+
+    ### Version 2.5.0
+    * Implemented a dedicated endpoint for cXML Punchout order creation, replacing the former pipeline-based approach (ProcessCXMLOrderInjection-Start).
+    ### Version 2.4.0
+    * "External" endpoints ("setuprequest", "transfer") that do not support version-based content negotiation were moved to this REST API ("Punchout cXML External") without any changes in content.
+  version: 2.5.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: General
+    description: This section covers operations to manage cXML sessions, baskets, and orders.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource
+paths:
+  /customers/{CustomerKey}/punchouts/cxml1.2/orderrequest:
+    post:
+      tags:
+        - General
+      summary: Creates a cXML Punchout order
+      description: |-
+        This operation processes a Punchout order request by accepting an OrderRequest cXML document and creating the corresponding order in the system. 
+        This requires valid login credentials in the submitted cXML document.
+
+        To use this operation, an authenticated user with the permission "Receive cXML Order" (APP_B2B_RECEIVE_CXML_ORDER) is required.
+      operationId: CXMLPunchoutOrderRequest
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              type: string
+      responses:
+        "200":
+          description: OK - The cXML Punchout order has been successfully created.
+          content:
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CXML"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or cXML Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutOrderRequestResource.orderRequest(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutOrderRequestResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_RECEIVE_CXML_ORDER]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/setuprequest:
+    post:
+      tags:
+        - General
+      summary: Creates a cXML Punchout session
+      description: |-
+        This operation performs a Punchout setup request, i.e., it initiates a new Punchout session and returns the URL to the web shop. The URL contains an access token and a session ID (sid) that can be used to get further information about the session.
+        This requires valid login credentials in the submitted cXML document.
+      operationId: CXMLPunchoutSetupRequest
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              type: string
+      responses:
+        "200":
+          description: OK - The cXML Punchout has been successfully triggered.
+          content:
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CXML"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or cXML Punchout is not supported.
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSetupRequestResource.setupRequest(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSetupRequestResource
+      x-AuthorizationRule: "[isAnyUser, (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/transfer:
+    post:
+      tags:
+        - General
+      summary: Triggers the cXML Punchout basket transfer
+      description: |-
+        This operation triggers the transfer of the cXML Punchout basket back to the external system, such as a procurement system. The following steps are performed during this process:
+        * An XML document (cXML Punchout format) including all line items of the basket is returned. The whole document has to be posted by the client to the procurement system.
+        * The Punchout basket is closed and cannot be used anymore.
+        * The Punchout workflow ends and is recorded for license purposes.
+
+        To use this operation, an authenticated user with the permission "Send cXML Cart" (APP_B2B_SEND_CXML_BASKET) is required.
+      operationId: CXMLPunchoutTransferBasket
+      parameters:
+        - name: sid
+          in: query
+          description: The ID of the cXML Punchout session
+          schema:
+            type: string
+            description: The ID of the cXML Punchout session
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: OK - The cXML Punchout basket transfer has been successfully triggered.
+          content:
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/CXML"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource.transferBasket(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_SEND_CXML_BASKET]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+components:
+  schemas:
+    AccountCurrency:
+      type: object
+      properties:
+        code:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: AccountCurrency
+    Accounting:
+      type: object
+      properties:
+        accountingSegment:
+          type: array
+          xml:
+            name: AccountingSegment
+          items:
+            $ref: "#/components/schemas/AccountingSegment"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        segment:
+          type: array
+          xml:
+            name: Segment
+          items:
+            $ref: "#/components/schemas/Segment"
+      xml:
+        name: Accounting
+    AccountingSegment:
+      required:
+        - description
+        - name
+      type: object
+      properties:
+        description:
+          $ref: "#/components/schemas/Description"
+        id:
+          type: string
+          xml:
+            attribute: true
+        name:
+          $ref: "#/components/schemas/Name"
+      xml:
+        name: AccountingSegment
+    AdditionalCost:
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+        percentage:
+          $ref: "#/components/schemas/Percentage"
+      xml:
+        name: AdditionalCost
+    AdditionalDeduction:
+      type: object
+      properties:
+        deductedPrice:
+          $ref: "#/components/schemas/DeductedPrice"
+        deductionAmount:
+          $ref: "#/components/schemas/DeductionAmount"
+        deductionPercent:
+          $ref: "#/components/schemas/DeductionPercent"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: AdditionalDeduction
+    Address:
+      required:
+        - name
+      type: object
+      properties:
+        addressID:
+          type: string
+          xml:
+            attribute: true
+        addressIDDomain:
+          type: string
+          xml:
+            attribute: true
+        email:
+          $ref: "#/components/schemas/Email"
+        fax:
+          $ref: "#/components/schemas/Fax"
+        isoCountryCode:
+          type: string
+          xml:
+            attribute: true
+        name:
+          $ref: "#/components/schemas/Name"
+        phone:
+          $ref: "#/components/schemas/Phone"
+        postalAddress:
+          $ref: "#/components/schemas/PostalAddress"
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: Address
+    AnnualRevenue:
+      required:
+        - minAmount
+      type: object
+      properties:
+        maxAmount:
+          $ref: "#/components/schemas/MaxAmount"
+        minAmount:
+          $ref: "#/components/schemas/MinAmount"
+      xml:
+        name: AnnualRevenue
+    Any:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+    Attachment:
+      required:
+        - url
+      type: object
+      properties:
+        url:
+          $ref: "#/components/schemas/URL"
+        visibility:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Attachment
+    AttachmentReference:
+      required:
+        - description
+        - internalID
+        - name
+      type: object
+      properties:
+        description:
+          $ref: "#/components/schemas/Description"
+        internalID:
+          $ref: "#/components/schemas/InternalID"
+        length:
+          type: string
+          xml:
+            attribute: true
+        name:
+          $ref: "#/components/schemas/Name"
+        url:
+          $ref: "#/components/schemas/URL"
+        version:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: AttachmentReference
+    AuthResponse:
+      required:
+        - credential
+      type: object
+      properties:
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+        expirationDate:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: AuthResponse
+    CanonicalizationMethod:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          xml:
+            name: Algorithm
+            attribute: true
+        content:
+          type: string
+      xml:
+        name: CanonicalizationMethod
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    Characteristic:
+      type: object
+      properties:
+        code:
+          type: string
+          xml:
+            attribute: true
+        domain:
+          type: string
+          xml:
+            attribute: true
+        value:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Characteristic
+    Charge:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: Charge
+    City:
+      type: object
+      properties:
+        cityCode:
+          type: string
+          xml:
+            attribute: true
+        content:
+          type: string
+      xml:
+        name: City
+    Classification:
+      type: object
+      properties:
+        code:
+          type: string
+          xml:
+            attribute: true
+        content:
+          type: string
+        domain:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Classification
+    Comments:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: Comments
+    Commodity:
+      required:
+        - classification
+      type: object
+      properties:
+        classification:
+          $ref: "#/components/schemas/Classification"
+      xml:
+        name: Commodity
+    ConditionType:
+      type: object
+      properties:
+        costTermValue:
+          $ref: "#/components/schemas/CostTermValue"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        scales:
+          $ref: "#/components/schemas/Scales"
+      xml:
+        name: ConditionType
+    ConditionTypes:
+      required:
+        - conditionType
+      type: object
+      properties:
+        conditionType:
+          type: array
+          xml:
+            name: ConditionType
+          items:
+            $ref: "#/components/schemas/ConditionType"
+      xml:
+        name: ConditionTypes
+    Contact:
+      required:
+        - name
+      type: object
+      properties:
+        addressID:
+          type: string
+          xml:
+            attribute: true
+        addressIDDomain:
+          type: string
+          xml:
+            attribute: true
+        email:
+          type: array
+          xml:
+            name: Email
+          items:
+            $ref: "#/components/schemas/Email"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        fax:
+          type: array
+          xml:
+            name: Fax
+          items:
+            $ref: "#/components/schemas/Fax"
+        idReference:
+          type: array
+          xml:
+            name: IdReference
+          items:
+            $ref: "#/components/schemas/IdReference"
+        name:
+          $ref: "#/components/schemas/Name"
+        phone:
+          type: array
+          xml:
+            name: Phone
+          items:
+            $ref: "#/components/schemas/Phone"
+        postalAddress:
+          type: array
+          xml:
+            name: PostalAddress
+          items:
+            $ref: "#/components/schemas/PostalAddress"
+        role:
+          type: string
+          xml:
+            attribute: true
+        url:
+          type: array
+          xml:
+            name: URL
+          items:
+            $ref: "#/components/schemas/URL"
+      xml:
+        name: Contact
+    Contract:
+      required:
+        - itemSegment
+        - supplierID
+      type: object
+      properties:
+        comments:
+          $ref: "#/components/schemas/Comments"
+        effectiveDate:
+          type: string
+          xml:
+            attribute: true
+        expirationDate:
+          type: string
+          xml:
+            attribute: true
+        itemSegment:
+          type: array
+          xml:
+            name: ItemSegment
+          items:
+            $ref: "#/components/schemas/ItemSegment"
+        supplierID:
+          type: array
+          xml:
+            name: SupplierID
+          items:
+            $ref: "#/components/schemas/SupplierID"
+      xml:
+        name: Contract
+    ContractItem:
+      required:
+        - itemID
+      type: object
+      properties:
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        itemID:
+          $ref: "#/components/schemas/ItemID"
+        unitPrice:
+          $ref: "#/components/schemas/UnitPrice"
+      xml:
+        name: ContractItem
+    CorporateInformation:
+      type: object
+      properties:
+        annualRevenue:
+          $ref: "#/components/schemas/AnnualRevenue"
+        numberOfEmployees:
+          type: string
+          xml:
+            attribute: true
+        organizationType:
+          type: string
+          xml:
+            attribute: true
+        ownershipType:
+          type: array
+          xml:
+            name: OwnershipType
+          items:
+            $ref: "#/components/schemas/OwnershipType"
+        stateOfIncorporation:
+          $ref: "#/components/schemas/StateOfIncorporation"
+        yearFounded:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: CorporateInformation
+    Correspondent:
+      required:
+        - contact
+      type: object
+      properties:
+        contact:
+          type: array
+          xml:
+            name: Contact
+          items:
+            $ref: "#/components/schemas/Contact"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        preferredLanguage:
+          type: string
+          xml:
+            attribute: true
+        routing:
+          $ref: "#/components/schemas/Routing"
+      xml:
+        name: Correspondent
+    CostTermValue:
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+        percentage:
+          $ref: "#/components/schemas/Percentage"
+      xml:
+        name: CostTermValue
+    Country:
+      type: object
+      properties:
+        content:
+          type: string
+        isoCountryCode:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Country
+    CountryCode:
+      type: object
+      properties:
+        content:
+          type: string
+        isoCountryCode:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: CountryCode
+    Creator:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: Creator
+    Credential:
+      required:
+        - identity
+      type: object
+      properties:
+        cxmlAuthentication:
+          $ref: "#/components/schemas/JAXBElementObject"
+        domain:
+          type: string
+          xml:
+            attribute: true
+        identity:
+          $ref: "#/components/schemas/Identity"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: Credential
+    CXML:
+      type: object
+      properties:
+        header:
+          $ref: "#/components/schemas/Header"
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+        message:
+          $ref: "#/components/schemas/Message"
+        payloadID:
+          type: string
+          xml:
+            attribute: true
+        request:
+          $ref: "#/components/schemas/Request"
+        response:
+          $ref: "#/components/schemas/Response"
+        signature:
+          type: array
+          xml:
+            name: Signature
+            namespace: http://www.w3.org/2000/09/xmldsig#
+          items:
+            $ref: "#/components/schemas/Signature"
+        signatureVersion:
+          type: string
+          xml:
+            attribute: true
+        timestamp:
+          type: string
+          xml:
+            attribute: true
+        version:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: cXML
+    CxmlPayment:
+      type: object
+      properties:
+        expiration:
+          type: string
+          xml:
+            attribute: true
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        number:
+          type: string
+          xml:
+            attribute: true
+        postalAddress:
+          $ref: "#/components/schemas/PostalAddress"
+    DataResponse:
+      required:
+        - attachment
+      type: object
+      properties:
+        attachment:
+          type: array
+          xml:
+            name: Attachment
+          items:
+            $ref: "#/components/schemas/Attachment"
+      xml:
+        name: DataResponse
+    DeductedPrice:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: DeductedPrice
+    DeductionAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: DeductionAmount
+    DeductionPercent:
+      type: object
+      properties:
+        percent:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: DeductionPercent
+    Description:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: Description
+    DigestMethod:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          xml:
+            name: Algorithm
+            attribute: true
+        content:
+          type: string
+      xml:
+        name: DigestMethod
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    Dimension:
+      required:
+        - unitOfMeasure
+      type: object
+      properties:
+        quantity:
+          type: string
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+        unitOfMeasure:
+          type: string
+          xml:
+            name: UnitOfMeasure
+      xml:
+        name: Dimension
+    Distribution:
+      required:
+        - accounting
+        - charge
+      type: object
+      properties:
+        accounting:
+          $ref: "#/components/schemas/Accounting"
+        charge:
+          $ref: "#/components/schemas/Charge"
+      xml:
+        name: Distribution
+    Email:
+      type: object
+      properties:
+        content:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        preferredLang:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Email
+    ExemptReason:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: ExemptReason
+    ExpectedLimit:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: ExpectedLimit
+    Extrinsic:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+    Fax:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        telephoneNumber:
+          $ref: "#/components/schemas/TelephoneNumber"
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: Fax
+    Format:
+      type: object
+      properties:
+        content:
+          type: string
+        version:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Format
+    From:
+      required:
+        - credential
+      type: object
+      properties:
+        correspondent:
+          $ref: "#/components/schemas/Correspondent"
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+      xml:
+        name: From
+    GetPendingResponse:
+      required:
+        - cxml
+      type: object
+      properties:
+        cxml:
+          type: array
+          xml:
+            name: cXML
+          items:
+            $ref: "#/components/schemas/CXML"
+      xml:
+        name: GetPendingResponse
+    Header:
+      required:
+        - from
+        - sender
+        - to
+      type: object
+      properties:
+        from:
+          $ref: "#/components/schemas/From"
+        originalDocument:
+          $ref: "#/components/schemas/OriginalDocument"
+        path:
+          $ref: "#/components/schemas/Path"
+        sender:
+          $ref: "#/components/schemas/Sender"
+        to:
+          $ref: "#/components/schemas/To"
+      xml:
+        name: Header
+    Identity:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        lastChangedTimestamp:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Identity
+    IdReference:
+      type: object
+      properties:
+        creator:
+          $ref: "#/components/schemas/Creator"
+        description:
+          $ref: "#/components/schemas/Description"
+        domain:
+          type: string
+          xml:
+            attribute: true
+        identifier:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: IdReference
+    Index:
+      required:
+        - indexItem
+        - supplierID
+      type: object
+      properties:
+        comments:
+          $ref: "#/components/schemas/Comments"
+        indexItem:
+          type: array
+          xml:
+            name: IndexItem
+          items:
+            $ref: "#/components/schemas/IndexItem"
+        loadmode:
+          type: string
+          xml:
+            attribute: true
+        searchGroup:
+          type: array
+          xml:
+            name: SearchGroup
+          items:
+            $ref: "#/components/schemas/SearchGroup"
+        supplierID:
+          type: array
+          xml:
+            name: SupplierID
+          items:
+            $ref: "#/components/schemas/SupplierID"
+      xml:
+        name: Index
+    IndexItem:
+      type: object
+      properties:
+        indexItemAdd:
+          type: array
+          xml:
+            name: IndexItemAdd
+          items:
+            $ref: "#/components/schemas/IndexItemAdd"
+        indexItemDelete:
+          type: array
+          xml:
+            name: IndexItemDelete
+          items:
+            $ref: "#/components/schemas/IndexItemDelete"
+        indexItemPunchout:
+          type: array
+          xml:
+            name: IndexItemPunchout
+          items:
+            $ref: "#/components/schemas/IndexItemPunchout"
+      xml:
+        name: IndexItem
+    IndexItemAdd:
+      required:
+        - indexItemDetail
+        - itemDetail
+        - itemID
+      type: object
+      properties:
+        indexItemDetail:
+          $ref: "#/components/schemas/IndexItemDetail"
+        itemDetail:
+          $ref: "#/components/schemas/ItemDetail"
+        itemID:
+          $ref: "#/components/schemas/ItemID"
+      xml:
+        name: IndexItemAdd
+    IndexItemDelete:
+      required:
+        - itemID
+      type: object
+      properties:
+        itemID:
+          $ref: "#/components/schemas/ItemID"
+      xml:
+        name: IndexItemDelete
+    IndexItemDetail:
+      required:
+        - leadTime
+      type: object
+      properties:
+        effectiveDate:
+          type: string
+          xml:
+            name: EffectiveDate
+        expirationDate:
+          type: string
+          xml:
+            name: ExpirationDate
+        leadTime:
+          type: string
+          xml:
+            name: LeadTime
+        searchGroupData:
+          type: array
+          xml:
+            name: SearchGroupData
+          items:
+            $ref: "#/components/schemas/SearchGroupData"
+        territoryAvailable:
+          type: array
+          xml:
+            name: TerritoryAvailable
+          items:
+            type: string
+            xml:
+              name: TerritoryAvailable
+      xml:
+        name: IndexItemDetail
+    IndexItemPunchout:
+      required:
+        - itemID
+        - punchoutDetail
+      type: object
+      properties:
+        itemID:
+          $ref: "#/components/schemas/ItemID"
+        punchoutDetail:
+          $ref: "#/components/schemas/PunchoutDetail"
+      xml:
+        name: IndexItemPunchout
+    Industry:
+      required:
+        - classification
+      type: object
+      properties:
+        classification:
+          $ref: "#/components/schemas/Classification"
+      xml:
+        name: Industry
+    InternalID:
+      type: object
+      properties:
+        content:
+          type: string
+        domain:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: InternalID
+    ItemDetail:
+      required:
+        - classification
+        - description
+        - unitOfMeasure
+        - unitPrice
+      type: object
+      properties:
+        attachmentReference:
+          type: array
+          xml:
+            name: AttachmentReference
+          items:
+            $ref: "#/components/schemas/AttachmentReference"
+        classification:
+          type: array
+          xml:
+            name: Classification
+          items:
+            $ref: "#/components/schemas/Classification"
+        description:
+          type: array
+          xml:
+            name: Description
+          items:
+            $ref: "#/components/schemas/Description"
+        dimension:
+          type: array
+          xml:
+            name: Dimension
+          items:
+            $ref: "#/components/schemas/Dimension"
+        expectedLimit:
+          $ref: "#/components/schemas/ExpectedLimit"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        itemDetailIndustry:
+          $ref: "#/components/schemas/ItemDetailIndustry"
+        leadTime:
+          type: string
+          xml:
+            name: LeadTime
+        manufacturerName:
+          $ref: "#/components/schemas/ManufacturerName"
+        manufacturerPartID:
+          type: string
+          xml:
+            name: ManufacturerPartID
+        overallLimit:
+          $ref: "#/components/schemas/OverallLimit"
+        plannedAcceptanceDays:
+          type: string
+          xml:
+            name: PlannedAcceptanceDays
+        priceBasisQuantity:
+          $ref: "#/components/schemas/PriceBasisQuantity"
+        unitOfMeasure:
+          type: string
+          xml:
+            name: UnitOfMeasure
+        unitPrice:
+          $ref: "#/components/schemas/UnitPrice"
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: ItemDetail
+    ItemDetailIndustry:
+      type: object
+      properties:
+        isConfigurableMaterial:
+          type: string
+          xml:
+            attribute: true
+        itemDetailRetail:
+          $ref: "#/components/schemas/ItemDetailRetail"
+      xml:
+        name: ItemDetailIndustry
+    ItemDetailRetail:
+      type: object
+      properties:
+        characteristic:
+          type: array
+          xml:
+            name: Characteristic
+          items:
+            $ref: "#/components/schemas/Characteristic"
+        eanid:
+          type: string
+          xml:
+            name: EANID
+        europeanWasteCatalogID:
+          type: string
+          xml:
+            name: EuropeanWasteCatalogID
+      xml:
+        name: ItemDetailRetail
+    ItemID:
+      required:
+        - supplierPartID
+      type: object
+      properties:
+        buyerPartID:
+          type: string
+          xml:
+            name: BuyerPartID
+        idReference:
+          type: array
+          xml:
+            name: IdReference
+          items:
+            $ref: "#/components/schemas/IdReference"
+        supplierPartAuxiliaryID:
+          $ref: "#/components/schemas/Any"
+        supplierPartID:
+          $ref: "#/components/schemas/SupplierPartID"
+      xml:
+        name: ItemID
+    ItemSegment:
+      required:
+        - contractItem
+      type: object
+      properties:
+        contractItem:
+          type: array
+          xml:
+            name: ContractItem
+          items:
+            $ref: "#/components/schemas/ContractItem"
+        segmentKey:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: ItemSegment
+    JAXBElementObject:
+      type: object
+      properties:
+        globalScope:
+          type: boolean
+        name:
+          type: object
+          properties:
+            localPart:
+              type: string
+            namespaceURI:
+              type: string
+            prefix:
+              type: string
+          description: The name of an element
+        nil:
+          type: boolean
+        typeSubstituted:
+          type: boolean
+        value:
+          type: object
+    KeyInfo:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+      xml:
+        name: KeyInfo
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    LegalName:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: LegalName
+    ManufacturerName:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: ManufacturerName
+    MaxAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: MaxAmount
+    Message:
+      type: object
+      properties:
+        cxmlMessages:
+          $ref: "#/components/schemas/JAXBElementObject"
+        deploymentMode:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+        inReplyTo:
+          type: string
+          xml:
+            attribute: true
+        status:
+          $ref: "#/components/schemas/Status"
+      xml:
+        name: Message
+    MinAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: MinAmount
+    Modification:
+      type: object
+      properties:
+        additionalCost:
+          $ref: "#/components/schemas/AdditionalCost"
+        additionalDeduction:
+          $ref: "#/components/schemas/AdditionalDeduction"
+        level:
+          type: string
+          xml:
+            attribute: true
+        modificationDetail:
+          $ref: "#/components/schemas/ModificationDetail"
+        originalPrice:
+          $ref: "#/components/schemas/OriginalPrice"
+        tax:
+          $ref: "#/components/schemas/Tax"
+      xml:
+        name: Modification
+    ModificationDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          xml:
+            attribute: true
+        description:
+          $ref: "#/components/schemas/Description"
+        endDate:
+          type: string
+          xml:
+            attribute: true
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        startDate:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: ModificationDetail
+    Modifications:
+      required:
+        - modification
+      type: object
+      properties:
+        modification:
+          type: array
+          xml:
+            name: Modification
+          items:
+            $ref: "#/components/schemas/Modification"
+      xml:
+        name: Modifications
+    Money:
+      type: object
+      properties:
+        alternateAmount:
+          type: string
+          xml:
+            attribute: true
+        alternateCurrency:
+          type: string
+          xml:
+            attribute: true
+        content:
+          type: string
+        currency:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Money
+    Municipality:
+      type: object
+      properties:
+        content:
+          type: string
+        municipalityCode:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Municipality
+    Name:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: Name
+    Node:
+      required:
+        - credential
+      type: object
+      properties:
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+        itemDetailsRequired:
+          type: string
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: Node
+    Option:
+      type: object
+      properties:
+        adtype:
+          type: array
+          items:
+            type: string
+        content:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: Option
+    OrderMethod:
+      required:
+        - orderTarget
+      type: object
+      properties:
+        orderProtocol:
+          type: string
+          xml:
+            name: OrderProtocol
+        orderTarget:
+          $ref: "#/components/schemas/OrderTarget"
+      xml:
+        name: OrderMethod
+    OrderMethods:
+      required:
+        - orderMethod
+      type: object
+      properties:
+        contact:
+          $ref: "#/components/schemas/Contact"
+        orderMethod:
+          type: array
+          xml:
+            name: OrderMethod
+          items:
+            $ref: "#/components/schemas/OrderMethod"
+      xml:
+        name: OrderMethods
+    OrderTarget:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/Email"
+        fax:
+          $ref: "#/components/schemas/Fax"
+        otherOrderTarget:
+          $ref: "#/components/schemas/OtherOrderTarget"
+        phone:
+          $ref: "#/components/schemas/Phone"
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: OrderTarget
+    Organization:
+      required:
+        - address
+        - credential
+        - name
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/Address"
+        commodity:
+          type: array
+          xml:
+            name: Commodity
+          items:
+            $ref: "#/components/schemas/Commodity"
+        corporateInformation:
+          $ref: "#/components/schemas/CorporateInformation"
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+        description:
+          type: array
+          xml:
+            name: Description
+          items:
+            $ref: "#/components/schemas/Description"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        industry:
+          type: array
+          xml:
+            name: Industry
+          items:
+            $ref: "#/components/schemas/Industry"
+        name:
+          $ref: "#/components/schemas/Name"
+        organizationRole:
+          type: array
+          xml:
+            name: OrganizationRole
+          items:
+            $ref: "#/components/schemas/OrganizationRole"
+        paymentInformation:
+          type: array
+          xml:
+            name: PaymentInformation
+          items:
+            $ref: "#/components/schemas/PaymentInformation"
+        person:
+          type: array
+          xml:
+            name: Person
+          items:
+            $ref: "#/components/schemas/Person"
+        relationshipInformation:
+          $ref: "#/components/schemas/RelationshipInformation"
+        taxInformation:
+          $ref: "#/components/schemas/TaxInformation"
+        territory:
+          type: array
+          xml:
+            name: Territory
+          items:
+            $ref: "#/components/schemas/Territory"
+      xml:
+        name: Organization
+    OrganizationDataResponse:
+      required:
+        - organization
+      type: object
+      properties:
+        organization:
+          type: array
+          xml:
+            name: Organization
+          items:
+            $ref: "#/components/schemas/Organization"
+      xml:
+        name: OrganizationDataResponse
+    OrganizationRole:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: OrganizationRole
+    OriginalDocument:
+      type: object
+      properties:
+        payloadID:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: OriginalDocument
+    OriginalPrice:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: OriginalPrice
+    OtherOrderTarget:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            type: object
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: OtherOrderTarget
+    OverallLimit:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: OverallLimit
+    OwnershipType:
+      type: object
+      properties:
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: OwnershipType
+    Path:
+      required:
+        - node
+      type: object
+      properties:
+        node:
+          type: array
+          xml:
+            name: Node
+          items:
+            $ref: "#/components/schemas/Node"
+      xml:
+        name: Path
+    PaymentInformation:
+      required:
+        - paymentMethodRemittanceInformation
+      type: object
+      properties:
+        paymentMethodRemittanceInformation:
+          type: array
+          xml:
+            name: PaymentMethodRemittanceInformation
+          items:
+            $ref: "#/components/schemas/PaymentMethodRemittanceInformation"
+      xml:
+        name: PaymentInformation
+    PaymentMethod:
+      type: object
+      properties:
+        description:
+          $ref: "#/components/schemas/Description"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+          enum:
+            - ACH
+            - CASH
+            - CHECK
+            - CREDIT_CARD
+            - DEBIT_CARD
+            - DRAFT
+            - WIRE
+            - OTHER
+      xml:
+        name: PaymentMethod
+    PaymentMethodPartner:
+      required:
+        - paymentMethod
+        - paymentPartner
+      type: object
+      properties:
+        paymentMethod:
+          $ref: "#/components/schemas/PaymentMethod"
+        paymentPartner:
+          type: array
+          xml:
+            name: PaymentPartner
+          items:
+            $ref: "#/components/schemas/PaymentPartner"
+      xml:
+        name: PaymentMethodPartner
+    PaymentMethodRemittanceInformation:
+      required:
+        - contact
+      type: object
+      properties:
+        contact:
+          $ref: "#/components/schemas/Contact"
+        isDefault:
+          type: string
+          xml:
+            attribute: true
+        paymentMethod:
+          type: array
+          xml:
+            name: PaymentMethod
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+        paymentMethodPartner:
+          type: array
+          xml:
+            name: PaymentMethodPartner
+          items:
+            $ref: "#/components/schemas/PaymentMethodPartner"
+        preferredPaymentMethod:
+          type: string
+          xml:
+            attribute: true
+          enum:
+            - ACH
+            - CASH
+            - CHECK
+            - CREDIT_CARD
+            - DEBIT_CARD
+            - DRAFT
+            - WIRE
+            - OTHER
+      xml:
+        name: PaymentMethodRemittanceInformation
+    PaymentPartner:
+      required:
+        - contact
+      type: object
+      properties:
+        accountCurrency:
+          $ref: "#/components/schemas/AccountCurrency"
+        contact:
+          $ref: "#/components/schemas/Contact"
+        idReference:
+          type: array
+          xml:
+            name: IdReference
+          items:
+            $ref: "#/components/schemas/IdReference"
+        incorporationType:
+          type: string
+          xml:
+            name: IncorporationType
+        natureOfBusiness:
+          type: string
+          xml:
+            name: NatureOfBusiness
+        pcard:
+          $ref: "#/components/schemas/CxmlPayment"
+      xml:
+        name: PaymentPartner
+    PaymentProviderInformation:
+      required:
+        - paymentMethod
+      type: object
+      properties:
+        description:
+          $ref: "#/components/schemas/Description"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        paymentMethod:
+          type: array
+          xml:
+            name: PaymentMethod
+          items:
+            $ref: "#/components/schemas/PaymentMethod"
+        paymentProviderID:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: PaymentProviderInformation
+    PaymentRelationshipInformation:
+      required:
+        - paymentProviderInformation
+      type: object
+      properties:
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        paymentProviderInformation:
+          type: array
+          xml:
+            name: PaymentProviderInformation
+          items:
+            $ref: "#/components/schemas/PaymentProviderInformation"
+      xml:
+        name: PaymentRelationshipInformation
+    Percentage:
+      type: object
+      properties:
+        percent:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Percentage
+    Person:
+      required:
+        - contact
+        - personRole
+      type: object
+      properties:
+        contact:
+          $ref: "#/components/schemas/Contact"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        idReference:
+          type: array
+          xml:
+            name: IdReference
+          items:
+            $ref: "#/components/schemas/IdReference"
+        personRole:
+          type: array
+          xml:
+            name: PersonRole
+          items:
+            $ref: "#/components/schemas/PersonRole"
+      xml:
+        name: Person
+    PersonRole:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: PersonRole
+    Phone:
+      required:
+        - telephoneNumber
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        telephoneNumber:
+          $ref: "#/components/schemas/TelephoneNumber"
+      xml:
+        name: Phone
+    PostalAddress:
+      required:
+        - city
+        - country
+        - street
+      type: object
+      properties:
+        city:
+          $ref: "#/components/schemas/City"
+        country:
+          $ref: "#/components/schemas/Country"
+        deliverTo:
+          type: array
+          xml:
+            name: DeliverTo
+          items:
+            type: string
+            xml:
+              name: DeliverTo
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        municipality:
+          $ref: "#/components/schemas/Municipality"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        postalCode:
+          type: string
+          xml:
+            name: PostalCode
+        state:
+          $ref: "#/components/schemas/State"
+        street:
+          type: array
+          xml:
+            name: Street
+          items:
+            type: string
+            xml:
+              name: Street
+      xml:
+        name: PostalAddress
+    PriceBasisQuantity:
+      required:
+        - unitOfMeasure
+      type: object
+      properties:
+        conversionFactor:
+          type: string
+          xml:
+            attribute: true
+        description:
+          $ref: "#/components/schemas/Description"
+        quantity:
+          type: string
+          xml:
+            attribute: true
+        unitOfMeasure:
+          type: string
+          xml:
+            name: UnitOfMeasure
+      xml:
+        name: PriceBasisQuantity
+    ProfileResponse:
+      required:
+        - transaction
+      type: object
+      properties:
+        adtype:
+          type: array
+          items:
+            type: string
+        effectiveDate:
+          type: string
+          xml:
+            attribute: true
+        lastRefresh:
+          type: string
+          xml:
+            attribute: true
+        option:
+          type: array
+          xml:
+            name: Option
+          items:
+            $ref: "#/components/schemas/Option"
+        transaction:
+          type: array
+          xml:
+            name: Transaction
+          items:
+            $ref: "#/components/schemas/Transaction"
+      xml:
+        name: ProfileResponse
+    PunchoutDetail:
+      required:
+        - classification
+        - description
+        - url
+      type: object
+      properties:
+        classification:
+          type: array
+          xml:
+            name: Classification
+          items:
+            $ref: "#/components/schemas/Classification"
+        description:
+          type: array
+          xml:
+            name: Description
+          items:
+            $ref: "#/components/schemas/Description"
+        effectiveDate:
+          type: string
+          xml:
+            name: EffectiveDate
+        expirationDate:
+          type: string
+          xml:
+            name: ExpirationDate
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        leadTime:
+          type: string
+          xml:
+            name: LeadTime
+        manufacturerName:
+          $ref: "#/components/schemas/ManufacturerName"
+        manufacturerPartID:
+          type: string
+          xml:
+            name: ManufacturerPartID
+        priceBasisQuantity:
+          $ref: "#/components/schemas/PriceBasisQuantity"
+        punchoutLevel:
+          type: string
+          xml:
+            attribute: true
+        searchGroupData:
+          type: array
+          xml:
+            name: SearchGroupData
+          items:
+            $ref: "#/components/schemas/SearchGroupData"
+        territoryAvailable:
+          type: array
+          xml:
+            name: TerritoryAvailable
+          items:
+            type: string
+            xml:
+              name: TerritoryAvailable
+        unitOfMeasure:
+          type: string
+          xml:
+            name: UnitOfMeasure
+        unitPrice:
+          $ref: "#/components/schemas/UnitPrice"
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: PunchoutDetail
+    Reference:
+      required:
+        - digestMethod
+        - digestValue
+      type: object
+      properties:
+        digestMethod:
+          $ref: "#/components/schemas/DigestMethod"
+        digestValue:
+          type: string
+          xml:
+            name: DigestValue
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+        transforms:
+          $ref: "#/components/schemas/Transforms"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            name: Type
+            attribute: true
+        uri:
+          type: string
+          xml:
+            name: URI
+            attribute: true
+      xml:
+        name: Reference
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    RelationshipInformation:
+      type: object
+      properties:
+        paymentRelationshipInformation:
+          $ref: "#/components/schemas/PaymentRelationshipInformation"
+      xml:
+        name: RelationshipInformation
+    Request:
+      type: object
+      properties:
+        cxmlRequests:
+          $ref: "#/components/schemas/JAXBElementObject"
+        deploymentMode:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+      xml:
+        name: Request
+    Response:
+      type: object
+      properties:
+        authResponse:
+          $ref: "#/components/schemas/AuthResponse"
+        dataResponse:
+          $ref: "#/components/schemas/DataResponse"
+        getPendingResponse:
+          $ref: "#/components/schemas/GetPendingResponse"
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+        organizationDataResponse:
+          $ref: "#/components/schemas/OrganizationDataResponse"
+        profileResponse:
+          $ref: "#/components/schemas/ProfileResponse"
+        providerSetupResponse:
+          $ref: "#/components/schemas/StartPageElement"
+        punchOutSetupResponse:
+          $ref: "#/components/schemas/StartPageElement"
+        status:
+          $ref: "#/components/schemas/Status"
+        subscriptionContentResponse:
+          $ref: "#/components/schemas/SubscriptionContentResponse"
+        subscriptionListResponse:
+          $ref: "#/components/schemas/SubscriptionListResponse"
+        supplierDataResponse:
+          $ref: "#/components/schemas/SupplierDataResponse"
+        supplierListResponse:
+          $ref: "#/components/schemas/SupplierListResponse"
+      xml:
+        name: Response
+    Routing:
+      type: object
+      properties:
+        destination:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Routing
+    Scale:
+      required:
+        - costTermValue
+      type: object
+      properties:
+        costTermValue:
+          type: array
+          xml:
+            name: CostTermValue
+          items:
+            $ref: "#/components/schemas/CostTermValue"
+        from:
+          type: string
+          xml:
+            attribute: true
+        to:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Scale
+    Scales:
+      required:
+        - scale
+      type: object
+      properties:
+        scale:
+          type: array
+          xml:
+            name: Scale
+          items:
+            $ref: "#/components/schemas/Scale"
+        scaleBasis:
+          type: string
+          xml:
+            attribute: true
+        scaleType:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Scales
+    SearchAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: SearchAttribute
+    SearchDataElement:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        value:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: SearchDataElement
+    SearchGroup:
+      required:
+        - name
+        - searchAttribute
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/Name"
+        searchAttribute:
+          type: array
+          xml:
+            name: SearchAttribute
+          items:
+            $ref: "#/components/schemas/SearchAttribute"
+      xml:
+        name: SearchGroup
+    SearchGroupData:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/Name"
+        searchDataElement:
+          type: array
+          xml:
+            name: SearchDataElement
+          items:
+            $ref: "#/components/schemas/SearchDataElement"
+      xml:
+        name: SearchGroupData
+    Segment:
+      type: object
+      properties:
+        description:
+          type: string
+          xml:
+            attribute: true
+        id:
+          type: string
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      xml:
+        name: Segment
+    Sender:
+      required:
+        - credential
+        - userAgent
+      type: object
+      properties:
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+        userAgent:
+          type: string
+          xml:
+            name: UserAgent
+      xml:
+        name: Sender
+    Signature:
+      required:
+        - signatureValue
+        - signedInfo
+      type: object
+      properties:
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+        keyInfo:
+          $ref: "#/components/schemas/KeyInfo"
+        object:
+          type: array
+          xml:
+            name: Object
+          items:
+            type: object
+            xml:
+              name: Object
+        signatureValue:
+          $ref: "#/components/schemas/SignatureValue"
+        signedInfo:
+          $ref: "#/components/schemas/SignedInfo"
+      xml:
+        name: Signature
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    SignatureMethod:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          xml:
+            name: Algorithm
+            attribute: true
+        content:
+          type: array
+          items:
+            type: object
+      xml:
+        name: SignatureMethod
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    SignatureValue:
+      type: object
+      properties:
+        content:
+          type: string
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+      xml:
+        name: SignatureValue
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    SignedInfo:
+      required:
+        - canonicalizationMethod
+        - reference
+        - signatureMethod
+      type: object
+      properties:
+        canonicalizationMethod:
+          $ref: "#/components/schemas/CanonicalizationMethod"
+        id:
+          type: string
+          xml:
+            name: Id
+            attribute: true
+        reference:
+          type: array
+          xml:
+            name: Reference
+          items:
+            $ref: "#/components/schemas/Reference"
+        signatureMethod:
+          $ref: "#/components/schemas/SignatureMethod"
+      xml:
+        name: SignedInfo
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    StartPage:
+      required:
+        - url
+      type: object
+      properties:
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: StartPage
+    StartPageElement:
+      required:
+        - startPage
+      type: object
+      properties:
+        startPage:
+          $ref: "#/components/schemas/StartPage"
+    State:
+      type: object
+      properties:
+        content:
+          type: string
+        isoStateCode:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: State
+    StateOfIncorporation:
+      required:
+        - state
+      type: object
+      properties:
+        state:
+          $ref: "#/components/schemas/State"
+      xml:
+        name: StateOfIncorporation
+    Status:
+      type: object
+      properties:
+        code:
+          type: string
+          xml:
+            attribute: true
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+        text:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: Status
+    Subscription:
+      required:
+        - changetime
+        - internalID
+        - name
+        - supplierID
+      type: object
+      properties:
+        changetime:
+          type: string
+          xml:
+            name: Changetime
+        description:
+          $ref: "#/components/schemas/Description"
+        format:
+          $ref: "#/components/schemas/Format"
+        internalID:
+          $ref: "#/components/schemas/InternalID"
+        name:
+          $ref: "#/components/schemas/Name"
+        subscriptionVersion:
+          $ref: "#/components/schemas/SubscriptionVersion"
+        supplierID:
+          type: array
+          xml:
+            name: SupplierID
+          items:
+            $ref: "#/components/schemas/SupplierID"
+      xml:
+        name: Subscription
+    SubscriptionContent:
+      type: object
+      properties:
+        cifcontent:
+          type: string
+        contract:
+          $ref: "#/components/schemas/Contract"
+        filename:
+          type: string
+          xml:
+            attribute: true
+        index:
+          $ref: "#/components/schemas/Index"
+      xml:
+        name: SubscriptionContent
+    SubscriptionContentResponse:
+      required:
+        - subscription
+        - subscriptionContent
+      type: object
+      properties:
+        subscription:
+          $ref: "#/components/schemas/Subscription"
+        subscriptionContent:
+          type: array
+          xml:
+            name: SubscriptionContent
+          items:
+            $ref: "#/components/schemas/SubscriptionContent"
+      xml:
+        name: SubscriptionContentResponse
+    SubscriptionListResponse:
+      required:
+        - subscription
+      type: object
+      properties:
+        subscription:
+          type: array
+          xml:
+            name: Subscription
+          items:
+            $ref: "#/components/schemas/Subscription"
+      xml:
+        name: SubscriptionListResponse
+    SubscriptionVersion:
+      type: object
+      properties:
+        versionNumber:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: SubscriptionVersion
+    Supplier:
+      required:
+        - name
+        - supplierID
+      type: object
+      properties:
+        comments:
+          $ref: "#/components/schemas/Comments"
+        corporateURL:
+          type: string
+          xml:
+            attribute: true
+        name:
+          $ref: "#/components/schemas/Name"
+        storeFrontURL:
+          type: string
+          xml:
+            attribute: true
+        supplierID:
+          type: array
+          xml:
+            name: SupplierID
+          items:
+            $ref: "#/components/schemas/SupplierID"
+        supplierLocation:
+          type: array
+          xml:
+            name: SupplierLocation
+          items:
+            $ref: "#/components/schemas/SupplierLocation"
+      xml:
+        name: Supplier
+    SupplierDataResponse:
+      required:
+        - supplier
+      type: object
+      properties:
+        supplier:
+          $ref: "#/components/schemas/Supplier"
+      xml:
+        name: SupplierDataResponse
+    SupplierID:
+      type: object
+      properties:
+        content:
+          type: string
+        domain:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: SupplierID
+    SupplierListResponse:
+      required:
+        - supplier
+      type: object
+      properties:
+        supplier:
+          type: array
+          xml:
+            name: Supplier
+          items:
+            $ref: "#/components/schemas/Supplier"
+      xml:
+        name: SupplierListResponse
+    SupplierLocation:
+      required:
+        - address
+        - orderMethods
+      type: object
+      properties:
+        address:
+          $ref: "#/components/schemas/Address"
+        orderMethods:
+          $ref: "#/components/schemas/OrderMethods"
+      xml:
+        name: SupplierLocation
+    SupplierPartID:
+      type: object
+      properties:
+        content:
+          type: string
+        revisionID:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: SupplierPartID
+    Tax:
+      required:
+        - description
+        - money
+      type: object
+      properties:
+        description:
+          $ref: "#/components/schemas/Description"
+        distribution:
+          type: array
+          xml:
+            name: Distribution
+          items:
+            $ref: "#/components/schemas/Distribution"
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        money:
+          $ref: "#/components/schemas/Money"
+        taxAdjustmentAmount:
+          $ref: "#/components/schemas/TaxAdjustmentAmount"
+        taxDetail:
+          type: array
+          xml:
+            name: TaxDetail
+          items:
+            $ref: "#/components/schemas/TaxDetail"
+      xml:
+        name: Tax
+    TaxableAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: TaxableAmount
+    TaxAdjustmentAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: TaxAdjustmentAmount
+    TaxAmount:
+      required:
+        - money
+      type: object
+      properties:
+        money:
+          $ref: "#/components/schemas/Money"
+      xml:
+        name: TaxAmount
+    TaxDetail:
+      required:
+        - taxAmount
+      type: object
+      properties:
+        basePercentageRate:
+          type: string
+          xml:
+            attribute: true
+        category:
+          type: string
+          xml:
+            attribute: true
+        description:
+          $ref: "#/components/schemas/Description"
+        exemptDetail:
+          type: string
+          xml:
+            attribute: true
+        extrinsic:
+          type: array
+          xml:
+            name: Extrinsic
+          items:
+            $ref: "#/components/schemas/Extrinsic"
+        isIncludedInPrice:
+          type: string
+          xml:
+            attribute: true
+        isTriangularTransaction:
+          type: string
+          xml:
+            attribute: true
+        isVatRecoverable:
+          type: string
+          xml:
+            attribute: true
+        isWithholdingTax:
+          type: string
+          xml:
+            attribute: true
+        paymentDate:
+          type: string
+          xml:
+            attribute: true
+        percentageRate:
+          type: string
+          xml:
+            attribute: true
+        purpose:
+          type: string
+          xml:
+            attribute: true
+        taxableAmount:
+          $ref: "#/components/schemas/TaxableAmount"
+        taxAdjustmentAmount:
+          $ref: "#/components/schemas/TaxAdjustmentAmount"
+        taxAmount:
+          $ref: "#/components/schemas/TaxAmount"
+        taxedElement:
+          type: object
+        taxExemption:
+          $ref: "#/components/schemas/TaxExemption"
+        taxLocation:
+          $ref: "#/components/schemas/TaxLocation"
+        taxPointDate:
+          type: string
+          xml:
+            attribute: true
+        taxRateType:
+          type: string
+          xml:
+            attribute: true
+        taxRegime:
+          type: string
+          xml:
+            name: TaxRegime
+        triangularTransactionLawReference:
+          $ref: "#/components/schemas/TriangularTransactionLawReference"
+      xml:
+        name: TaxDetail
+    TaxExemption:
+      type: object
+      properties:
+        exemptCode:
+          type: string
+          xml:
+            attribute: true
+        exemptReason:
+          $ref: "#/components/schemas/ExemptReason"
+      xml:
+        name: TaxExemption
+    TaxID:
+      type: object
+      properties:
+        content:
+          type: string
+        domain:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: TaxID
+    TaxInformation:
+      type: object
+      properties:
+        isExemptFromBackupWithholding:
+          type: string
+          xml:
+            attribute: true
+        legalName:
+          $ref: "#/components/schemas/LegalName"
+        taxID:
+          type: array
+          xml:
+            name: TaxID
+          items:
+            $ref: "#/components/schemas/TaxID"
+      xml:
+        name: TaxInformation
+    TaxLocation:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: TaxLocation
+    TelephoneNumber:
+      required:
+        - areaOrCityCode
+        - countryCode
+        - number
+      type: object
+      properties:
+        areaOrCityCode:
+          type: string
+          xml:
+            name: AreaOrCityCode
+        countryCode:
+          $ref: "#/components/schemas/CountryCode"
+        extension:
+          type: string
+          xml:
+            name: Extension
+        number:
+          type: string
+          xml:
+            name: Number
+      xml:
+        name: TelephoneNumber
+    Territory:
+      required:
+        - classification
+      type: object
+      properties:
+        classification:
+          $ref: "#/components/schemas/Classification"
+      xml:
+        name: Territory
+    To:
+      required:
+        - credential
+      type: object
+      properties:
+        correspondent:
+          $ref: "#/components/schemas/Correspondent"
+        credential:
+          type: array
+          xml:
+            name: Credential
+          items:
+            $ref: "#/components/schemas/Credential"
+      xml:
+        name: To
+    Transaction:
+      required:
+        - url
+      type: object
+      properties:
+        adtype:
+          type: array
+          items:
+            type: string
+        option:
+          type: array
+          xml:
+            name: Option
+          items:
+            $ref: "#/components/schemas/Option"
+        requestName:
+          type: string
+          xml:
+            attribute: true
+        url:
+          $ref: "#/components/schemas/URL"
+      xml:
+        name: Transaction
+    Transform:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          xml:
+            name: Algorithm
+            attribute: true
+        content:
+          type: array
+          items:
+            type: object
+      xml:
+        name: Transform
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    Transforms:
+      required:
+        - transform
+      type: object
+      properties:
+        transform:
+          type: array
+          xml:
+            name: Transform
+          items:
+            $ref: "#/components/schemas/Transform"
+      xml:
+        name: Transforms
+        namespace: http://www.w3.org/2000/09/xmldsig#
+    TriangularTransactionLawReference:
+      type: object
+      properties:
+        content:
+          type: string
+        lang:
+          type: string
+          xml:
+            namespace: http://www.w3.org/XML/1998/namespace
+            attribute: true
+      xml:
+        name: TriangularTransactionLawReference
+    UnitPrice:
+      required:
+        - money
+      type: object
+      properties:
+        modifications:
+          $ref: "#/components/schemas/Modifications"
+        money:
+          $ref: "#/components/schemas/Money"
+        pricingConditions:
+          $ref: "#/components/schemas/ValidityPeriodsElement"
+      xml:
+        name: UnitPrice
+    URL:
+      type: object
+      properties:
+        content:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+      xml:
+        name: URL
+    ValidityPeriod:
+      required:
+        - conditionTypes
+      type: object
+      properties:
+        conditionTypes:
+          $ref: "#/components/schemas/ConditionTypes"
+        from:
+          type: string
+          xml:
+            attribute: true
+        to:
+          type: string
+          xml:
+            attribute: true
+      xml:
+        name: ValidityPeriod
+    ValidityPeriods:
+      required:
+        - validityPeriod
+      type: object
+      properties:
+        validityPeriod:
+          type: array
+          xml:
+            name: ValidityPeriod
+          items:
+            $ref: "#/components/schemas/ValidityPeriod"
+      xml:
+        name: ValidityPeriods
+    ValidityPeriodsElement:
+      required:
+        - validityPeriods
+      type: object
+      properties:
+        validityPeriods:
+          $ref: "#/components/schemas/ValidityPeriods"
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: punchout_cxml_external_v2
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutTransferBasketResource

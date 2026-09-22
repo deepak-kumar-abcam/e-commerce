@@ -1,0 +1,2342 @@
+openapi: 3.0.1
+info:
+  title: CMS
+  description: |-
+    # Content Management System API
+
+    The Intershop Content Management System REST API contains resources that reflect the main aspects of the content management system. These include pagelets, pages, includes and more.
+    You can use the API to retrieve information about individual CMS objects and their composition.
+
+    ## Adaptables
+
+    Some of the RestResourceObjects in this API refer to other objects. A pagelet for example contains slots, which need to be returned or referred to.
+
+    Since the Intershop Content Management System REST API has a hierarchical structure which can be manipulated by **depth regulation**,
+    these elements can either be links to specific resources or the complete resolved resource as is.
+    This will be expressed through specific adaptables, in which for example a `SlotAdaptable` can be a `SlotRO` (for the element) or a `SlotLinkRO` (for the link to the resource).
+
+    ```java
+    class PageletRO{
+      Map<String, SlotAdaptable> slots // This can either be SlotROs or SlotLinkROs
+    }
+
+    // JSON with SlotLinkROs:
+    {
+      slots:{
+        foo: { uri : '.../s1'},
+        bar: { uri : '.../s1'}
+      }
+    }
+
+    // JSON with SlotROs:
+    {
+      slots:{
+        foo: {
+          pagelets:[ ... ],
+          ...
+        },
+        bar: {
+          pagelets:[ ... ],
+          ...
+        }
+      }
+    }
+    ```
+
+    ## Depth Regulation
+
+    All item resources in this API, like includes, pages, pagelets and viewcontexts are described in hierarchical render structures.
+    As these can grow very large, the response can be limited with the optional `depth` query parameter. As soon as the requested depth is reached, a deeper element in the hierarchy will not be resolved anymore - instead a link to this resource will be provided.
+
+    ## Paging
+
+    All list resources in this API are pageable, so you can provide an `offset` and an `amount` as query parameters to select the range of results. You can also provide a `pageable`-ID (which will be returned from these resources) to your next call, to use the cached data from the server.
+
+    ## Personalized Content
+
+    All operations in this API can serve personalized data.
+    If you request any data without further authentication, you will be treated as anonymous.
+
+    To get personalized data, you must provide a basic authentication header, together with a personalization group ID (`pgid`).
+    This ID must be applied as a matrix parameter at the `/cms` -path segment.
+
+    Anonymous Request for page `my.page`:
+
+    ```
+    curl -X GET -i /cms/pages/my.page
+    ```
+
+    Personalized Request for page `my.page`:
+
+    ```
+    curl -X GET -H 'Authorization: Basic <auth>' -i /cms;pgid=<pgid>/pages/my.page
+    ```
+
+    As a result of a personalized request, all links in the response will contain the `pgid` to simplify navigation.
+
+    ---
+
+    Notes:
+
+    - Use the `/personalization` endpoint to retrieve the pgid of a specific user.
+    - If you provide a basic authentication header without a `pgid`, you will get a `bad request`.
+
+    ---
+
+    ## Changelog
+
+    ### Version 1.1.0
+
+    - Added this changelog
+    - Added the `resourceSetID` field for view context response bodies
+    - Added `resourceSetID` as an optional part of some CMS object's `ID` or `Key`
+    - Improved lookup performance for shared content
+  version: 1.1.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: General
+    description: This section covers retrieving a list of available CMS sub-resources.
+    x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.CmsParentResource
+  - name: Include
+    description: |-
+      This section covers retrieving includes.
+
+      An include can be conceived as a specific storefront "entry point" for individual content components. There are specific include types which specify the structure and parameters required for rendering. Includes can have multiple content components assigned. There should be at least one component assigned.
+    x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.IncludeResource
+  - name: Page
+    description: |-
+      This section covers retrieving pages and page trees.
+
+      A page can be conceived as an "entry point" to the storefront used to collect page variants. There are specific page types (defined by a pagelet) which specify parameters required for rendering the web page. Pages can have multiple page variants assigned. When a page is rendered, one of its page variants is chosen based on various conditions. 
+    x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.PageTreeResource
+  - name: Pagelet
+    description: |-
+      This section covers retrieving pagelets and pagelet slots.
+
+      Pagelets are development artifacts that constitute the meta model for pages, page variants, content components, page templates, component templates, includes and view contexts. They are managed via Intershop Commerce Management to compose storefronts (or other front ends).
+    x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.SlotResource
+  - name: View Context
+    description: |-
+      This section covers retrieving view contexts and pages for view contexts.
+
+      View contexts relate business objects like products or categories with pages or includes for a given context like category browsing or checkout. That is, they represent an environment where given objects are to be displayed in a certain way.
+    x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource
+paths:
+  "{loc}/cms{pgid}/pagetree/{pagesKey}":
+    get:
+      tags:
+        - Page
+      summary: Returns a specific page hierarchy
+      description: This operation returns a specific component model of the domain.
+      operationId: getPageTree_1
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: pagesKey
+          in: path
+          description: The unique identifier of the requested page or a path of page identifier
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+          example: page.content
+        - name: depth
+          in: query
+          description: |-
+            The limit of how far a given page tree should be resolved.
+            Further on from this depth, links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageTreeRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found - No page has been found for the given page Id.
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageTreeRO com.intershop.sellside.rest.pmc.capi.resource.pep.PageTreeResource.getPageTree(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.PageTreeResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/includes/{includesKey}":
+    get:
+      tags:
+        - Include
+      summary: Returns a specific include
+      description: This operation returns a specific include. The include must be published at the time of the request.
+      operationId: getInclude
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: depth
+          in: query
+          description: |-
+            The depth limit of how far a given include composition should be resolved.
+            Further on from this depth links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+        - name: includesKey
+          in: path
+          description: The include ID. Can be qualified with the resource set ID like `id@resourceSetId`.
+          required: true
+          schema:
+            type: string
+          example: systeminclude.dialog.giftMessage.pagelet2-Include
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageletEntryPointRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageletEntryPointRO com.intershop.sellside.rest.pmc.capi.resource.pep.IncludeResource.getInclude(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.IncludeResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pagelets":
+    get:
+      tags:
+        - Pagelet
+      summary: Returns a list of all published pagelets of the domain
+      description: This operation returns a list of all published pagelets of the domain. Pagelets which are shared to this domain will be shown as well.
+      operationId: getPagelets
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: offset
+          in: query
+          description: The pageable offset
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 0
+        - name: amount
+          in: query
+          description: The pageable amount
+          schema:
+            minimum: 1
+            type: integer
+            format: int64
+            default: 50
+        - name: pageable
+          in: query
+          description: The ID of the respective pageable
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROPageletLinkRO"
+        "400":
+          description: Bad request
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.pmc.capi.resource.PageletListResource.getPagelets(java.lang.Integer,java.lang.Integer,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.PageletListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}":
+    get:
+      tags:
+        - General
+      summary: Returns a list of CMS sub resources
+      description: |-
+        This operation returns a list of CMS sub resources. 
+        This includes view contexts, includes, pagelets, pages and pagetree.
+      operationId: getCMSResources
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.pmc.capi.resource.CmsParentResource.getCMSResources()
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.CmsParentResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pagelets/{pageletsKey}/{slotsKey}":
+    get:
+      tags:
+        - Pagelet
+      summary: Returns a specific slot of a pagelet
+      description: |-
+        This operation returns a specific slot of a pagelet. 
+        The pagelet must be published at the time of the request and the slot must exist.
+      operationId: getSlot
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: depth
+          in: query
+          description: |-
+            The depth of how far the slot/pagelet relations should be resolved.
+            Further on from this depth links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+        - name: pageletsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.pmc.capi.resource.PageletListResource
+        - name: slotsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.pmc.capi.resource.PageletResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlotRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.slot.SlotRO com.intershop.sellside.rest.pmc.capi.resource.SlotResource.getSlot(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.SlotResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pagetree":
+    get:
+      tags:
+        - Page
+      summary: Returns all pages with their tree hierarchy
+      description: This operation returns a list of all pagetrees of the domain.
+      operationId: getPageTree
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: depth
+          in: query
+          description: |-
+            The limit of how far a given page tree should be resolved.
+            Further on from this depth, links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageTreeRO"
+        "400":
+          description: Bad request
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageTreeRO com.intershop.sellside.rest.pmc.capi.resource.pep.PageTreeResource.getPageTree(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.PageTreeResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pages/{pagesKey}":
+    get:
+      tags:
+        - Page
+      summary: Returns a specific page
+      description: This operation returns a specific page. The page must be published at the time of the request.
+      operationId: getPage
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: depth
+          in: query
+          description: |-
+            The depth limit of how far a given page composition should be resolved.
+            Further on from this depth links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+        - name: pagesKey
+          in: path
+          description: The page ID. Can be qualified with the resource set ID like `id@resourceSetId`.
+          required: true
+          schema:
+            type: string
+          example: page.aboutus
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageletEntryPointRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageletEntryPointRO com.intershop.sellside.rest.pmc.capi.resource.pep.PageResource.getPage(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.PageResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/viewcontexts":
+    get:
+      tags:
+        - View Context
+      summary: Returns all view contexts of the domain
+      description: This operation returns all view contexts of the domain.
+      operationId: getViewContexts
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: offset
+          in: query
+          description: The pageable offset
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 0
+        - name: amount
+          in: query
+          description: The pageable amount
+          schema:
+            minimum: 1
+            type: integer
+            format: int64
+            default: 50
+        - name: pageable
+          in: query
+          description: The ID of the respective pageable
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getViewContext
+              parameters:
+                viewContextID: $response.body#/elements/{$index}/itemId
+              description: Links to item of type ViewContextRO
+        "400":
+          description: Bad request
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource.getViewContexts(java.lang.Integer,java.lang.Integer,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/viewcontexts/{viewContextID}":
+    get:
+      tags:
+        - View Context
+      summary: Returns a specific view context of the domain
+      description: |-
+        This operation returns a specific view context of the domain. By calling a specific view context, a field called `callParameters` is returned in the response.
+        This is a list of objects that contains name, description and information on whether this specific parameter is optional or not.
+      operationId: getViewContext
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: viewContextID
+          in: path
+          description: The view context ID. Can be qualified with the resource set ID like `id@resourceSetId`.
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+          example: vc_productList
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewContextRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.viewcontext.ViewContextRO com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource.getViewContext(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/includes":
+    get:
+      tags:
+        - Include
+      summary: Returns a list of all includes
+      description: This operation returns a list of all includes. Includes are `PageletEntryPoint` objects with `page-flag` set to `false`.
+      operationId: getIncludes
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: offset
+          in: query
+          description: The pageable offset
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 0
+        - name: amount
+          in: query
+          description: The pageable amount
+          schema:
+            minimum: 1
+            type: integer
+            format: int64
+            default: 50
+        - name: pageable
+          in: query
+          description: The ID of the respective pageable
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getInclude
+              parameters:
+                includesKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type PageletEntryPointRO
+        "400":
+          description: Bad request
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.pmc.capi.resource.pep.IncludeListResource.getIncludes(java.lang.Integer,java.lang.Integer,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.IncludeListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pages":
+    get:
+      tags:
+        - Page
+      summary: Returns a list of all pages
+      description: This operation returns a list of all pages. Pages are `PageletEntryPoint` objects with `page-flag` set to `true`.
+      operationId: getPages
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: offset
+          in: query
+          description: The pageable offset
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 0
+        - name: amount
+          in: query
+          description: The pageable amount
+          schema:
+            minimum: 1
+            type: integer
+            format: int64
+            default: 50
+        - name: pageable
+          in: query
+          description: The ID of the respective pageable
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionROLinkRO"
+          links:
+            itemInfo:
+              operationId: getPage
+              parameters:
+                pagesKey: $response.body#/elements/{$index}/itemId
+              description: Links to item of type PageletEntryPointRO
+        "400":
+          description: Bad request
+      x-origin-method: public com.intershop.component.rest.capi.resourceobject.ResourceCollectionRO com.intershop.sellside.rest.pmc.capi.resource.pep.PageListResource.getPages(java.lang.Integer,java.lang.Integer,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.pep.PageListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/pagelets/{pageletsKey}":
+    get:
+      tags:
+        - Pagelet
+      summary: Returns a specific pagelet of the domain
+      description: This operation returns a specific pagelet of the domain. The pagelet must be published at the time of the request.
+      operationId: getPagelet
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: depth
+          in: query
+          description: |-
+            The depth of how far the slot/pagelet relations should be resolved.
+            Further on from this depth links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+        - name: pageletsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.pmc.capi.resource.PageletListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageletRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageletRO com.intershop.sellside.rest.pmc.capi.resource.PageletResource.getPagelet(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.PageletResource
+      x-AuthorizationRule: "[isAnyUser]"
+  "{loc}/cms{pgid}/viewcontexts/{viewContextID}/entrypoint":
+    get:
+      tags:
+        - View Context
+      summary: Resolves a page for a view context
+      description: |-
+        This operation resolves a page for a view context. Depending on the type of view context query-parameters have to be specified.
+        To resolve this call, you need all required call parameters.
+
+        **Example:** How to get a view context for the catalog `Cameras-Camcorder` and
+        the category `Cameras-Camcorders@inSPIRED-inTRONICS-Cameras-Camcorders`
+
+        **Step 1:** Find out which parameters are required to resolve the view context:
+        ```
+        curl /cms/viewcontexts/viewcontext.page.category.pagelet2-ViewContext
+        ---
+          Response:
+            {
+              ...
+              callParameter: [
+                { name: "CatalogBO", optional: false },
+                { name: "CategoryBO", optional: false },
+                ...
+              ]
+            }
+        ```
+
+        **Step 2:** Call this resource with at least the required parameters to receive the pagelet entry point for this view context.
+        ```
+        curl /cms/viewcontexts/viewcontext.page.category.pagelet2-ViewContext/entrypoint?CatalogBO=Cameras-Camcorders&CategoryBO=Cameras-Camcorders@inSPIRED-inTRONICS-Cameras-Camcorders
+        ---
+          Response:
+            see PageletEntryPointRO
+        ```
+      operationId: resolvePageletEntryPoint
+      parameters:
+        - $ref: "#/components/parameters/loc"
+        - $ref: "#/components/parameters/pgid"
+          x-matrixParamPath: cms
+        - name: viewContextID
+          in: path
+          description: The view context ID. Can be qualified with the resource set ID like `id@resourceSetId`.
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+          example: vc_productList
+        - name: depth
+          in: query
+          description: |-
+            The depth of how far the slot/pagelet relations should be resolved.
+            Further on from this depth links are used instead of resource objects.
+          schema:
+            minimum: 0
+            type: integer
+            format: int64
+            default: 2147483647
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageletEntryPointRO"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.sellside.rest.pmc.capi.resourceobject.PageletEntryPointRO com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource.resolvePageletEntryPoint(jakarta.ws.rs.core.UriInfo,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.pmc.capi.resource.ViewContextResource
+      x-AuthorizationRule: "[isAnyUser]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    CallParameterDefinitionRO:
+      type: object
+      properties:
+        description:
+          type: string
+          description: A description of the parameter
+        name:
+          type: string
+          description: The name of an element
+        optional:
+          type: boolean
+          description: True, if the parameter is optional
+      description: A call parameter used to define particular view context objects
+    ConfigurationParameterRO:
+      type: object
+      properties:
+        definitionQualifiedName:
+          type: string
+          description: the definition qualified name of the returned ConfigurationParameter
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+        value:
+          type: object
+          description: the (localized) value of the returned ConfigurationParameter
+      description: The map of ConfigurationParameterROs with their names as keys
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    PageletAdaptable:
+      type: object
+      description: The collection of pagelets refered by the requested PageletEntryPoint
+    PageletEntryPointLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+      xml:
+        name: Link
+    PageletEntryPointRO:
+      required:
+        - definitionQualifiedName
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        configurationParameters:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConfigurationParameterRO"
+          description: The map of ConfigurationParameterROs with their names as keys
+        customAttributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ResourceAttribute"
+          description: The map of custom attributes with their names as keys
+        definitionQualifiedName:
+          type: string
+          description: The definition qualified name of the returned element
+        displayName:
+          type: string
+          description: The (localized) display name of the returned element
+        domain:
+          type: string
+        id:
+          type: string
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        pagelets:
+          type: array
+          description: The collection of pagelets refered by the requested PageletEntryPoint
+          items:
+            $ref: "#/components/schemas/PageletAdaptable"
+        resourceSetID:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    PageletLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+      description: The list of elements
+      xml:
+        name: Link
+    PageletRO:
+      required:
+        - definitionQualifiedName
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        configurationParameters:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConfigurationParameterRO"
+          description: The map of ConfigurationParameterROs with their names as keys
+        customAttributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ResourceAttribute"
+          description: The map of custom attributes with their names as keys
+        definitionQualifiedName:
+          type: string
+          description: The definition qualified name of the returned element
+        displayName:
+          type: string
+        domain:
+          type: string
+        id:
+          type: string
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        slots:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/SlotAdaptable"
+          description: The map of SlotROs (or links to them) defined by the pagelet, with their names as keys
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    PageTreeAdaptable:
+      type: object
+    PageTreeLinkRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        uri:
+          type: string
+      xml:
+        name: Link
+    PageTreeRO:
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        elements:
+          type: array
+          description: The list of elements
+          items:
+            $ref: "#/components/schemas/PageTreeAdaptable"
+        link:
+          $ref: "#/components/schemas/PageTreeLinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        page:
+          $ref: "#/components/schemas/PageletEntryPointLinkRO"
+        parent:
+          $ref: "#/components/schemas/PageTreeLinkRO"
+        path:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageTreeLinkRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROLinkRO:
+      title: Link List
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID.
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of links
+      xml:
+        name: ResourceCollection
+    ResourceCollectionROPageletLinkRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PageletLinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    SlotAdaptable:
+      type: object
+      description: The map of SlotROs (or links to them) defined by the pagelet, with their names as keys
+    SlotRO:
+      required:
+        - definitionQualifiedName
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        configurationParameters:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConfigurationParameterRO"
+          description: The map of ConfigurationParameterROs with their names as keys
+        customAttributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ResourceAttribute"
+          description: The map of custom attributes with their names as keys
+        definitionQualifiedName:
+          type: string
+          description: The definition qualified name of the returned element
+        displayName:
+          type: string
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        pagelets:
+          type: array
+          description: The collection of PageletROs (or links to them) assigned to this slot
+          items:
+            $ref: "#/components/schemas/PageletAdaptable"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+    ViewContextRO:
+      required:
+        - definitionQualifiedName
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        callParameters:
+          type: array
+          description: The parameters that have to be used to denote the objects this context belongs to
+          items:
+            $ref: "#/components/schemas/CallParameterDefinitionRO"
+        configurationParameters:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ConfigurationParameterRO"
+          description: The map of ConfigurationParameterROs with their names as keys
+        customAttributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ResourceAttribute"
+          description: The map of custom attributes with their names as keys
+        definitionQualifiedName:
+          type: string
+          description: The definition qualified name of the returned element
+        displayName:
+          type: string
+          description: The display name of the view context
+        id:
+          type: string
+          description: The unique internal Id
+        link:
+          $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        page:
+          type: boolean
+          description: The page flag indicates whether the view contexts ContextObjectRelation points to a page or an include.
+        resolveLink:
+          $ref: "#/components/schemas/LinkRO"
+        resourceSetID:
+          type: string
+        systemManaged:
+          type: boolean
+          description: The system managed flag indicates whether the view contexts are instantiated by the system or created by the user.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: A representation of a view context
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: cms
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.sellside.rest.pmc.capi.resource.CmsParentResource

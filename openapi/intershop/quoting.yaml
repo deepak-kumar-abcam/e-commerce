@@ -1,0 +1,2694 @@
+openapi: 3.0.1
+info:
+  title: Quoting
+  description: The Intershop Quoting REST API contains resources for managing quotes and quote requests. With the operations provided in this REST API it is possible to create, update and remove quotes and quote requests.
+  version: 1.1.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: Quote Request
+    description: This section covers operations for managing quote requests. This includes viewing, creating and deleting quote requests. Furthermore, it is possible to manage individual items within a quote request.
+    x-priority: "60"
+    x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource
+  - name: Quote
+    description: This section covers operations for managing quotes. This includes retrieving a list of available quotes as well as submitting, viewing, rejecting or deleting individual quotes.
+    x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource
+  - name: rfqcart
+    description: "&nbsp;"
+    x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+paths:
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quoterequests:
+    get:
+      tags:
+        - Quote Request
+      operationId: getQuoteRequests
+      parameters:
+        - name: attrs
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource.getQuoteRequests(java.lang.String)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    post:
+      tags:
+        - Quote Request
+      operationId: createQuoteRequest
+      parameters:
+        - name: quoteID
+          in: query
+          schema:
+            type: string
+        - name: basketID
+          in: query
+          schema:
+            type: string
+        - name: quoteRequestID
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewQuoteRequestRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/NewQuoteRequestRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource.createQuoteRequest(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.NewQuoteRequestRO,java.lang.String,java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quoterequests/{UserQuoteRequestsKey}:
+    get:
+      tags:
+        - Quote Request
+      operationId: getQuoteRequestDetails
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestRO"
+        "303":
+          description: See other
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource.getQuoteRequestDetails()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Quote Request
+      operationId: updateQuoteRequest
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      requestBody:
+        description: ""
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource.updateQuoteRequest(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.QuoteRequestRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Quote Request
+      operationId: deleteQuoteRequest
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource.deleteQuoteRequest()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quoterequests/{UserQuoteRequestsKey}/items:
+    get:
+      tags:
+        - Quote Request
+      operationId: getQuoteRequestLineItems
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource.getQuoteRequestLineItems()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Quote Request
+      operationId: setQuoteLineItems
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemROResourceCollection"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemROResourceCollection"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteLineItemResultRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteLineItemResultRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource.setQuoteLineItems(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.QuoteRequestLineItemROResourceCollection)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    post:
+      tags:
+        - Quote Request
+      operationId: createQuoteLineItem
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource.createQuoteLineItem(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.QuoteRequestLineItemRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quoterequests/{UserQuoteRequestsKey}/items/{UserQuoteRequestsLineKey}:
+    get:
+      tags:
+        - Quote Request
+      operationId: getQuoteRequestLineItemDetails
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+        - name: UserQuoteRequestsLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestLineItemRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestLineItemRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource.getQuoteRequestLineItemDetails()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Quote Request
+      operationId: updateQuoteRequestLineItem
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+        - name: UserQuoteRequestsLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/QuoteRequestLineItemRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestLineItemRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRequestLineItemRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource.updateQuoteRequestLineItem(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.QuoteRequestLineItemRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Quote Request
+      operationId: deleteQuoteRequestLineItem
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuoteRequestsKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource
+        - name: UserQuoteRequestsLineKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource.deleteQuoteRequestLineItem()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsLineItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quotes:
+    get:
+      tags:
+        - Quote
+      operationId: getQuotes
+      parameters:
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: attrs
+          in: query
+          schema:
+            type: string
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource.getQuotes(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    post:
+      tags:
+        - Quote
+      operationId: submitQuoteRequest
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitQuoteRequestRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SubmitQuoteRequestRO"
+      responses:
+        "202":
+          description: Accepted
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource.submitQuoteRequest(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.SubmitQuoteRequestRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/quotes/{UserQuotesKey}:
+    get:
+      tags:
+        - Quote
+      operationId: getQuoteDetails
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuotesKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource.getQuoteDetails()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    put:
+      tags:
+        - Quote
+      operationId: updateQuote
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuotesKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuoteRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/UpdateQuoteRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/QuoteRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource.updateQuote(com.intershop.application.storefront.rest.b2b.capi.quote.resourceobject.UpdateQuoteRO)
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+    delete:
+      tags:
+        - Quote
+      operationId: deleteQuote
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+        - name: UserQuotesKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesListResource
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource.deleteQuote()
+      x-origin-class: com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuotesItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /rfqcart:
+    get:
+      tags:
+        - rfqcart
+      operationId: getQuoteRequests_1
+      parameters:
+        - name: attrs
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/ResourceCollectionRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource.getQuoteRequests(java.lang.String)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      x-AuthorizationRule: "[isAnyUser]"
+    put:
+      tags:
+        - rfqcart
+      operationId: updateAddress
+      requestBody:
+        description: AddressUUID to add to the Quote Cart
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource.updateAddress(com.danaher.application.sellside.rest.capi.rfqcart.resourceobject.SubmitRFQRO)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      x-AuthorizationRule: "[isAnyUser]"
+    post:
+      tags:
+        - rfqcart
+      operationId: submitQuoteRequest_1
+      requestBody:
+        description: Defines the submit RFQ
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource.submitQuoteRequest(com.danaher.application.sellside.rest.capi.rfqcart.resourceobject.SubmitRFQRO)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      x-AuthorizationRule: "[isAnyUser]"
+    delete:
+      tags:
+        - rfqcart
+      operationId: deleteRFQCart
+      responses:
+        "200":
+          description: RFQ Cart deleted successfully
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource.deleteRFQCart()
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      x-AuthorizationRule: "[isAnyUser]"
+    patch:
+      tags:
+        - rfqcart
+      operationId: mergeRFQ
+      requestBody:
+        description: Merge anonymous quote cart to logged in quote cart
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SubmitRFQRO"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource.mergeRFQ(com.danaher.application.sellside.rest.capi.rfqcart.resourceobject.SubmitRFQRO)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /rfqcart/{RFQCartKey}:
+    get:
+      operationId: getQuoteRequestDetails_1
+      parameters:
+        - name: RFQCartKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      responses:
+        default:
+          description: default response
+          content:
+            application/json: {}
+            text/xml: {}
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource.getQuoteRequestDetails()
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+    put:
+      operationId: updateQuoteLineItem
+      parameters:
+        - name: lineitem
+          in: query
+          description: Defines the LineItemUUID
+          required: true
+          schema:
+            type: string
+        - name: RFQCartKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/RFQCartLineItemRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource.updateQuoteLineItem(com.danaher.application.sellside.rest.capi.rfqcart.resourceobject.RFQCartLineItemRO,java.lang.String)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+    post:
+      operationId: createQuoteLineItem_1
+      parameters:
+        - name: RFQCartKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RFQCartLineItemRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/RFQCartLineItemRO"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource.createQuoteLineItem(com.danaher.application.sellside.rest.capi.rfqcart.resourceobject.RFQCartLineItemRO)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+    delete:
+      operationId: deleteQuoteLineItem
+      parameters:
+        - name: lineitem
+          in: query
+          description: Defines the LineItemUUID
+          required: true
+          schema:
+            type: string
+        - name: RFQCartKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "404":
+          description: Not found
+      x-origin-method: public jakarta.ws.rs.core.Response com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource.deleteQuoteLineItem(java.lang.String)
+      x-origin-class: com.danaher.application.sellside.rest.capi.rfqcart.RFQCartItemResource
+      x-AuthorizationRule: "[isAnyUser]"
+components:
+  schemas:
+    AbstractResourceObject:
+      title: Object
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: The list of elements
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    Money:
+      type: object
+      properties:
+        currencyMnemonic:
+          type: string
+          xml:
+            name: cur
+            attribute: true
+    MoneyRO:
+      title: Money
+      type: object
+      properties:
+        currency:
+          type: string
+          description: Three-letter currency code (ISO 4217) of the monetary value
+          example: USD
+        currencyMnemonic:
+          type: string
+          deprecated: true
+        type:
+          type: string
+          description: "This is a constant: **Money**"
+          readOnly: true
+          example: Money
+          xml:
+            attribute: true
+        value:
+          type: number
+          description: The monetary value
+          example: 10.99
+      description: Money combines a currency and a money amount.
+      xml:
+        name: Money
+    NewQuoteRequestRO:
+      title: NewQuoteRequest
+      type: object
+      properties:
+        basketID:
+          type: string
+          description: The ID of the basket
+          example: n8YKDgAhNVQAAAFTQKgS.DdF
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        quoteID:
+          type: string
+          description: The ID of the quote
+          example: mwnAqMgoQWUAAAE8irJXwIE5
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: Quote requests holds 'quoteID' and the 'basketID' for new quote request.
+      xml:
+        name: NewQuoteRequest
+    Quantity:
+      type: object
+      properties:
+        unit:
+          type: string
+          xml:
+            attribute: true
+    QuantityRO:
+      title: Quantity
+      type: object
+      properties:
+        type:
+          type: string
+          description: "This is a constant: **Quantity**"
+          readOnly: true
+          example: Quantity
+          xml:
+            attribute: true
+        unit:
+          type: string
+          description: The quantity's ISO unit code.
+          example: PIEC
+        value:
+          type: number
+          description: The quantity's value
+          example: 10.99
+      description: Quantity combines a quantity value and the ISO unit code the value is defined in.
+      xml:
+        name: Quantity
+    QuoteLineItemResultRO:
+      title: QuoteLineItemResultRO
+      type: object
+      properties:
+        failedProductSKUs:
+          type: array
+          description: The product SKUs of the failed products
+          xml:
+            wrapped: true
+          items:
+            type: string
+            xml:
+              name: sku
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        status:
+          type: string
+          description: Indicates whether the result contains failed products
+          example: SUCCESS,ERROR
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds status information about the PUT operation for the quote line items.
+      xml:
+        name: QuoteLineItemResult
+    QuoteLineItemRO:
+      title: QuoteLineItemRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        originQuantity:
+          $ref: "#/components/schemas/QuantityRO"
+        originSinglePrice:
+          $ref: "#/components/schemas/MoneyRO"
+        originTotalPrice:
+          $ref: "#/components/schemas/MoneyRO"
+        productSKU:
+          type: string
+          description: The product SKU
+          example: "9438012"
+        quantity:
+          $ref: "#/components/schemas/QuantityRO"
+        singlePrice:
+          $ref: "#/components/schemas/MoneyRO"
+        totalPrice:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds information on the quote line item.
+      xml:
+        name: QuoteLineItem
+    QuoteProductRO:
+      type: object
+      properties:
+        bundledQuantity:
+          $ref: "#/components/schemas/Quantity"
+        image:
+          type: string
+        listPrice:
+          $ref: "#/components/schemas/Money"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        productName:
+          type: string
+        salePrice:
+          $ref: "#/components/schemas/Money"
+        shortDescription:
+          type: string
+        sku:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: QuoteProduct
+    QuoteRequestLineItemRO:
+      title: QuoteRequestLineItemRO
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of the quote request line item
+          example: XW.sGLABFUgAAAFu67ET4H2R
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        productSKU:
+          type: string
+          description: The product SKU
+          example: "9438012"
+        quantity:
+          $ref: "#/components/schemas/QuantityRO"
+        singlePrice:
+          $ref: "#/components/schemas/MoneyRO"
+        totalPrice:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds information on the quote request line item.
+      xml:
+        name: QuoteRequestLineItem
+    QuoteRequestLineItemROResourceCollection:
+      title: QuoteRequestLineItemROResourceCollection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/QuoteRequestLineItemRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: This resource holds sets of quote request line items.
+      xml:
+        name: QuoteRequestLineItemCollection
+    QuoteRequestRO:
+      title: QuoteRequestRO
+      type: object
+      properties:
+        creationDate:
+          type: string
+          description: The creation date of the quote request
+          format: date-time
+        description:
+          type: string
+          description: The description of the quote request
+          example: description
+        displayName:
+          type: string
+          description: The display name of the quote request
+          example: "0000101"
+        editable:
+          type: boolean
+          description: Indicates whether the quote request is editable
+          example: true
+        id:
+          type: string
+          description: The ID of the quote request
+          example: 59sKDgAho9UAAAFUFy0h_DO6
+        items:
+          type: array
+          description: A list of all items for the given quote request as LinkROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        number:
+          type: string
+          description: The number of the quote request
+          example: "0000101"
+        submitted:
+          type: boolean
+          description: Indicates whether the quote request is submitted
+          example: true
+        submittedDate:
+          type: string
+          description: The date the quote request was submitted
+          format: date-time
+        total:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds information about a quote request.
+      xml:
+        name: QuoteRequest
+    QuoteRO:
+      title: QuoteRO
+      type: object
+      properties:
+        creationDate:
+          type: string
+          description: The creation date of a quote
+          format: date-time
+        description:
+          type: string
+          description: The description of a quote
+          example: new description...
+        displayName:
+          type: string
+          description: The display name of a quote
+          example: new name...
+        id:
+          type: string
+          description: The ID of a quote
+          example: 59sKDgAho9UAAAFUFy0h_DO6
+        items:
+          type: array
+          description: The line items of the quote as collection of QuoteLineItemROs
+          items:
+            $ref: "#/components/schemas/QuoteLineItemRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        number:
+          type: string
+          description: The number of a quote
+          example: "0000101"
+        originTotal:
+          $ref: "#/components/schemas/MoneyRO"
+        rejected:
+          type: boolean
+          description: Indicates whether the quote is rejected
+          example: true
+        sellerComment:
+          type: string
+          description: Comment of the seller on a quote
+          example: Only 1 week valid!
+        total:
+          $ref: "#/components/schemas/MoneyRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        validFromDate:
+          type: string
+          description: The valid from date of a quote
+          format: date-time
+        validToDate:
+          type: string
+          description: The valid to date of a quote
+          format: date-time
+      description: This resource holds information about a quote.
+      xml:
+        name: Quote
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+    ResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/AbstractResourceObject"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "This is a constant: **ResourceCollection**"
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: ResourceCollection
+    RFQCartLineItemRO:
+      type: object
+      properties:
+        brand:
+          type: string
+        bundledProduct:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteProductRO"
+        bundledSKUs:
+          type: string
+        country:
+          type: string
+        danaherUtmCampaign:
+          type: string
+        danaherUtmContent:
+          type: string
+        danaherUtmMedium:
+          type: string
+        danaherUtmNlc:
+          type: string
+        danaherUtmSource:
+          type: string
+        danaherUtmTerm:
+          type: string
+        id:
+          type: string
+        image:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        product:
+          $ref: "#/components/schemas/QuoteProductRO"
+        productDescription:
+          type: string
+        productSKU:
+          type: string
+        quantity:
+          $ref: "#/components/schemas/QuantityRO"
+        referrer:
+          type: string
+        referrerTitle:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        zoovuQuestionAnswers:
+          type: string
+      xml:
+        name: RFQCartLineItemRO
+    SubmitQuoteRequestRO:
+      title: SubmitQuoteRequestRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        quoteRequestID:
+          type: string
+          description: The quote request ID.
+          example: OmwKDgAhF5IAAAFTgy8bsDHK
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds information about the submitted quote.
+      xml:
+        name: QuoteRequest
+    SubmitRFQRO:
+      type: object
+      properties:
+        addressId:
+          type: string
+        addressLine1:
+          type: string
+        addressLine2:
+          type: string
+        city:
+          type: string
+        company:
+          type: string
+        country:
+          type: string
+        currentBasketUUID:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        jobTitle:
+          type: string
+        lastName:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        phone:
+          type: string
+        promoCode:
+          type: string
+        quoteComment:
+          type: string
+        quoteEmails:
+          type: string
+        sourceRFQUUID:
+          type: string
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+        zip:
+          type: string
+      xml:
+        name: SubmitRFQRO
+    UpdateQuoteRO:
+      title: UpdateQuoteRO
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        rejected:
+          type: boolean
+          description: Indicates whether the quote is rejected
+          example: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource holds information about a quote to be updated.
+      xml:
+        name: Quote
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: quoting
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.application.storefront.rest.b2b.capi.quote.resource.UserQuoteRequestsListResource,com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource,com.danaher.application.sellside.rest.capi.rfqcart.RFQCartListResource

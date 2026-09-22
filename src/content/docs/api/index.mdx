@@ -1,0 +1,48 @@
+---
+title: Intershop API
+description: REST API reference generated from the Intershop OpenAPI specifications, covering the endpoints integrations depend on.
+---
+
+import { ApiSummary, ApiTable, CustomEndpoints } from '@/components/api/ApiCatalog';
+
+The storefront REST API of the central instance, generated from the OpenAPI definitions Intershop
+publishes. Every API has its own reference in the sidebar, with each operation's parameters,
+request body, responses, and code samples.
+
+<ApiSummary />
+
+:::note[Source]
+Exported from the **Phenomenex US** REST application (`PHX-PHXUS-Site/PheneomenexRest`), the same
+definitions as its
+[Swagger UI](https://shop.lifesciences.danaher.com/INTERSHOP/static/WFS/SMC/-/-/en_US/swagger/is_index.html?app=PHX-PHXUS-Site/PheneomenexRest).
+Other OpCos' REST applications may switch customizations on or off — see
+[Custom Features](/custom-features/).
+:::
+
+## APIs
+
+APIs tagged **Danaher** are built entirely by the platform team. The others are standard Intershop
+APIs, some with Danaher endpoints added — counted under **Custom**.
+
+<ApiTable />
+
+## Danaher custom endpoints
+
+Operations implemented by Danaher code rather than by Intershop, detected from each spec: the
+operation's resource class (`x-origin-class`) is in a `com.danaher` package or named `Danaher…`,
+or its tag names Danaher or "Custom". The list updates itself with the files, but an endpoint with
+none of those markers won't appear.
+
+<CustomEndpoints />
+
+## Updating the reference
+
+The reference is generated from the YAML files in `openapi/intershop/`, one per API. To refresh
+them all from the live Swagger endpoint:
+
+```bash
+npm run api:fetch
+```
+
+Or replace, add, or delete a YAML file by hand. Either way the sidebar, pages, and the tables above
+regenerate — no config changes needed. Restart the dev server after adding or removing a file.

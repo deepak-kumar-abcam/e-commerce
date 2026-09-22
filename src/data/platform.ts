@@ -211,7 +211,7 @@ export const docSections: DocSection[] = [
 		href: '/api/',
 		description:
 			'REST API reference generated from the Intershop OpenAPI specifications, covering the endpoints integrations depend on.',
-		status: 'planned',
+		status: 'in-progress',
 	},
 	{
 		title: 'Architecture Diagrams',

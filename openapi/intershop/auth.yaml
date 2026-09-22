@@ -1,0 +1,2270 @@
+openapi: 3.0.1
+info:
+  title: Authentication
+  description: "The Authentication REST API allows you to authenticate requests using tokens or identity providers. You can also manage tokens, credentials, passwords, security questions, access public keys, retrieve CAPTCHA challenges, and more.
+
+    \\ 
+
+    ## Changelog
+
+    - - -
+
+    ### Version 1.2.3
+
+    * Added this changelog
+
+    * Documentation changes:
+
+    \  - Updated API description
+
+    \  - Added missing tag descriptions
+
+    \  - Combined content from _Credentials_ and _Security_ tags under _Credentials_, removing duplicate endpoints
+
+    \  "
+  version: 1.2.3
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: "Authentication Protocol: Identity Tokens"
+    description: |-
+      # Authentication of REST Requests
+      Several API operations require an authenticated user. Intershop ICM REST APIs support authentication using:
+      - Token endpoint (supports password grant, refresh token grant, client-authentication grant via basic authentication or bearer token)
+      - Basic authentication
+      - Header `authentication-token`
+
+      ## Authentication via Token
+      Tokens are encoded or signed strings that can be used to authenticate a REST request. Submit tokens using the header `Authorization` containing the word **Bearer** followed by a space and the token string.
+      Alternatively, use the header `authentication-token` containing the user token.
+
+      ## Token Creation via Token Endpoint
+      Use the token endpoint to create tokens for use in subsequent requests as authentication tokens. You can authenticate with:
+      - Username and password
+      - Anonymous user
+      - Basic authentication
+      - Refresh token
+
+      The response contains a set of tokens that should be used to authenticate subsequent requests. Along with identity (ID) tokens and access tokens, a refresh token is returned. Use the received refresh token to renew expired tokens for authenticating further requests.
+      Along with the token, expiration times are specified in the token set response. ID tokens and access tokens can no longer be used after this expiration time.  
+
+      ## Implicit Token Creation
+      All REST endpoints support authentication using basic authentication. To authenticate the client, send user credentials with the `Authorization` header, which contains the word **Basic** followed by a space and a base64-encoded string `username:password`.
+      The response of such a request includes a header `authentication-token` which contains the user token. If the server does not support JSON Web Token (JWT), each response of the REST request will contain the header ```authentication-token``` which should replace former tokens since it contains an updated expiration time.
+
+      > *Note:*
+      > You cannot use REST endpoints that support Web-Adapter-cached responses for implicit token creation.
+      > If the server supports JWT tokens as user tokens, do not use implicit token creation because the token will not renew.   
+
+      # Token Creation Endpoint
+
+      Use this API to create access tokens and ID tokens that clients can use to securely call protected APIs.
+      Clients request tokens that can be used in the `Authorization` header so the server grants access to a particular resource which will be invoked in the context of the encoded user-identity.
+
+      ## Example Use Case
+      > - A user is logged in via the client with user name and password. The client uses the received ID token for subsequent requests and stores the refresh token for further use:
+      > ```
+      > curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=password&username=<USERNAME>&password=<PASSWORD>&organization=<ORGANIZATION>"
+      > ```
+      > - The client renews the ID token using the refresh token if it is expired or about to expire, see *Creates a set of tokens based on a refresh token*:
+      > ```
+      > curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=refresh_token&refresh_token=<REFRESH_TOKEN>
+      > ```
+      > - The user is logged out by the client (this causes the refresh tokens to expire):
+      > ```
+      > curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/logout -X PUT -H "Authorization:Basic <REFRESH_TOKEN>"
+      > ```
+    x-priority: "100"
+    x-origin-class: com.intershop.beehive.platformrest.resource.auth.TokenResource
+  - name: DanaherProcesstoken
+    description: DanaherProcesstoken
+    x-origin-class: com.intershop.sellside.rest.common.capi.resource.DanaherUserTokenResource
+  - name: Identity Provider Configurations
+    description: |-
+      This section covers operations related to identity provider configurations.
+
+      Identity providers are used to authenticate users. Clients can use this endpoint in order to receive all identity providers that are available for an organization.
+      Typically, this information can be used to enable a user to log on to the ICM back office or the storefront. There might be different types of identity providers. The type `local` is used for the standard internal ICM user login handling which is most often represented by a login form and completely handled by the ICM server.
+      However, other types include `oidc` for OpenID Connect-compatible providers which can be used for single sign-on scenarios.
+
+      **Example Usage**
+
+      The following example shows how to retrieve identity providers for the organization *Operations*:
+
+      ```
+      curl https://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/identityproviderconfigurations/Operations
+      ```
+    x-origin-class: com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource
+  - name: Public Keys
+    description: |-
+      This section covers operations that allow clients to retrieve public keys used by the server.
+
+      ICM JWT tokens are signed following the [RFC7515](https://www.rfc-editor.org/rfc/rfc7515): the private part of a key pair is used to create a signature for the actual token payload. So the payload's validity (payload is unmodified and the origin is known) can be checked using the public key.
+      The ICM creates key pairs on demand: whenever a token is generated and there's no key stored (in memory) which is not timed out.
+      *Attention: before requesting at least 1 token there will be no public key available (see resource `https://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token`).*
+
+      # Examples
+      ## Get All Public Keys
+      ```
+      curl https://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/keys
+
+      ---
+      Example Response:
+      	{
+      	  "keys": [
+      	    {
+      	      "kty": "OKP",
+      	      "use": "sig",
+      	      "crv": "Ed25519",
+      	      "kid": "FUCsFd.hcIIAAAFzAEx5sJAu",
+      	      "x": "AeasbZjilrI2pnlJ6gH91BbBP_1CdTQl0EaU_Wr1G6Y"
+      	    },
+      	    {
+      	      "kty": "OKP",
+      	      "use": "sig",
+      	      "crv": "Ed25519",
+      	      "kid": "rA.sFd.hIswAAAFzwEp5sJAu",
+      	      "x": "8Vpyz4Y95iZpz88HKh2xtgRgYMh8Rj-4zXpI6LNtJPU"
+      	    }
+      	  ]
+      	}
+      ```  
+
+      ## Parse and Verify an ID Token
+      The following Java code shows how an ID token can be parsed and verified:
+
+      ```java
+      import java.text.ParseException;
+      import java.util.Objects;
+
+      import jakarta.ws.rs.client.ClientBuilder;
+      import jakarta.ws.rs.core.MediaType;
+
+      import com.nimbusds.jose.JOSEException;
+      import com.nimbusds.jose.JWSAlgorithm;
+      import com.nimbusds.jose.JWSHeader;
+      import com.nimbusds.jose.crypto.Ed25519Verifier;
+      import com.nimbusds.jose.jwk.JWK;
+      import com.nimbusds.jose.jwk.JWKSet;
+      import com.nimbusds.jwt.SignedJWT;
+
+      /**
+       * This example illustrates how to verify an ID token that was signed using a private key.
+       */
+      public class VerifyTokenExample
+      {
+          /**
+           * Verifies a signed token using the JSON web-key from the tokens header.
+           *
+           * @param idToken the token
+           *
+           * @return <code>true</code> if the token is valid, <code>false</code> otherwise
+           * @throws ParseException if the token could not the parsed
+           * @throws JOSEException
+           */
+          public boolean verifyTokenWithJWKinHeader(String idToken) throws ParseException, JOSEException
+          {
+              // parse the token into a SignedJWT
+              SignedJWT jwt = SignedJWT.parse(idToken);
+
+              JWSHeader header = jwt.getHeader();
+
+              // can only verify asymmetric key
+              if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()) && null != header.getJWK())
+              {
+                  // get key from header and verify
+                  return jwt.verify(new Ed25519Verifier(header.getJWK()
+                                  .toOctetKeyPair()));
+              }
+              return true;
+          }
+
+          /**
+           * Verifies a signed token using the JSON web-key resolved by the key URI from the tokens header.
+           *
+           * @param idToken the token
+           *
+           * @return <code>true</code> if the token is valid, <code>false</code> otherwise
+           * @throws ParseException if the token could not the parsed
+           * @throws JOSEException
+           */
+          public boolean verifyTokenWithJWKFromJKU(String idToken) throws ParseException, JOSEException
+          {
+              // parse the token into a SignedJWT
+              SignedJWT jwt = SignedJWT.parse(idToken);
+
+              JWSHeader header = jwt.getHeader();
+
+              // can only verify asymmetric key
+              if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()) && null != header.getJWKURL())
+              {
+                  // read the key, URI should be present in claim 'jku'
+                  String key = ClientBuilder.newClient()
+                                  .target(header.getJWKURL())
+                                  .request(MediaType.APPLICATION_JSON_TYPE)
+                                  .get(String.class);
+
+                  // get key from resource and verify
+                  JWK jwk = JWK.parse(key);
+
+                  return jwt.verify(new Ed25519Verifier(jwk.toOctetKeyPair()));
+              }
+              return true;
+          }
+
+          /**
+           * Verifies a signed token using the JSON web-key resolved using the 'keys'-endpoint.
+           *
+           * @param idToken the token
+           *
+           * @return <code>true</code> if the token is valid, <code>false</code> otherwise
+           * @throws ParseException if the token could not the parsed
+           * @throws JOSEException
+           */
+          public boolean verifyTokenWithJWKFromKeysWithKidResource(String idToken) throws ParseException, JOSEException
+          {
+              // parse the token into a SignedJWT
+              SignedJWT jwt = SignedJWT.parse(idToken);
+
+              JWSHeader header = jwt.getHeader();
+
+              // can only verify asymmetric key
+              if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()))
+              {
+                  // read the key from the keys resource
+                  String key = ClientBuilder.newClient()
+                                  .target(getKeysURI())
+                                  // add key id
+                                  .path(header.getKeyID())
+                                  .request(MediaType.APPLICATION_JSON_TYPE)
+                                  .get(String.class);
+
+                  // get key from resource and verify
+                  JWK jwk = JWK.parse(key);
+
+                  return jwt.verify(new Ed25519Verifier(jwk.toOctetKeyPair()));
+              }
+              return true;
+          }
+
+          /**
+           * Verifies a signed token using the JSON web-key resolved using the 'keys'-endpoint.
+           *
+           * @param idToken the token
+           *
+           * @return <code>true</code> if the token is valid, <code>false</code> otherwise
+           * @throws ParseException if the token could not the parsed
+           * @throws JOSEException
+           */
+          public boolean verifyTokenWithJWKFromKeysResource(String idToken) throws ParseException, JOSEException
+          {
+              // parse the token into a SignedJWT
+              SignedJWT jwt = SignedJWT.parse(idToken);
+
+              JWSHeader header = jwt.getHeader();
+
+              // can only verify asymmetric key
+              if (JWSAlgorithm.EdDSA.equals(header.getAlgorithm()))
+              {
+                  // read the key from the keys resource
+                  String keys = ClientBuilder.newClient()
+                                  .target(getKeysURI())
+                                  .request(MediaType.APPLICATION_JSON_TYPE)
+                                  .get(String.class);
+
+                  // get key from resource and verify
+                  JWKSet jwkSet = JWKSet.parse(keys);
+
+                  JWK jwk = Objects.requireNonNull(jwkSet.getKeyByKeyId(header.getKeyID()),
+                                  "Could not resolve key with id " + header.getKeyID());
+
+                  return jwt.verify(new Ed25519Verifier(jwk.toOctetKeyPair()));
+              }
+              return true;
+          }
+
+          String getKeysURI()
+          {
+              return "https://localhost/INTERSHOP/rest/WFS/inSPIRED/-/keys/";
+          }
+
+      }
+      ```
+    x-origin-class: com.intershop.beehive.platformrest.resource.keys.KeyResource
+  - name: ID JSON Web Token Processing
+    description: This section covers the processing of an identity **JSON web token**. This allows clients to explicitly create users or customers associated with identity providers.
+    x-origin-class: com.intershop.beehive.platformrest.resource.user.UserTokenResource
+paths:
+  /token:
+    post:
+      tags:
+        - "Authentication Protocol: Identity Tokens"
+      summary: Creates a new set of tokens
+      description: |-
+        # Token Creation
+        This operation creates a set of **tokens**. The kind of generated token(s) can be configured using the property `intershop.cartridges.rest.tokenKind` which supports the following values:
+        * `JWT`: standard JWT tokens (see https://www.rfc-editor.org/rfc/rfc7519)
+        * `USER`: proprietary Intershop user token(s) 
+
+        The given authorization grant determines for which identity the tokens are created. The following authorization grants are supported:
+
+        ## Anonymous
+        Creates a set of tokens for an **anonymous** user. Example call with no form data:
+        ```
+        curl https://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST
+        ```
+
+        Alternatively the `grant_type` can be submitted:
+        ```
+        curl https://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=anonymous"
+        ```
+
+        ## Password
+        Creates a set of tokens for a user that authenticates via user name and password (and organization, by default the site's default organization):
+        ```
+        curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=password&username=<USERNAME>&password=<PASSWORD>&organization=<ORGANIZATION>"
+        ```
+
+        ## Client Credentials
+        Creates a set of tokens for a user that authenticates using e.g. basic authentication (user name and password are specified in base64 encoding: `<USERNAME:PASSWORD>`, here: `admin:!InterShop00!`):
+        ```
+        curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=client_credentials&organization=<ORGANIZATION>" -H "Authorization:Basic YWRtaW46IUludGVyU2hvcDAwIQ=="
+        ```
+
+        ## Refresh Token
+        Creates a set of tokens based on a refresh token:
+        ```
+        curl http://<SERVER>/INTERSHOP/rest/WFS/<SITE>/-/token -X POST -d "grant_type=refresh_token&refresh_token=<REFRESH_TOKEN>
+        ```
+      operationId: token
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              anyOf:
+                - $ref: "#/components/schemas/AnonymousGrant"
+                - $ref: "#/components/schemas/PasswordGrant"
+                - $ref: "#/components/schemas/RefreshGrant"
+                - $ref: "#/components/schemas/ClientCredentialsGrant"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenRO"
+        "400":
+          description: Bad request - The given authorization grant is invalid.
+        "401":
+          description: Unauthorized - The user to logout cannot be determined or is unauthorized.
+      x-priority: "100"
+      x-origin-method: public com.intershop.beehive.platformrest.resource.auth.TokenRO com.intershop.beehive.platformrest.resource.auth.TokenResource.token(jakarta.ws.rs.core.MultivaluedMap)
+      x-origin-class: com.intershop.beehive.platformrest.resource.auth.TokenResource
+      x-AuthorizationRule: "[]"
+  /captcha:
+    get:
+      tags:
+        - Captcha
+      summary: Returns CAPTCHA code
+      description: |-
+        This operation responds with a script snippet containing a CAPTCHA challenge.
+         Workflow:
+         - Send a request to a protected resource.
+         - Detect the status 401 Authorization required.
+         - Determine the authentication scheme and the necessary parameters.
+         - Display the CAPTCHA a human user can solve.
+         - Re-send the request including the CAPTCHA challenge and solution.
+         At least on CAPTCHA service must be configured as enabled for the application/site. Otherwise the resource will return an error.
+      operationId: getCaptchaCode
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: string
+        "500":
+          description: |-
+            Internal Server Error
+             response headers will include required fields:
+             `RequiredFields: recaptcha_challenge_field,recaptcha_response_field`
+      x-origin-method: public java.lang.String com.intershop.sellside.rest.common.capi.resource.CaptchaResource.getCaptchaCode()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.CaptchaResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/credentials/login:
+    put:
+      tags:
+        - Credentials
+      summary: Updates login
+      description: This operation updates the login of the currently logged in user with a new one.
+      operationId: updateLogin
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerLoginRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerLoginRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.credentials.missing_fields.error
+             - customer.credentials.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerLoginItemResource.updateLogin(com.intershop.sellside.rest.common.capi.resourceobject.CustomerLoginRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerLoginItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/credentials/password:
+    put:
+      tags:
+        - Credentials
+      summary: Updates password
+      description: This operation updates the password of the currently logged in customer with a new one.
+      operationId: updatePassword
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerPasswordRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerPasswordRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.credentials.missing_fields.error
+             - customer.credentials.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerPasswordItemResource.updatePassword(com.intershop.sellside.rest.common.capi.resourceobject.CustomerPasswordRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerPasswordItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /customers/{CustomerKey}/users/{DanaherCustomerItemUserKey}/credentials/question:
+    put:
+      tags:
+        - Credentials
+      summary: Updates security question
+      description: |-
+        This operation updates the security question of the currently logged in customer. The key of the security question should be submitted.
+         A client can get the list of possible keys from the `/security/questions` resource.
+      operationId: updateSecurityQuestion
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: DanaherCustomerItemUserKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.user.CustomerItemUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerSecurityQuestionItemResource.updateSecurityQuestion(com.intershop.sellside.rest.common.capi.resourceobject.SecurityQuestionRO) throws com.intershop.beehive.core.capi.pipeline.PipeletExecutionException
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerSecurityQuestionItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasSameIdentity), isMemberOfCustomer]"
+  /identityproviderconfigurations/{organizationKey}:
+    get:
+      tags:
+        - Identity Provider Configurations
+      summary: Returns a list of identity provider configurations
+      description: This operation returns the identity providers that are available for an organization.
+      operationId: getConfigurations
+      parameters:
+        - name: organizationKey
+          in: path
+          description: The ID of the organization
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The ID of the organization
+        - name: providerType
+          in: query
+          description: The provider type. If used only matching configurations will be returned.
+          schema:
+            type: string
+            description: The provider type. If used only matching configurations will be returned.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentityProviderConfigurationRO"
+        "404":
+          description: Not found
+      x-origin-method: public java.util.List com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource.getConfigurations(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /identityproviderconfigurations/{organizationKey}/selfadministrationpolicy:
+    get:
+      tags:
+        - Identity Provider Configurations
+      summary: Returns the self-administration policy (entries) of an organization.
+      description: |-
+        This operation returns the self-administration policy of an organization. The self-administration policy describes which kinds of profile changes are allowed for a user belonging to a certain organization when those changes are triggered by the user itself (self-administration).   
+
+        Possible values are NONE or (XOR) any combination of: CREATE, UPDATE, DELETE.
+
+        Semantics:
+        * NONE: no changes allowed (this value overrules all other values)
+        * CREATE: user can create a profile on his/her own
+        * UPDATE: user can update his/her profile on his/her own
+        * DELETE: user can delete his/her profile on his/her own
+      operationId: getSelfAdminisrationPolicy
+      parameters:
+        - name: organizationKey
+          in: path
+          description: The ID of the organization
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The ID of the organization
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                uniqueItems: true
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - NONE
+                    - CREATE
+                    - UPDATE
+                    - DELETE
+        "404":
+          description: Not found
+      x-origin-method: public java.util.Set com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource.getSelfAdministrationPolicy(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /identityproviderconfigurations/{organizationKey}/{providerKey}:
+    get:
+      tags:
+        - Identity Provider Configurations
+      summary: Returns an identity provider configuration
+      description: This operation returns the identity providers that are available for an organization.
+      operationId: getConfiguration
+      parameters:
+        - name: organizationKey
+          in: path
+          description: The ID of the organization
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The ID of the organization
+        - name: providerKey
+          in: path
+          description: The ID of the configuration
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The ID of the configuration
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityProviderConfigurationRO"
+        "404":
+          description: Not found
+      x-origin-method: public com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationRO com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource.getConfiguration(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.identity.IdentityProviderConfigurationResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /keys:
+    get:
+      tags:
+        - Public Keys
+      summary: Returns public keys
+      description: This operation returns a set of *public* keys as JSON Web key (JWT) that can be used to verify signatures generated by ICM server.
+      externalDocs:
+        description: JSON Web Key (JWK) (RFC 7517)
+        url: https://tools.ietf.org/html/rfc7517
+      operationId: keySet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                description: OK
+                items:
+                  $ref: "#/components/schemas/JSONWebKey"
+      x-origin-method: public net.minidev.json.JSONObject com.intershop.beehive.platformrest.resource.keys.KeyResource.keySet()
+      x-origin-class: com.intershop.beehive.platformrest.resource.keys.KeyResource
+      x-AuthorizationRule: "[]"
+  /keys/{keyID}:
+    get:
+      tags:
+        - Public Keys
+      summary: Returns a public key
+      description: This operation returns the *public* key as JSON Web key (JWT) with the given key ID (claim ```kid```).
+      operationId: key
+      parameters:
+        - name: keyID
+          in: path
+          description: The key ID
+          required: true
+          schema:
+            pattern: "[^/]*"
+            type: string
+            description: The key ID
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSONWebKey"
+        "404":
+          description: Not found - A JWT with the given key could not be found. Note that expired keys will be deleted from the system after a certain duration.
+      x-origin-method: public net.minidev.json.JSONObject com.intershop.beehive.platformrest.resource.keys.KeyResource.key(java.lang.String)
+      x-origin-class: com.intershop.beehive.platformrest.resource.keys.KeyResource
+      x-AuthorizationRule: "[]"
+  /logout:
+    put:
+      tags:
+        - "Authentication Protocol: Identity Tokens"
+      summary: Logs out the current user
+      description: This operation logs out the current user associated with the specified authentication token (as header). All (refresh) tokens issued for this user will expire and become invalid.
+      operationId: logout
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized - The user to logout cannot be determined.
+      x-origin-method: public void com.intershop.beehive.platformrest.resource.auth.TokenResource.logout()
+      x-origin-class: com.intershop.beehive.platformrest.resource.auth.TokenResource
+      x-AuthorizationRule: "[]"
+  /personalization:
+    get:
+      tags:
+        - Personalization
+      summary: Returns a unique personalization ID based on user credentials
+      description: This operation returns a unique personalization ID based on user credentials.
+      operationId: getPersonalizationInfo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonalizationRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/PersonalizationRO"
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resourceobject.PersonalizationRO com.intershop.sellside.rest.common.capi.resource.PersonalizationResource.getPersonalizationInfo()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.PersonalizationResource
+      x-AuthorizationRule: "[isAuthenticated[Organization]]"
+  /privatecustomers/{CustomerKey}/credentials/login:
+    put:
+      tags:
+        - Credentials
+      summary: Updates login
+      description: This operation updates the login of the currently logged in user with a new one.
+      operationId: updateLogin_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerLoginRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerLoginRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.credentials.missing_fields.error
+             - customer.credentials.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerLoginItemResource.updateLogin(com.intershop.sellside.rest.common.capi.resourceobject.CustomerLoginRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerLoginItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/credentials/password:
+    put:
+      tags:
+        - Credentials
+      summary: Updates password
+      description: This operation updates the password of the currently logged in customer with a new one.
+      operationId: updatePassword_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerPasswordRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/CustomerPasswordRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: |-
+            Bad request
+             possible values for header error-key:
+             - customer.credentials.missing_fields.error
+             - customer.credentials.invalid_fields.error
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerPasswordItemResource.updatePassword(com.intershop.sellside.rest.common.capi.resourceobject.CustomerPasswordRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerPasswordItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /privatecustomers/{CustomerKey}/credentials/question:
+    put:
+      tags:
+        - Credentials
+      summary: Updates security question
+      description: |-
+        This operation updates the security question of the currently logged in customer. The key of the security question should be submitted.
+         A client can get the list of possible keys from the `/security/questions` resource.
+      operationId: updateSecurityQuestion_1
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The key or UUID to resolve a single item
+          required: true
+          schema:
+            type: string
+          example: ExampleKey
+          x-item-key: com.intershop.sellside.rest.b2c.capi.resource.customer.PrivateCustomerListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/SecurityQuestionRO"
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+      security:
+        - bearerAuth: []
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerSecurityQuestionItemResource.updateSecurityQuestion(com.intershop.sellside.rest.common.capi.resourceobject.SecurityQuestionRO) throws com.intershop.beehive.core.capi.pipeline.PipeletExecutionException
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.customer.credentials.CustomerSecurityQuestionItemResource
+      x-AuthorizationRule: "[isMemberOfCustomer]"
+  /security/password:
+    post:
+      tags:
+        - Credentials
+      summary: Resets password of a registered user
+      description: |-
+        This operation allows for resetting the password of a registered user. If the client submits a valid user ID and secure code, the password of the related user will be reset to the new password value provided.
+         User ID and secure hash code are available in the "Change Password" link of the password reminder e-mail sent to the user.
+      operationId: resetPassword
+      requestBody:
+        description: Request body containing user identification and the new password.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRO"
+      responses:
+        "204":
+          description: Password reset finished successfully. No content in the response body.
+        "400":
+          description: |-
+            Bad request
+             in case the submitted data is missing or invalid.
+             The userID should represent a registered and non-disabled user in the current application.
+             The provided secure code should match the related user's secure code generated when sending the password reminder e-mail.
+             The secure code should not be expired at the time this REST call is made.
+             The new password provided should match the password validation rules configured for the current application. Possible values for header error-key:
+             - customer.credentials.passwordreset.missing_fields.error
+             - customer.credentials.passwordreset.invalid_fields.error
+             - customer.credentials.passwordreset.invalid_password.error.PasswordExpressionViolation
+             - customer.credentials.passwordreset.invalid_password.error.PasswordRecentlyUsed
+        "403":
+          description: In case of an expired secure code for the password reset.
+        "422":
+          description: If for some reason a valid new password could not be stored.
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.credentials.PasswordResetResource.resetPassword(com.intershop.sellside.rest.common.capi.resourceobject.PasswordResetRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.credentials.PasswordResetResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /security/questions:
+    get:
+      tags:
+        - Credentials
+      summary: Returns a list of security questions
+      description: This operation returns a list of all available security questions.
+      operationId: getSecurityQuestions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SecurityQuestionsCollectionRO"
+            text/xml:
+              schema:
+                $ref: "#/components/schemas/SecurityQuestionsCollectionRO"
+      x-origin-method: public com.intershop.sellside.rest.common.capi.resource.credentials.SecurityQuestionListResource$SecurityQuestionsCollectionRO com.intershop.sellside.rest.common.capi.resource.credentials.SecurityQuestionListResource.getSecurityQuestions()
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.credentials.SecurityQuestionListResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /security/reminder:
+    post:
+      tags:
+        - Credentials
+      summary: Requests password reminder e-mail
+      description: |-
+        This operation allows for sending a password reminder e-mail. If the client submits a login e-mail address, first and last name as well as the answer to the security question set during the registration, an e-mail will be sent to the customer or customer's user, containing a link to reset their password.
+         This feature depends on correctly configured preferences for "Forgotten password" and "SecurityQuestion".
+      operationId: sendPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordReminderRO"
+          text/xml:
+            schema:
+              $ref: "#/components/schemas/PasswordReminderRO"
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: |-
+            Bad request
+             in case the submitted data is missing or invalid.
+        "500":
+          description: Internal Server Error
+      x-origin-method: public void com.intershop.sellside.rest.common.capi.resource.credentials.PasswordReminderResource.sendPassword(com.intershop.sellside.rest.common.capi.resourceobject.PasswordReminderRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.credentials.PasswordReminderResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /token/logout:
+    put:
+      tags:
+        - "Authentication Protocol: Identity Tokens"
+      summary: Revokes a token
+      description: This operation revokes the token given as authentication token (as header). This is equivalent with the Logout endpoint, so it logs out the current user. All (refresh) tokens issued for this user will expire and become invalid.
+      operationId: logout
+      responses:
+        "204":
+          description: No content
+        "401":
+          description: Unauthorized - The user to logout cannot be determined.
+      x-origin-method: public void com.intershop.beehive.platformrest.resource.auth.TokenResource.tokenLogout()
+      x-origin-class: com.intershop.beehive.platformrest.resource.auth.TokenResource
+      x-AuthorizationRule: "[]"
+  /users/danaherProcesstoken:
+    post:
+      tags:
+        - DanaherProcesstoken
+      operationId: processIDToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IDTokenRO"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRO"
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRO"
+        "401":
+          description: Unauthorized
+        "403":
+          description: FORBIDDEN
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.common.capi.resource.DanaherUserTokenResource.processIDToken(com.intershop.beehive.platformrest.resource.user.IDTokenRO)
+      x-origin-class: com.intershop.sellside.rest.common.capi.resource.DanaherUserTokenResource
+      x-AuthorizationRule: "[isAnyUser]"
+  /users/processtoken:
+    post:
+      tags:
+        - ID JSON Web Token Processing
+      summary: Processes an identity JSON web token
+      description: |-
+        # Identity Token Processing
+        This operation processes an identity **JSON web token**. The claims will be used to update or create user profiles.
+        The token can be passed either as **bearer** token using the `Authorization` header or as property `id_token` in JSON body data.
+
+        ## User Creation and Updating
+        Identities or users encoded in the JSON web token are mapped to ICM user profiles or customer instances.
+        The `sub` along with the issuer of the token is used as mapping key. Dependent on options, the following handling takes place:
+        * For non-mapped identities, a new user is created and claims are mapped to profile, address or credential properties,
+        * Profile of already mapped identities are updated using the claims of the token.
+
+        ## User Profile Mapping
+        The claims of the identity token are mapped as follows:
+
+         | Claim       | Profile Property |
+         |-------------|----------------- |
+         | title       | title            |
+         | given_name  | firstName        |
+         | middle_name | lastName (start) |
+         | family_name | lastName (end)   |
+         | nickname    | nickName         |
+         | email       | email            |
+         | birthdate   | birthdate        |
+         | locale      | locale           |
+
+        The preferred user name is computed from the following claims by default (if set):
+        * preferred_username
+        * (unique_name)
+        * name
+        * sub
+      operationId: processIDToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IDTokenRO"
+      responses:
+        "200":
+          description: Ok - The token has been accepted for an already existing user. If requested, the user data will be updated based on the claims encoded in the identity JSON web token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRO"
+        "201":
+          description: Created - A new user profile has been created based on the claims encoded in the identity JSON web token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRO"
+        "401":
+          description: Unauthorized - The token is missing, empty or the token's content is invalid.
+        "403":
+          description: Forbidden - The user account is disabled.
+        "409":
+          description: Conflict - The token contains a user, but the user cannot be found in the system.
+        "422":
+          description: "Unprocessable Entity - HTTP code `422` is returned if:
+
+            1. The attribute `options` in the request body contains `CREATE_USER`, `CREATE_CUSTOMER` or `CREATE_SMB_CUSTOMER`
+
+            \    * The user/customer does __not__ exist and has to be created
+
+            \        * configuration property `intershop.authentication.<organizationKey>.selfAdministrationPolicy` (for the user's organization) does __not__ contain `CREATE`
+
+            1. The attribute `options` in the request body contains `UPDATE`
+
+            \    * The user/customer does exist
+
+            \        * configuration property `intershop.authentication.<organizationKey>.selfAdministrationPolicy` (for the user's organization) does __not__ contain `UPDATE`
+
+            \        "
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.beehive.platformrest.resource.user.UserTokenResource.processIDToken(com.intershop.beehive.platformrest.resource.user.IDTokenRO)
+      x-origin-class: com.intershop.beehive.platformrest.resource.user.UserTokenResource
+      x-AuthorizationRule: "[]"
+components:
+  schemas:
+    AnonymousGrant:
+      title: Anonymous User Grant
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: The grant type. If set to **anonymous**, a new token for an anonymous user will be created.
+          example: anonymous
+          enum:
+            - anonymous
+      description: Use this grant with optional grant_type **anonymous** to create new tokens for an anonymous user.
+    ClientCredentialsGrant:
+      title: Client Credentials Grant
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: The grant type. If set to **client_credentials** client credentials has to be provided as 'authorization' header.
+          example: client_credentials
+          enum:
+            - client_credentials
+        organization:
+          type: string
+      description: Use this grant with grant_type **client_credentials** to create new tokens based on client credentials. Client credentials has to be provided as 'authorization' header.
+    CustomerLoginRO:
+      type: object
+      properties:
+        login:
+          type: string
+          description: The login used for authentication
+          example: pmiller@test.intershop.de
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: CustomerLogin
+    CustomerPasswordRO:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          description: The current password
+          example: "!InterShop00!"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: The new password
+          example: InterShop00
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: CustomerPassword
+    IdentityProviderConfigurationRO:
+      title: IdentityProviderConfiguration
+      type: object
+      properties:
+        key:
+          type: string
+          description: The ID of this identity provider configuration
+          example: uniqueKey
+        name:
+          type: string
+          description: The name of this identity provider configuration
+          example: display name
+        type:
+          type: string
+          description: The type of this identity provider configuration
+          example: local
+      description: This resource holds properties of an identity provider.
+    IDTokenRO:
+      title: IDToken
+      type: object
+      properties:
+        id_token:
+          type: string
+          description: The base64-encoded identity token
+          nullable: true
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          externalDocs:
+            description: JSON Web Token (JWT)
+            url: https://tools.ietf.org/html/rfc7519
+        options:
+          type: array
+          description: |-
+            The following ID token options are available:
+            ||Option||
+            |CREATE_USER|
+            |CREATE_CUSTOMER|
+            |CREATE_SMB_CUSTOMER|
+            |UPDATE|
+            |MOVE_TO_TARGET_USER|
+          nullable: true
+          example: CREATE_USER,UPDATE,MOVE_TO_TARGET_USER
+          items:
+            type: string
+            nullable: true
+            enum:
+              - CREATE_USER
+              - CREATE_CUSTOMER
+              - CREATE_SMB_CUSTOMER
+              - UPDATE
+              - MOVE_TO_TARGET_USER
+        secure_user_ref:
+          $ref: "#/components/schemas/SecureUserRefRO"
+      description: This resource holds the identity token along with processing options
+    JSONObject:
+      type: object
+      properties:
+        empty:
+          type: boolean
+      additionalProperties:
+        type: object
+    JSONWebKey:
+      type: object
+      properties:
+        crv:
+          type: string
+        jku:
+          type: string
+          description: JSON Web Key (JWK) set URL
+          example: https://localhost/INTERSHOP/rest/WFS/inSPIRED/-/keys/<kid>
+        kid:
+          type: string
+          description: Key ID parameter.
+        kty:
+          type: string
+          example: YPsXB8rdXix5vwsg1F
+        use:
+          type: string
+          description: Public key use parameter
+          example: sig
+        x:
+          type: string
+          description: The key
+          example: MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4
+      description: A JSON Web Key (JWK) is a JavaScript Object Notation (JSON) data structure that represents a cryptographic key.
+      externalDocs:
+        description: JSON Web Key (JWK) (RFC 7517)
+        url: https://tools.ietf.org/html/rfc7517
+    PasswordGrant:
+      title: Password Grant
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: The grant type. If set to **password**, the user credentials and organization has to be passed in as form parameters 'username', 'password' and 'organization'.
+          example: password
+          enum:
+            - password
+        organization:
+          type: string
+          description: The user login organization.
+          example: inSPIRED
+        password:
+          type: string
+          description: user password
+        username:
+          type: string
+          description: user login name
+      description: Use this grant with grant_type **password** to create new tokens based on login credentials of a user. The user credentials and organization has to be passed in as form parameters 'username', 'password' and 'organization'.
+    PasswordReminderRO:
+      required:
+        - email
+      type: object
+      properties:
+        answer:
+          type: string
+          description: The answer to the security question. Required in case the security question feature is enabled.
+          example: Snoopy
+        email:
+          type: string
+          description: The email to send the reminder to
+          example: goosen@test.intershop.de
+        firstName:
+          type: string
+          description: The first name of the recipient. Required in case the security question feature is enabled.
+          example: Gerhardt
+        lastName:
+          type: string
+          description: The last name of the recipient. Required in case the security question feature is enabled.
+          example: Goosen
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      xml:
+        name: PasswordReminder
+    PasswordResetRO:
+      required:
+        - password
+        - secureCode
+        - userID
+      type: object
+      properties:
+        password:
+          type: string
+          description: The new password to be set for the related user.
+          example: mynewpassword2019
+        secureCode:
+          type: string
+          description: Unique security code used for verification. Provided in the password reminder e-mail message.
+          example: bfd51c73-0e2a-46e1-a3e4-b977a001ae9a
+        userID:
+          type: string
+          description: The unique ID of the user whose password will be reset. Provided in the password reminder e-mail message.
+          example: mt4KAEsByeIAAAFtwuREkERx
+      description: Holder for the data necessary to reset password of registered user.
+      xml:
+        name: PasswordReset
+    PersonalizationRO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        pgid:
+          type: string
+          description: the personalization group identifier (pgid) of the personalization object
+          example: HLgg8Yus9qBSR0rCuy4DMI9n0000ys
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: Personalization
+          xml:
+            attribute: true
+      xml:
+        name: Personalization
+    RefreshGrant:
+      title: Refresh Token Grant
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: The grant type. If set to **refresh_token**, the refresh token has to be present in form parameter 'refresh_token'.
+          example: refresh_token
+          enum:
+            - refresh_token
+        refresh_token:
+          type: string
+          description: The refresh token that was created by a create token request.
+      description: Use this grant with grant_type **refresh_token** to create new tokens based on a refresh token that was created by a prior token request.
+    SecureUserRefRO:
+      type: object
+      properties:
+        secure_code:
+          type: string
+        user_id:
+          type: string
+      nullable: true
+    SecurityQuestionRO:
+      type: object
+      properties:
+        key:
+          type: string
+          description: The key of the security question
+          example: account.security_question.pet_name.text
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        text:
+          type: string
+          description: The text of the security question
+          example: What is your pet's name?
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: SecurityQuestion
+          xml:
+            attribute: true
+      xml:
+        name: SecurityQuestion
+    SecurityQuestionsCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/SecurityQuestionRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of elements
+      xml:
+        name: SecurityQuestions
+    TokenRO:
+      title: Token Set
+      type: object
+      properties:
+        access_token:
+          title: Access Token
+          type: string
+          description: The access token
+        expires_in:
+          type: integer
+          description: Access token life time in seconds
+          format: int64
+        id_token:
+          title: ID Token
+          type: string
+          description: ID token
+        refresh_expires_in:
+          type: integer
+          description: Refresh token life time in seconds
+          format: int64
+        refresh_token:
+          type: string
+          description: Can be used to create a new token set
+        token_type:
+          type: string
+          description: Type of the access and ID token. If the tokens are encoded as JWT, the type is 'bearer', 'user' otherwise.
+          example: bearer
+          enum:
+            - bearer
+            - user
+      description: This resource holds information on a token.
+    UserRO:
+      title: UserRO
+      type: object
+      properties:
+        birthday:
+          type: string
+          description: Date of birth of the person represented by this user in format MM/dd/yyyy
+          nullable: true
+          example: 12/24/1998
+        businessPartnerNo:
+          type: string
+          description: ID uniquely identifying the user in the context of the customer.
+          example: PMerkel
+        firstName:
+          type: string
+        gender:
+          type: string
+        id:
+          type: string
+        lastName:
+          type: string
+        login:
+          type: string
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        secondLastName:
+          type: string
+        secondName:
+          type: string
+        title:
+          type: string
+          description: The personal title, like Ms., Mr.
+          example: Mr.
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          readOnly: true
+          xml:
+            attribute: true
+      description: This resource represents a user.
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: auth
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.user.UserTokenResource,com.intershop.beehive.platformrest.resource.keys.KeyResource

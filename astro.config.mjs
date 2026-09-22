@@ -5,6 +5,16 @@ import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 
 import react from '@astrojs/react';
+import starlightOpenAPI, { createOpenAPISidebarGroup } from 'starlight-openapi';
+
+import { API_BASE, loadSpecs, writeRenderableSpecs } from './src/lib/openapi.mjs';
+
+// One generated API reference per YAML file in openapi/intershop/. APIs made
+// entirely of Danaher resources get their own sidebar group.
+const apiSpecs = loadSpecs();
+const renderablePaths = writeRenderableSpecs(apiSpecs);
+const customApiGroup = createOpenAPISidebarGroup();
+const standardApiGroup = createOpenAPISidebarGroup();
 
 // https://astro.build/config
 export default defineConfig({
@@ -13,6 +23,19 @@ export default defineConfig({
 			title: 'Commerce Platform Docs',
 			description:
 				'Documentation for the centrally managed Intershop e-commerce platform serving Danaher Life Sciences, SCIEX, Phenomenex, and Leica Microsystems.',
+			plugins: [
+				starlightOpenAPI(
+					apiSpecs.map((spec) => ({
+						base: `${API_BASE}/${spec.id}`,
+						schema: renderablePaths[spec.id],
+						sidebar: {
+							label: spec.label,
+							group: spec.allCustom ? customApiGroup : standardApiGroup,
+							operations: { badges: true },
+						},
+					}))
+				),
+			],
 			customCss: [
 				// Path to your Tailwind base styles:
 				'./src/styles/global.css',
@@ -34,7 +57,14 @@ export default defineConfig({
 				{
 					label: 'Technical',
 					items: [
-						{ label: 'Intershop API', items: [{ autogenerate: { directory: 'api' } }] },
+						{
+							label: 'Intershop API',
+							items: [
+								{ autogenerate: { directory: 'api' } },
+								{ label: 'Danaher APIs', collapsed: true, items: [customApiGroup] },
+								{ label: 'Intershop APIs', collapsed: true, items: [standardApiGroup] },
+							],
+						},
 						{
 							label: 'Architecture Diagrams',
 							items: [{ autogenerate: { directory: 'architecture' } }],

@@ -1,0 +1,2565 @@
+openapi: 3.0.1
+info:
+  title: Punchout
+  description: |-
+    The Intershop Punchout REST API contains resources for managing supported Punchout standards, Punchout configurations and Punchout users.
+    This includes updating configurations, creating, changing or deleting users or user data, and retrieving information about available standards and options.
+
+    The cXML part of this REST API is deprecated as it has been split into separate REST API specifications, "Punchout cXML" and "Punchout cXML External". This version is still valid for OCI.
+
+    ## Accept Header
+    To use version 2.x of the Punchout REST API, append the accept header `application/vnd.intershop.punchout.v2+json` to the request.
+
+    ## Changelog
+    - - -
+    ### Version 2.5.0
+    * Added `availableFormatters` and `availablePlaceholders` to resource object `PunchoutItem` to be available with GET `/customers/{CustomerKey}/punchouts/oci5` 
+    * Deprecated usage of `OPTIONS` method for endpoint `/customers/{CustomerKey}/punchouts/oci5`
+
+    ### Version 2.4.0
+    * Moved external endpoints that are called directly from external systems ("setuprequest", "transfer") and do not support version-based content negotiation to a separate "Punchout cXML External" REST API specification without any content changes.
+    * The entire cXML part in this REST API is deprecated, as it has been split into separate REST API specifications, “Punchout cXML” (with new major version) and “Punchout cXML External” (see above).
+
+    ### Version 2.3.0
+    * Added sub resource "configurations" under the cXML user detail resource to retrieve and update user-specific configuration values.
+    * Added this changelog.
+  version: 2.5.0
+servers:
+  - url: /INTERSHOP/rest/{serverGroup}/{siteName}/{appUrl}
+    description: Intershop ICM Server
+    variables:
+      serverGroup:
+        description: The server group
+        enum:
+          - BOS
+          - JOB
+          - WFS
+        default: WFS
+      siteName:
+        description: The site name
+        default: PHX-PHXUS-Site
+      appUrl:
+        description: The application URL identifier
+        enum:
+          - PheneomenexRest
+          - "-"
+        default: PheneomenexRest
+tags:
+  - name: cXML - General
+    description: This section covers operations for managing cXML Punchout. This includes retrieving details of the cXML standard or available options.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSessionItemResource
+  - name: cXML - User Management
+    description: This section covers operations for managing cXML Punchout users. This includes retrieving information on users, creating new users, updating user data as well as deleting specific users. Additionally, user-specific configuration values can be retrieved and (partially) updated.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserConfigurationListResource
+  - name: General
+    description: This section covers operations for managing Punchout standards. This includes retrieving a list of available standards, details for a specific standard or available options for a chosen standard.
+    x-origin-class: com.intershop.application.storefront.rest.b2b.capi.punchout.resource.PunchoutListResource
+  - name: OCI - Configuration
+    description: This section covers operations for managing OCI Punchout configurations. This includes retrieving customer-specific configurations as well as updating an existing configuration.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutConfigurationListResource
+  - name: OCI - General
+    description: This section covers operations for managing OCI Punchout. This includes retrieving details of the OCI standard or available options.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource
+  - name: OCI - User Management
+    description: This section covers operations for managing OCI Punchout users. This includes retrieving information on users, creating new users, updating user data as well as deleting specific users.
+    x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource
+paths:
+  /customers/{CustomerKey}/punchouts:
+    get:
+      tags:
+        - General
+      summary: Returns supported Punchout standards
+      description: |-
+        This operation returns details on supported Punchout standards. Punchout standards are defined in the *punchoutconfiguration.properties* and for REST API explicitly. The returned resource collection contains objects of type LinkRO including all available Punchout standards.
+
+        To use this operation, an authenticated user with the permissions "View Punchout" (APP_B2B_VIEW_PUNCHOUT) or "Send OCI Cart" (APP_B2B_SEND_OCI_BASKET) is required.
+      operationId: getAvailablePunchouts_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The Punchout standards were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer with the given ID could not be found.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.resource.PunchoutListResourceV2.getAvailablePunchouts_V2()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.resource.PunchoutListResourceV2
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2:
+    get:
+      tags:
+        - cXML - General
+      summary: Returns details for cXML Punchout
+      description: |-
+        This operation returns details of the cXML Punchout standard. An optional parameter `basketId` can be provided to get a list of cXML Punchout fields for the basket.
+
+        To use this operation, an authenticated user with the permissions "View punchout" (APP_B2B_VIEW_PUNCHOUT) or "Send cXML Cart" (APP_B2B_SEND_CXML_BASKET) is required.
+      operationId: getCXMLPunchoutItemDetails_V2
+      parameters:
+        - name: basketId
+          in: query
+          description: The ID of the basket to get a list of cXML Punchout fields for
+          schema:
+            type: string
+            description: The ID of the basket to get a list of cXML Punchout fields for
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The details for the cXML Punchout were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutItemRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutItemResource.getPunchoutItemDetails_V2(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/sessions/{CXMLPunchoutSessionKey}:
+    get:
+      tags:
+        - cXML - General
+      summary: Returns information on a specific cXML Punchout session
+      description: |-
+        This operation returns information on the given cXML Punchout session.
+
+        To use this operation, an authenticated user with the permission "Send cXML Cart" (APP_B2B_SEND_CXML_BASKET) is required.
+      operationId: getCXMLPunchoutSessionV2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutSessionKey
+          in: path
+          description: The ID of the cXML Punchout session (sid)
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout session (sid)
+            example: XYSZ12345
+          example: XYSZ12345
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSessionListResource
+      responses:
+        "200":
+          description: Ok - The details for the cXML Punchout session were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/CXMLSessionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSessionItemResource.getSession()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutSessionItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_SEND_CXML_BASKET]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/users:
+    get:
+      tags:
+        - cXML - User Management
+      summary: Returns cXML Punchout users
+      description: |-
+        This operation returns all users for the cXML Punchout standard. The response is of type ResourceCollectionRO and contains objects of type LinkRO.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getCXMLPunchoutUsers_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The cXML Punchout users were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource.getPunchoutUsers()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+    post:
+      tags:
+        - cXML - User Management
+      summary: Creates a cXML Punchout user
+      description: |-
+        This operation creates a new cXML Punchout user and automatically assigns an ID.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: createCXMLPunchoutUser_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/PunchoutUserRO"
+      responses:
+        "201":
+          description: Created - The cXML Punchout user was successfully created.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request - At least one attribute is missing in the request body or the credentials are not valid with regard to internal policies.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or cXML Punchout is not supported.
+        "409":
+          description: |-
+            Conflict - The cXML Punchout user already exists.
+             Possible values for header 'error-key':
+             - punchout.login_already_exists.error
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource.createPunchoutUser(com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/users/{CXMLPunchoutUserKey}:
+    get:
+      tags:
+        - cXML - User Management
+      summary: Returns information on the given cXML Punchout user
+      description: |-
+        This operation returns information on the given cXML Punchout user.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getCXMLPunchoutUserDetails_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutUserKey
+          in: path
+          description: The ID of the cXML Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout user
+            example: cxmluser@test.intershop.de
+          example: cxmluser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      responses:
+        "200":
+          description: Ok - The details for the cXML Punchout user were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutUserRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource.getUserDetails()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+    put:
+      tags:
+        - cXML - User Management
+      summary: Updates cXML Punchout user data
+      description: |-
+        This operation updates the information of a cXML Punchout user. The following user attributes can be updated:
+        * `email` - Notifications for the cXML Punchout user will be sent to this email address
+        * `password` - The configured password for the cXML Punchout user
+        * `active` - Flag to enable/disable the cXML Punchout user
+
+        All attributes are optional, see request code examples below.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: updateCXMLPunchoutUser_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutUserKey
+          in: path
+          description: The ID of the cXML Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout user
+            example: cxmluser@test.intershop.de
+          example: cxmluser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/PunchoutUserRO"
+      responses:
+        "200":
+          description: Ok - The cXML Punchout user data were successfully updated.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutUserRO"
+        "400":
+          description: Bad request - The credentials to be updated are not valid with regard to internal policies.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource.updatePunchoutUser(com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+    delete:
+      tags:
+        - cXML - User Management
+      summary: Deletes a cXML Punchout user of a customer
+      description: |-
+        This operation deletes a cXML Punchout user of a customer.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: deleteCXMLPunchoutUser_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutUserKey
+          in: path
+          description: The ID of the cXML Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout user
+            example: cxmluser@test.intershop.de
+          example: cxmluser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      responses:
+        "204":
+          description: No content - The cXML Punchout user was successfully deleted.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource.deletePunchoutUser()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/cxml1.2/users/{CXMLPunchoutUserKey}/configurations:
+    get:
+      tags:
+        - cXML - User Management
+      summary: Returns the full list of configuration fields with user-specific values for a given cXML Punchout user
+      description: |-
+        This operation returns the full list of configuration fields with user-specific values for a given cXML Punchout user. 
+        If a value is not set, it is returned as 'null'. 
+
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getCXMLPunchoutUserConfiguration_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutUserKey
+          in: path
+          description: The ID of the cXML Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout user
+            example: cxmluser@test.intershop.de
+          example: cxmluser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      responses:
+        "200":
+          description: Ok - The list of configuration values for the cXML Punchout user was successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/CXMLPunchoutConfigurationRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserConfigurationListResource.getUserConfiguration()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserConfigurationListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+    patch:
+      tags:
+        - cXML - User Management
+      summary: (Partially) updates  the list of user-specific configuration values for a given cXML Punchout user
+      description: |-
+        This operation (partially) updates user-specific configuration values for the given cXML Punchout user.
+        Only the specified configurations are affected. Configuration values that are sent with value 'null' are removed from user preferences.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: updateCXMLPunchoutUserConfiguration_V2
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: CXMLPunchoutUserKey
+          in: path
+          description: The ID of the cXML Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the cXML Punchout user
+            example: cxmluser@test.intershop.de
+          example: cxmluser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserListResource
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CXMLPunchoutConfigurationRO"
+      responses:
+        "200":
+          description: Ok - The given configuration values for the cXML Punchout user were successfully updated.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/CXMLPunchoutConfigurationRO"
+        "400":
+          description: Bad Request - The provided configuration values to update are not valid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/cXML Punchout user could not be found or cXML Punchout is not supported.
+        "500":
+          description: Internal Server Error - The provided regular expressions (RegEx) to validate the user preference values are not valid.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserConfigurationListResource.updateUserConfiguration(com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resourceobject.CXMLPunchoutConfigurationRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutUserConfigurationListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_CXML_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5:
+    get:
+      tags:
+        - OCI - General
+      summary: Returns details for the OCI Punchout
+      description: |-
+        This operation returns details of the OCI Punchout standard, including available formatters and placeholders that where formerly provided by this endpoint using the OPTIONS method.
+
+        An optional `basketId` parameter can be provided to get a list of OCI Punchout fields for the basket with the given ID.
+
+        To use this operation, an authenticated user with the permissions "View Punchout" (APP_B2B_VIEW_PUNCHOUT) or "Send OCI Cart" (APP_B2B_SEND_OCI_BASKET) is required.
+      operationId: getOCIPunchoutItemDetails
+      parameters:
+        - name: basketId
+          in: query
+          description: The ID of the basket to get basket line item data according to OCI Punchout configuration.
+          schema:
+            type: string
+            description: The ID of the basket to get basket line item data according to OCI Punchout configuration.
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The details for the OCI Punchout were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutItemRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutItemResource.getPunchoutItemDetails(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+    options:
+      tags:
+        - OCI - General
+      summary: Shows configuration options for the OCI Punchout
+      description: |-
+        Deprecated: Do not use this method anymore. The list of available formatters and placeholders can now be requested from the same endpoint using the GET method.
+
+        This operation returns all available configuration options for the OCI Punchout standard.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getOCIPunchoutConfigurationOptions
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The configuration options for the OCI Punchout were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutConfigurationOptionsRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      deprecated: true
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutItemResource.getPunchoutConfigurationOptions()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/background-search:
+    get:
+      tags:
+        - OCI - General
+      summary: "Searches for products "
+      description: |-
+        This operation provides a background search functionality for products that can be utilized for cross-catalog searches of external systems like procurement systems.
+        For every found product that matches the specified search string, a product record in the OCI Punchout format is returned. A record is a list of key-value pairs including all necessary transformations. Multiple records are concatenated and indexed. The fields have to be posted by the client to the external system.
+
+        To use this operation, an authenticated user with the permission "Send OCI Cart" (APP_B2B_SEND_OCI_BASKET) is required.
+      operationId: OCIFunctionSearchProducts
+      parameters:
+        - name: searchString
+          in: query
+          description: The search string to search products for. The string must be enclosed in quotation marks if it contains special characters, e.g. "A-Data". Wildcards are not supported.
+          required: true
+          schema:
+            type: string
+            description: The search string to search products for. The string must be enclosed in quotation marks if it contains special characters, e.g. "A-Data". Wildcards are not supported.
+            example: Acer
+          example: Acer
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The product search has been successfully executed
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutTransferContainerRO"
+        "400":
+          description: Bad Request - The search string is missing or invalid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionBackgroundSearchResource.searchProducts(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionBackgroundSearchResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/configurations:
+    get:
+      tags:
+        - OCI - Configuration
+      summary: Returns customer-specific OCI Punchout configurations
+      description: |-
+        This operation returns the customer-specific configuration for the OCI Punchout standard.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getOCIPunchoutConfiguration
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The customer-specific configurations for the OCI Punchout were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutConfigurationRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutConfigurationListResource.getPunchoutConfiguration()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutConfigurationListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+    put:
+      tags:
+        - OCI - Configuration
+      summary: Updates an existing OCI Punchout configuration
+      description: |-
+        This operation updates existing OCI Punchout configurations. A configuration can be updated entirely or partially. The fields that are not provided remain untouched, e.g.: NEW_ITEM-CONTRACT.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: updateOCIPunchoutConfiguration
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/PunchoutConfigurationRO"
+      responses:
+        "200":
+          description: Ok - The customer-specific configurations for the OCI Punchout were successfully updated.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutConfigurationRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutConfigurationListResource.updatePunchoutConfiguration(com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutConfigurationRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutConfigurationListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/transfer:
+    post:
+      tags:
+        - OCI - General
+      summary: Triggers the OCI Punchout basket transfer
+      description: |-
+        This operation triggers the transfer of the OCI Punchout basket back to an external system, e.g. procurement system. The following steps are performed during this process:
+        *A product record in the OCI punchout format is returned for each line item in the basket. A record is a list of key-value pairs including all necessary transformations. Multiple records are concatenated and indexed. The fields have to be posted by the client to the external system.
+        * All Punchout fields are returned as a list of key-value pairs including all necessary transformations. The fields have to be posted by the client to the procurement system.
+        * The Punchout basket is closed and cannot be used anymore.
+        * The Punchout workflow ends and is recorded for license purposes.
+
+        To use this operation, an authenticated user with the permission "Send OCI Cart" (APP_B2B_SEND_OCI_BASKET) is required.
+      operationId: transferOCIPunchoutBasket
+      parameters:
+        - name: basketId
+          in: query
+          description: The ID of the OCI Punchout basket to be transferred
+          required: true
+          schema:
+            type: string
+            description: The ID of the OCI Punchout basket to be transferred
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The OCI Punchout basket transfer has been successfully triggered.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutTransferContainerRO"
+        "400":
+          description: Bad Request - The basket ID is missing or invalid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutTransferResource.transferBasket(java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutTransferResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/users:
+    get:
+      tags:
+        - OCI - User Management
+      summary: Returns OCI Punchout users
+      description: |-
+        This operation returns all users for the OCI Punchout standard. The response is of type ResourceCollectionRO and contains objects of type LinkRO.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getOCIPunchoutUsers
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The OCI Punchout users were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/LinkROResourceCollectionRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource.getPunchoutUsers()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+    post:
+      tags:
+        - OCI - User Management
+      summary: Creates an OCI Punchout user
+      description: |-
+        This operation creates a new OCI Punchout user. The ID property of the Punchout user will be created automatically.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: createOCIPunchoutUser
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/PunchoutUserRO"
+      responses:
+        "201":
+          description: Created - The OCI Punchout user was successfully created.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/LinkRO"
+        "400":
+          description: Bad request - At least one attribute is missing in the request body or the credentials are not valid regarding internal policies.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+        "409":
+          description: |-
+            Conflict - The OCI Punchout user already exists.
+             Possible values for header 'error-key':
+             - punchout.login_already_exists.error
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource.createPunchoutUser(com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/users/{OCIPunchoutUserKey}:
+    get:
+      tags:
+        - OCI - User Management
+      summary: Returns information on the given OCI Punchout user
+      description: |-
+        This operation returns information on the given OCI Punchout user.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: getOCIUserDetails
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: OCIPunchoutUserKey
+          in: path
+          description: The ID of the OCI Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the OCI Punchout user
+            example: ociuser@test.intershop.de
+          example: ociuser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource
+      responses:
+        "200":
+          description: Ok - The details for the OCI Punchout user were successfully retrieved.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutUserRO"
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/OCI Punchout user could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource.getUserDetails()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+    put:
+      tags:
+        - OCI - User Management
+      summary: Updates OCI Punchout user data
+      description: |-
+        This operation updates the information of an OCI Punchout user.
+
+        The following user attributes can be updated:
+        * `email` - Notifications for the OCI Punchout user are send to this email address
+        * `password` - The configured password for the OCI Punchout user
+        * `active` - Flag to enable/disable the OCI Punchout user
+
+        All attributes are optional, see request code examples below.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: updateOCIPunchoutUser
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: OCIPunchoutUserKey
+          in: path
+          description: The ID of the OCI Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the OCI Punchout user
+            example: ociuser@test.intershop.de
+          example: ociuser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource
+      requestBody:
+        content:
+          "*/*":
+            schema:
+              $ref: "#/components/schemas/PunchoutUserRO"
+      responses:
+        "200":
+          description: Ok - The OCI Punchout user data were successfully updated.
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutUserRO"
+        "400":
+          description: Bad request - If the credentials to update are not valid regarding internal policies.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/OCI Punchout user could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource.updatePunchoutUser(com.intershop.application.storefront.rest.b2b.capi.punchout.resourceobject.PunchoutUserRO)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+    delete:
+      tags:
+        - OCI - User Management
+      summary: Deletes an OCI Punchout specific user of a customer
+      description: |-
+        This operation deletes an OCI Punchout user of a customer.
+
+        To use this operation, an authenticated user with the permission "Manage Punchout" (APP_B2B_MANAGE_PUNCHOUT) is required.
+      operationId: deleteOCIPunchoutUser
+      parameters:
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+        - name: OCIPunchoutUserKey
+          in: path
+          description: The ID of the OCI Punchout user
+          required: true
+          schema:
+            type: string
+            description: The ID of the OCI Punchout user
+            example: ociuser@test.intershop.de
+          example: ociuser@test.intershop.de
+          x-item-key: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserListResource
+      responses:
+        "204":
+          description: No content - The OCI Punchout user was successfully deleted.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer/OCI Punchout user could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource.deletePunchoutUser()
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutUserItemResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND hasPermission[Organization:APP_B2B_MANAGE_PUNCHOUT]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+  /customers/{CustomerKey}/punchouts/oci5/validate:
+    get:
+      tags:
+        - OCI - General
+      summary: "Validates a product with given id and quantity "
+      description: |-
+        This operation allows to retrieve up-to-date information for a specific product with a given quantity from the Intershop Commerce System. A possible use-case is the update of product data in external systems (e.g. procurement system).
+        When the product is found, a single product record in the OCI Punchout format is returned. The record is a list of key-value pairs including all necessary transformations. The fields have to be posted by the client to the external system.
+
+        To use this operation, an authenticated user with the permission "Send OCI Cart" (APP_B2B_SEND_OCI_BASKET) is required.
+      operationId: OCIFunctionValidateProduct
+      parameters:
+        - name: productId
+          in: query
+          description: "The id of the product (SKU) "
+          required: true
+          schema:
+            type: string
+            description: "The id of the product (SKU) "
+            example: "6855851"
+          example: "6855851"
+        - name: quantity
+          in: query
+          description: 'The requested quantity. If field is not set, then default "1" is used.  '
+          schema:
+            type: string
+            description: 'The requested quantity. If field is not set, then default "1" is used.  '
+            example: "3"
+          example: "3"
+        - name: CustomerKey
+          in: path
+          description: The customer ID
+          required: true
+          schema:
+            type: string
+            description: The customer ID
+            example: OilCorp
+          example: OilCorp
+          x-item-key: com.intershop.sellside.rest.smb.capi.resource.customer.CustomerListResource
+      responses:
+        "200":
+          description: Ok - The product has been successfully validated
+          content:
+            application/vnd.intershop.punchout.v2+json:
+              schema:
+                $ref: "#/components/schemas/PunchoutTransferContainerRO"
+        "400":
+          description: Bad Request - The search string is missing or invalid.
+        "401":
+          description: Unauthorized - The user could not be authenticated.
+        "403":
+          description: Forbidden - The user does not have the required permissions.
+        "404":
+          description: Not found - The customer could not be found or OCI Punchout is not supported.
+      security:
+        - bearerAuth: []
+      x-origin-method: public jakarta.ws.rs.core.Response com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource.validateProduct(java.lang.String,java.lang.String)
+      x-origin-class: com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource
+      x-AuthorizationRule: "[(isMemberOfCustomer AND hasPermission[Organization:APP_B2B_SEND_OCI_BASKET]), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), (isMemberOfCustomer AND (hasPermission[Organization:APP_B2B_VIEW_PUNCHOUT] OR hasPermission[Organization:APP_B2B_SEND_OCI_BASKET])), isMemberOfCustomer]"
+components:
+  schemas:
+    CredentialRO:
+      type: object
+      properties:
+        domain:
+          type: string
+        identity:
+          type: string
+    CXMLPunchoutConfigurationItemRO:
+      type: object
+      properties:
+        defaultValue:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          description: The name of an element
+        value:
+          type: string
+    CXMLPunchoutConfigurationRO:
+      type: object
+      properties:
+        items:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/CXMLPunchoutConfigurationItemRO"
+    CXMLSessionRO:
+      type: object
+      properties:
+        basketId:
+          type: string
+        buyerCookie:
+          type: string
+        creationDate:
+          type: string
+          format: date-time
+        credentialFrom:
+          $ref: "#/components/schemas/CredentialRO"
+        credentialSender:
+          $ref: "#/components/schemas/CredentialRO"
+        credentialTo:
+          $ref: "#/components/schemas/CredentialRO"
+        customFields:
+          type: object
+          additionalProperties:
+            type: object
+        operation:
+          type: string
+        returnURL:
+          type: string
+    FeedbackCauseRO_v1:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          type: string
+          description: An unique identifier for this particular occurrence of the problem (may be used for localization on client-side).
+          example: invoiceToAddress.address.postalcode.invalid
+        message:
+          type: string
+          description: A human readable message in request's locale (server falls back to lead locale if requested local is not supported).
+          example: The specified postal code is invalid. Valid values are numbers 10000 to 99999.
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            description: A map of several parameters that are used to assemble the message.
+          description: A map of several parameters that are used to assemble the message.
+        paths:
+          type: array
+          description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+          externalDocs:
+            url: https://github.com/json-path/JsonPath
+          items:
+            type: string
+            description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+            externalDocs:
+              url: https://github.com/json-path/JsonPath
+      description: A representation for the common feedback informations.
+    FeedbackRO_v1:
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        causes:
+          type: array
+          description: A collection of errors/infos that caused this feedback.
+          items:
+            $ref: "#/components/schemas/FeedbackCauseRO_v1"
+        code:
+          type: string
+          description: An unique identifier for this particular occurrence of the problem (may be used for localization on client-side).
+          example: invoiceToAddress.address.postalcode.invalid
+        message:
+          type: string
+          description: A human readable message in request's locale (server falls back to lead locale if requested local is not supported).
+          example: The specified postal code is invalid. Valid values are numbers 10000 to 99999.
+        parameters:
+          type: object
+          additionalProperties:
+            type: object
+            description: A map of several parameters that are used to assemble the message.
+          description: A map of several parameters that are used to assemble the message.
+        paths:
+          type: array
+          description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+          externalDocs:
+            url: https://github.com/json-path/JsonPath
+          items:
+            type: string
+            description: A collection of JSON paths to the associated entities. If not otherwise specified, this always refers to the request entity.
+            externalDocs:
+              url: https://github.com/json-path/JsonPath
+        status:
+          type: string
+          description: The HTTP status code, that is applicable to this problem.
+          example: "400"
+      description: An error or information representation regarding the current request.
+      readOnly: true
+    LinkRO:
+      title: Link
+      type: object
+      properties:
+        attribute:
+          $ref: "#/components/schemas/ResourceAttribute"
+        attributes:
+          type: array
+          description: The list of attributes
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/ResourceAttribute"
+        description:
+          type: string
+          description: The description of the link
+        itemId:
+          type: string
+          description: The ID of the linked item
+        name:
+          type: string
+          description: The name of the returned element
+          xml:
+            attribute: true
+        relation:
+          type: string
+          description: The relation of the link
+          externalDocs:
+            description: Link Relations (www.iana.org)
+            url: http://www.iana.org/assignments/link-relations/link-relations.xml
+          enum:
+            - about
+            - alternate
+            - appendix
+            - archives
+            - author
+            - bookmark
+            - canonical
+            - chapter
+            - collection
+            - contents
+            - copyright
+            - create-form
+            - current
+            - describedby
+            - describes
+            - disclosure
+            - duplicate
+            - edit
+            - edit-form
+            - edit-media
+            - enclosure
+            - first
+            - glossary
+            - help
+            - hosts
+            - hub
+            - icon
+            - index
+            - item
+            - last
+            - latest-version
+            - license
+            - lrdd
+            - monitor
+            - monitor-group
+            - next
+            - next-archive
+            - nofollow
+            - noreferrer
+            - payment
+            - predecessor-version
+            - prefetch
+            - prev
+            - preview
+            - previous
+            - prev-archive
+            - privacy-policy
+            - profile
+            - related
+            - replies
+            - search
+            - section
+            - self
+            - service
+            - start
+            - stylesheet
+            - subsection
+            - successor-version
+            - tag
+            - terms-of-service
+            - type
+            - up
+            - version-history
+            - via
+            - working-copy
+            - working-copy-of
+        title:
+          type: string
+          description: The title of the link
+        type:
+          type: string
+          description: "This is a constant: **Link**"
+          readOnly: true
+          example: Link
+          xml:
+            attribute: true
+        uri:
+          type: string
+          description: The URI
+      description: A Link pointing to a resource
+      xml:
+        name: Link
+    LinkROResourceCollectionRO:
+      title: Collection
+      type: object
+      properties:
+        amount:
+          type: integer
+          description: The pageable amount
+          format: int32
+        elements:
+          type: array
+          description: The list of elements
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/LinkRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        offset:
+          type: integer
+          description: The pageable offset
+          format: int32
+        pageable:
+          type: string
+          description: The pageable ID
+        sortKeys:
+          uniqueItems: true
+          type: array
+          description: The keys to sort for
+          xml:
+            wrapped: true
+          items:
+            type: string
+            description: The keys to sort for
+            xml:
+              name: sortKey
+        total:
+          type: integer
+          description: The pageable amount total
+          format: int32
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: ResourceCollection
+          xml:
+            attribute: true
+      description: A list of Link-ResourceObjects
+      xml:
+        name: ResourceCollection
+    PunchoutAvailableFormatterRO:
+      title: PunchoutAvailableFormatter
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of the formatter
+          example: Trim
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutAvailableFormatter
+          xml:
+            attribute: true
+      description: This resource holds the available formatters for the configuration as a collection of PunchoutAvailableFormatterROs.
+      xml:
+        name: PunchoutAvailableFormatter
+    PunchoutAvailablePlaceholderRO:
+      title: PunchoutAvailablePlaceholder
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of the placeholder
+          example: Currency
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutAvailablePlaceholder
+          xml:
+            attribute: true
+      description: This resource holds the available placeholders for the configuration as a collection of PunchoutAvailablePlaceholderROs.
+      xml:
+        name: PunchoutAvailablePlaceholder
+    PunchoutConfigurationItemMappingRO:
+      title: PunchoutConfigurationItemMapping
+      type: object
+      properties:
+        mapFromValue:
+          type: string
+          description: The 'from' value for the configuration of the item mapping
+          example: meter
+        mapToValue:
+          type: string
+          description: The 'to' value for the configuration of the item mapping
+          example: m
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutConfigurationItemMapping
+          xml:
+            attribute: true
+      description: This resource holds the configuration item mappings as a collection of PunchoutConfigurationItemMappingROs.
+      xml:
+        name: PunchoutConfigurationItemMapping
+    PunchoutConfigurationItemRO:
+      title: PunchoutConfigurationItem
+      type: object
+      properties:
+        field:
+          type: string
+          description: The field of the configuration item
+          example: NEW_ITEM-MATGROUP
+        formatter:
+          type: string
+          description: The formatter for the configuration item
+          example: UpperCase
+        mappings:
+          type: array
+          description: The configuration item mappings as collection of PunchoutConfigurationItemMappingROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutConfigurationItemMappingRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        transform:
+          type: string
+          description: The transform of the configuration Item
+          example: "{ManufacturerName}"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      description: This resource holds the configuration items as a collection of PunchoutConfigurationItemROs.
+      xml:
+        name: PunchoutConfigurationItem
+    PunchoutConfigurationOptionsRO:
+      title: PunchoutConfigurationOptions
+      type: object
+      properties:
+        availableFormatters:
+          type: array
+          description: The available formatters for the configuration as a collection of PunchoutAvailableFormatterROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutAvailableFormatterRO"
+        availablePlaceholders:
+          type: array
+          description: The available placeholders for the configuration as a collection of PunchoutAvailablePlaceholderROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutAvailablePlaceholderRO"
+        description:
+          type: string
+          description: The description of the configuration
+          example: Show available configurations for OCI Punchout
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      description: This resource holds configuration options for OCI Punchout as a collection of PunchoutConfigurationOptionsROs.
+      xml:
+        name: PunchoutConfigurationOptions
+    PunchoutConfigurationRO:
+      title: PunchoutConfiguration
+      type: object
+      properties:
+        items:
+          type: array
+          description: The configuration items as a collection of PunchoutConfigurationItemROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutConfigurationItemRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+      description: This resource serves as a container for configuration data.
+      xml:
+        name: PunchoutConfiguration
+    PunchoutDataItemFieldRO:
+      title: PunchoutDataItemField
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutDataItemField
+          xml:
+            attribute: true
+        value:
+          type: string
+          description: The value of the Data Item Field
+          example: "0.0"
+      xml:
+        name: PunchoutDataItemField
+    PunchoutDataItemRO:
+      title: PunchoutDataItem
+      type: object
+      properties:
+        dataItemFields:
+          type: array
+          description: The data item fields as a collection of PunchoutDataItemFieldROs
+          xml:
+            name: PunchoutDataItemField
+          items:
+            $ref: "#/components/schemas/PunchoutDataItemFieldRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        punchoutDataItemFields:
+          type: array
+          writeOnly: true
+          items:
+            $ref: "#/components/schemas/PunchoutDataItemFieldRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutDataItem
+          xml:
+            attribute: true
+      description: This resource holds the Punchout data as a collection of PunchoutDataItemROs.
+      xml:
+        name: PunchoutDataItem
+    PunchoutDataRO:
+      title: PunchoutData
+      type: object
+      properties:
+        dataItems:
+          type: array
+          description: The Punchout data as a collection of PunchoutDataItemROs
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutDataItemRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        punchoutDataItems:
+          type: array
+          writeOnly: true
+          items:
+            $ref: "#/components/schemas/PunchoutDataItemRO"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutData
+          xml:
+            attribute: true
+      description: This resource holds the Punchout data as PunchoutDataRO.
+      xml:
+        name: PunchoutData
+    PunchoutItemRO:
+      title: PunchoutItem
+      required:
+        - punchoutType
+        - version
+      type: object
+      properties:
+        availableFormatters:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutAvailableFormatterRO"
+        availablePlaceholders:
+          type: array
+          xml:
+            wrapped: true
+          items:
+            $ref: "#/components/schemas/PunchoutAvailablePlaceholderRO"
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        punchoutData:
+          $ref: "#/components/schemas/PunchoutDataRO"
+        punchoutType:
+          type: string
+          description: The Punchout type
+          example: oci
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          xml:
+            attribute: true
+        version:
+          type: string
+          description: The Punchout version
+          example: ver5
+      xml:
+        name: PunchoutItem
+    PunchoutTransferContainerRO:
+      type: object
+      properties:
+        data:
+          type: array
+          description: The core data of the response object
+          items:
+            $ref: "#/components/schemas/PunchoutTransferDataItemFieldRO"
+        errors:
+          type: array
+          description: List of errors related to the request
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        included:
+          type: object
+          additionalProperties:
+            type: object
+            description: Optionally included related data objects
+          description: Optionally included related data objects
+        infos:
+          type: array
+          description: List of information related to the request (e.g., value adjustments)
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/FeedbackRO_v1"
+        links:
+          type: object
+          additionalProperties:
+            type: object
+            description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+            readOnly: true
+          description: Map of links to this and optionally included related data objects. The object in the "data" property is always referenced by the identifier "self". This identifier may also contain a list of URIs if the data block includes multiple elements.
+          readOnly: true
+    PunchoutTransferDataItemFieldRO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of an element
+        value:
+          type: string
+      description: The core data of the response object
+    PunchoutUserRO:
+      title: PunchoutUser
+      type: object
+      properties:
+        active:
+          type: boolean
+          description: Indicates whether the user is active
+          example: true
+        email:
+          type: string
+          description: The e-mail adress of the user
+          example: ocitester@test.intershop.de
+        id:
+          type: string
+          description: The ID of the user
+          readOnly: true
+          example: oci1
+        login:
+          type: string
+          description: The login of the user
+          example: ociuser1
+        name:
+          type: string
+          description: The name of an element
+          xml:
+            attribute: true
+        password:
+          type: string
+          description: The password of the user
+          example: "!InterShop00!"
+        type:
+          type: string
+          description: "The type of the element. This is normally a **constant** that can be used to differentiate elements by their type. "
+          example: PunchoutUser
+          xml:
+            attribute: true
+      xml:
+        name: PunchoutUser
+    ResourceAttribute:
+      title: Attribute
+      type: object
+      properties:
+        name:
+          type: string
+          description: The attribute's name
+          xml:
+            attribute: true
+        type:
+          type: string
+          description: "This is a constant: **ResourceAttribute**"
+          example: ResourceAttribute
+          xml:
+            attribute: true
+        value:
+          type: object
+          description: The attribute's value.
+      description: An attribute
+      xml:
+        name: ResourceAttribute
+  responses:
+    "200":
+      description: OK
+    "201":
+      description: Created
+    "202":
+      description: Accepted
+    "204":
+      description: No Content
+    "205":
+      description: Reset Content
+    "206":
+      description: Partial Content
+    "300":
+      description: Multiple Choices
+    "301":
+      description: Moved Permanently
+    "302":
+      description: Found
+    "303":
+      description: See Other
+    "304":
+      description: Not Modified
+    "305":
+      description: Use Proxy
+    "307":
+      description: Temporary Redirect
+    "308":
+      description: Permanent Redirect
+    "400":
+      description: Bad Request
+    "401":
+      description: Unauthorized
+    "402":
+      description: Payment Required
+    "403":
+      description: Forbidden
+    "404":
+      description: Not Found
+    "405":
+      description: Method Not Allowed
+    "406":
+      description: Not Acceptable
+    "407":
+      description: Proxy Authentication Required
+    "408":
+      description: Request Timeout
+    "409":
+      description: Conflict
+    "410":
+      description: Gone
+    "411":
+      description: Length Required
+    "412":
+      description: Precondition Failed
+    "413":
+      description: Request Entity Too Large
+    "414":
+      description: Request-URI Too Long
+    "415":
+      description: Unsupported Media Type
+    "416":
+      description: Requested Range Not Satisfiable
+    "417":
+      description: Expectation Failed
+    "428":
+      description: Precondition Required
+    "429":
+      description: Too Many Requests
+    "431":
+      description: Request Header Fields Too Large
+    "451":
+      description: Unavailable For Legal Reasons
+    "500":
+      description: Internal Server Error
+    "501":
+      description: Not Implemented
+    "502":
+      description: Bad Gateway
+    "503":
+      description: Service Unavailable
+    "504":
+      description: Gateway Timeout
+    "505":
+      description: HTTP Version Not Supported
+    "511":
+      description: Network Authentication Required
+  parameters:
+    cur:
+      name: cur
+      in: path
+      description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The currency code (submitted as optional matrix parameter ```;cur=<CURRENCY>```). If omitted, the site's or user's default currency is used.
+        default: USD
+      examples:
+        FJD:
+          description: Fiji Dollar
+          value: FJD
+        MXN:
+          description: Mexican Peso
+          value: MXN
+        STD:
+          description: São Tomé / Príncipe Dobra
+          value: STD
+        LVL:
+          description: Latvian Lats
+          value: LVL
+        SCR:
+          description: Seychelles Rupee
+          value: SCR
+        CDF:
+          description: Congolese Franc
+          value: CDF
+        BBD:
+          description: Barbados Dollar
+          value: BBD
+        GTQ:
+          description: Guatemalan Quetzal
+          value: GTQ
+        CLP:
+          description: Chilean Peso
+          value: CLP
+        HNL:
+          description: Honduran Lempira
+          value: HNL
+        UGX:
+          description: Ugandan Shilling
+          value: UGX
+        ZAR:
+          description: South African Rand
+          value: ZAR
+        TND:
+          description: Tunisian Dinar
+          value: TND
+        BSD:
+          description: Bahamian Dollar
+          value: BSD
+        SLL:
+          description: Sierra Leonean Leone
+          value: SLL
+        SDG:
+          description: Sudanese Pound
+          value: SDG
+        IQD:
+          description: Iraqi Dinar
+          value: IQD
+        CUP:
+          description: Cuban Peso
+          value: CUP
+        GMD:
+          description: Gambian Dalasi
+          value: GMD
+        TWD:
+          description: New Taiwan Dollar
+          value: TWD
+        RSD:
+          description: Serbian Dinar
+          value: RSD
+        ZRZ:
+          description: Zaire
+          value: ZRZ
+        DOP:
+          description: Dominican Peso
+          value: DOP
+        KMF:
+          description: Comoro Franc
+          value: KMF
+        MYR:
+          description: Malaysian Ringgit
+          value: MYR
+        FKP:
+          description: Falkland Islands Pound
+          value: FKP
+        XOF:
+          description: CFA Franc BCEAO
+          value: XOF
+        GEL:
+          description: Lari
+          value: GEL
+        UYU:
+          description: Uruguayan Peso
+          value: UYU
+        MAD:
+          description: Moroccan Dirham
+          value: MAD
+        CVE:
+          description: Cape Verde Escudo
+          value: CVE
+        TOP:
+          description: Tongan Pa'anga
+          value: TOP
+        AZN:
+          description: Azerbaijanian Manat
+          value: AZN
+        OMR:
+          description: Omani Rial
+          value: OMR
+        PGK:
+          description: Papua New Guinean Kina
+          value: PGK
+        KES:
+          description: Kenyan Shilling
+          value: KES
+        SEK:
+          description: Swedish Krona
+          value: SEK
+        BTN:
+          description: Ngultrum
+          value: BTN
+        UAH:
+          description: Ukrainian Hryvnia
+          value: UAH
+        GNF:
+          description: Guinea Franc
+          value: GNF
+        ERN:
+          description: Nakfa
+          value: ERN
+        MZN:
+          description: Mozambican Metical
+          value: MZN
+        SVC:
+          description: Salvadoran Colón
+          value: SVC
+        ARS:
+          description: Argentine Peso
+          value: ARS
+        QAR:
+          description: Qatari Riyal
+          value: QAR
+        IRR:
+          description: Iranian Rial
+          value: IRR
+        NLG:
+          description: Dutch Guilder
+          value: NLG
+        MRO:
+          description: Mauritanian Ouguiya
+          value: MRO
+        CNY:
+          description: Yuan Renminbi
+          value: CNY
+        THB:
+          description: Thai Baht
+          value: THB
+        UZS:
+          description: Uzbekistani Som
+          value: UZS
+        XPF:
+          description: CFP Franc
+          value: XPF
+        BDT:
+          description: Bangladeshi Taka
+          value: BDT
+        LYD:
+          description: Libyan Dinar
+          value: LYD
+        BMD:
+          description: Bermudian Dollar
+          value: BMD
+        KWD:
+          description: Kuwaiti Dinar
+          value: KWD
+        PHP:
+          description: Philippine Peso
+          value: PHP
+        RUB:
+          description: Russian Ruble
+          value: RUB
+        PYG:
+          description: Paraguayan Guarani
+          value: PYG
+        ISK:
+          description: Iceland Krona
+          value: ISK
+        JMD:
+          description: Jamaican Dollar
+          value: JMD
+        GWP:
+          description: Guinea Peso
+          value: GWP
+        BEF:
+          description: Belgian Franc
+          value: BEF
+        ESP:
+          description: Spanish Peseta
+          value: ESP
+        COP:
+          description: Colombian Peso
+          value: COP
+        MKD:
+          description: Denar
+          value: MKD
+        USD:
+          description: US Dollar
+          value: USD
+        DZD:
+          description: Algerian Dinar
+          value: DZD
+        PAB:
+          description: Panamanian Balboa
+          value: PAB
+        SGD:
+          description: Singapore Dollar
+          value: SGD
+        ETB:
+          description: Ethiopian Birr
+          value: ETB
+        KGS:
+          description: Som
+          value: KGS
+        SOS:
+          description: Somali Shilling
+          value: SOS
+        VEF:
+          description: Venezuelan Bolivar Fuerte
+          value: VEF
+        VUV:
+          description: Vanuatu Vatu
+          value: VUV
+        LAK:
+          description: Lao Kip
+          value: LAK
+        BND:
+          description: Brunei Dollar
+          value: BND
+        ZMK:
+          description: Zambian Kwacha
+          value: ZMK
+        XAF:
+          description: CFA Franc BEAC
+          value: XAF
+        LRD:
+          description: Liberian Dollar
+          value: LRD
+        ATS:
+          description: Austrian Schilling
+          value: ATS
+        CHF:
+          description: Swiss Franc
+          value: CHF
+        HRK:
+          description: Croatian Kuna
+          value: HRK
+        ITL:
+          description: Italian Lira
+          value: ITL
+        ALL:
+          description: Albanian Lek
+          value: ALL
+        DJF:
+          description: Djibouti Franc
+          value: DJF
+        MTL:
+          description: Maltese Lira
+          value: MTL
+        TZS:
+          description: Tanzanian Shilling
+          value: TZS
+        VND:
+          description: Vietnamese Dong
+          value: VND
+        AUD:
+          description: Australian Dollar
+          value: AUD
+        ILS:
+          description: New Israeli Sheqel
+          value: ILS
+        GHS:
+          description: Ghanaian Cedi
+          value: GHS
+        GYD:
+          description: Guyanese Dollar
+          value: GYD
+        KPW:
+          description: North Korean Won
+          value: KPW
+        BOB:
+          description: Boliviano
+          value: BOB
+        KHR:
+          description: Cambodian Riel
+          value: KHR
+        MDL:
+          description: Moldovan Leu
+          value: MDL
+        IDR:
+          description: Indonesian Rupiah
+          value: IDR
+        KYD:
+          description: Cayman Islands Dollar
+          value: KYD
+        AMD:
+          description: Armenian Dram
+          value: AMD
+        BWP:
+          description: Botswana Pula
+          value: BWP
+        SHP:
+          description: Saint Helena Pound
+          value: SHP
+        TRY:
+          description: Turkish Lira
+          value: TRY
+        CYP:
+          description: Cyprus Pound
+          value: CYP
+        LBP:
+          description: Lebanese Pound
+          value: LBP
+        TJS:
+          description: Tajikistani Somoni
+          value: TJS
+        JOD:
+          description: Jordanian Dinar
+          value: JOD
+        AED:
+          description: United Arab Emirates Dirham
+          value: AED
+        HKD:
+          description: Hong Kong Dollar
+          value: HKD
+        RWF:
+          description: Rwanda Franc
+          value: RWF
+        EUR:
+          description: Euro
+          value: EUR
+        LSL:
+          description: Lesotho Loti
+          value: LSL
+        DKK:
+          description: Danish Krone
+          value: DKK
+        CAD:
+          description: Canadian Dollar
+          value: CAD
+        BGN:
+          description: Bulgarian Lev
+          value: BGN
+        EEK:
+          description: Estonian Kroon
+          value: EEK
+        MMK:
+          description: Kyat
+          value: MMK
+        MUR:
+          description: Mauritian Rupee
+          value: MUR
+        NOK:
+          description: Norwegian Krone
+          value: NOK
+        SYP:
+          description: Syrian Pound
+          value: SYP
+        ZWL:
+          description: Zimbabwean Dollar
+          value: ZWL
+        GIP:
+          description: Gibraltar Pound
+          value: GIP
+        RON:
+          description: Romanian New Leu
+          value: RON
+        LKR:
+          description: Sri Lankan Rupee
+          value: LKR
+        NGN:
+          description: Nigerian Naira
+          value: NGN
+        CRC:
+          description: Costa Rican Colon
+          value: CRC
+        CZK:
+          description: Czech Koruna
+          value: CZK
+        IEP:
+          description: Irish Pound
+          value: IEP
+        PKR:
+          description: Pakistani Rupee
+          value: PKR
+        GRD:
+          description: Greek Drachma
+          value: GRD
+        XCD:
+          description: East Carribean Dollar
+          value: XCD
+        ANG:
+          description: Netherlands Antillian Guilder
+          value: ANG
+        HTG:
+          description: Haitian Gourde
+          value: HTG
+        BHD:
+          description: Bahraini Dinar
+          value: BHD
+        SIT:
+          description: Slovenian Tolar
+          value: SIT
+        PTE:
+          description: Portuguese Escudo
+          value: PTE
+        BPP:
+          description: Bonus Point Price
+          value: BPP
+        KZT:
+          description: Kazakhstani Tenge
+          value: KZT
+        SRD:
+          description: Surinam Dollar
+          value: SRD
+        SZL:
+          description: Swazi Lilangeni
+          value: SZL
+        LTL:
+          description: Lithuanian Litas
+          value: LTL
+        SAR:
+          description: Saudi Riyal
+          value: SAR
+        TTD:
+          description: Trinidad and Tobago Dollar
+          value: TTD
+        YER:
+          description: Yemeni Rial
+          value: YER
+        MVR:
+          description: Maldivian Rufiyaa
+          value: MVR
+        AFN:
+          description: Afghani
+          value: AFN
+        BPV:
+          description: Bonus Point Value
+          value: BPV
+        INR:
+          description: Indian Rupee
+          value: INR
+        AWG:
+          description: Aruban Florin
+          value: AWG
+        KRW:
+          description: South Korean Won
+          value: KRW
+        NPR:
+          description: Nepalese Rupee
+          value: NPR
+        JPY:
+          description: Japanese Yen
+          value: JPY
+        MNT:
+          description: Mongolian Tugrik
+          value: MNT
+        AOA:
+          description: Angolan Kwanza
+          value: AOA
+        PLN:
+          description: Polish Złoty
+          value: PLN
+        GBP:
+          description: Pound Sterling
+          value: GBP
+        SBD:
+          description: Solomon Islands Dollar
+          value: SBD
+        HUF:
+          description: Hungarian Forint
+          value: HUF
+        BYR:
+          description: Belarussian Ruble
+          value: BYR
+        LUF:
+          description: Luxembourgian Franc
+          value: LUF
+        BIF:
+          description: Burundi Franc
+          value: BIF
+        MWK:
+          description: Malawian Kwacha
+          value: MWK
+        MGA:
+          description: Malagasy Ariary
+          value: MGA
+        FIM:
+          description: Finnish Mark
+          value: FIM
+        BZD:
+          description: Belize Dollar
+          value: BZD
+        DEM:
+          description: Deutsche Mark
+          value: DEM
+        BAM:
+          description: Convertible Marks
+          value: BAM
+        EGP:
+          description: Egyptian Pound
+          value: EGP
+        MOP:
+          description: Macanese Pataca
+          value: MOP
+        NAD:
+          description: Namibian Dollar
+          value: NAD
+        SKK:
+          description: Slovakian Krona
+          value: SKK
+        NIO:
+          description: Cordoba Oro
+          value: NIO
+        PEN:
+          description: Peruvian Nuevo Sol
+          value: PEN
+        NZD:
+          description: New Zealand Dollar
+          value: NZD
+        WST:
+          description: Samoan Tala
+          value: WST
+        TMT:
+          description: Turkmenistani Manat
+          value: TMT
+        FRF:
+          description: French Franc
+          value: FRF
+        BRL:
+          description: Brazilian Real
+          value: BRL
+      x-matrixParamPath: /
+    loc:
+      name: loc
+      in: path
+      description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: "The locale ID (submitted as optional matrix parameter ```;loc=<LOCALE>```). If omitted, the priority is as follows (from high to low): Locale ID parameter, user's default locale, site's default locale. The available locales depend on your individual Intershop Commerce Management installation. Use IANA language definitions for languages and regions and combine them using an underscore, e.g., ```en_US```."
+        default: en_US
+      examples:
+        de_AT:
+          description: German (Austria)
+          value: de_AT
+        it_IT:
+          description: Italian (Italy)
+          value: it_IT
+        fr_CA:
+          description: French (Canada)
+          value: fr_CA
+        it_CH:
+          description: Italian (Switzerland)
+          value: it_CH
+        da_DK:
+          description: Danish (Denmark)
+          value: da_DK
+        fr_CH:
+          description: French (Switzerland)
+          value: fr_CH
+        fr_FR:
+          description: French (France)
+          value: fr_FR
+        de_DE:
+          description: German (Germany)
+          value: de_DE
+        de_CH:
+          description: German (Switzerland)
+          value: de_CH
+        en_GB:
+          description: English (United Kingdom)
+          value: en_GB
+        en_DE:
+          description: English (Germany)
+          value: en_DE
+        en_CA:
+          description: English (Canada)
+          value: en_CA
+        en_US:
+          description: English (United States)
+          value: en_US
+        es_ES:
+          description: Spanish (Spain)
+          value: es_ES
+        zh_CN:
+          description: Chinese (China)
+          value: zh_CN
+        nl_NL:
+          description: Dutch (Netherlands)
+          value: nl_NL
+      x-matrixParamPath: /
+    pgid:
+      name: pgid
+      in: path
+      description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The personalization group identifier, submitted as matrix parameter ```;pgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+    regionals:
+      name: regionals
+      in: path
+      required: false
+      style: matrix
+      schema:
+        type: object
+        properties:
+          cur:
+            type: string
+            description: The currency code
+            example: EUR
+          loc:
+            type: string
+            description: The locale ID
+            example: en_US
+      x-matrixParamPath: /
+    spgid:
+      name: spgid
+      in: path
+      description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+      required: false
+      style: matrix
+      schema:
+        type: string
+        description: The secure personalization group identifier, submitted as matrix parameter ```;spgid=<PGID>```. Required if you want to work with customer-specific content.
+        example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+      example: FUOGrzQ_VjORpGaN8DRGmLLE0000
+  securitySchemes:
+    authToken:
+      type: apiKey
+      description: User authentication token to authenticate the request. The token is a string generated by the ICM server in the same header in every response of a REST endpoint.
+      name: authentication-token
+      in: header
+    basicAuth:
+      type: http
+      description: "Basic access authentication. In basic authentication, a request contains a header field in the form of authorization: ```Basic <credentials>```,  where credentials is the Base64 encoding of ID and password joined by a single colon :."
+      scheme: basic
+    bearerAuth:
+      type: http
+      description: "Bearer token authentication. A request contains a header field in the form of authorization: ```Bearer <token>```, where <token> is a string generated by an authentication service in response to a login request."
+      scheme: bearer
+      bearerFormat: JWT
+x-apiID: punchout_v2
+x-origin-class: com.intershop.component.rest.capi.resource.RootResource,com.intershop.application.storefront.rest.b2b.capi.punchout.resource.PunchoutListResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.cxml.resource.CXMLPunchoutItemResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource,com.intershop.sellside.rest.b2b.punchout.v2.capi.oci.resource.OCIPunchoutFunctionValidateResource
+x-apiMediaType: application/vnd.intershop.punchout.v2+json
+x-strict-apiMediaType: "false"
