@@ -197,14 +197,14 @@ export const docSections: DocSection[] = [
 		href: '/features/',
 		description:
 			'Out-of-the-box Intershop capabilities available to every OpCo on the central instance, and which ones each has switched on.',
-		status: 'planned',
+		status: 'in-progress',
 	},
 	{
 		title: 'Custom Features',
 		href: '/custom-features/',
 		description:
 			'Functionality built by the platform team beyond standard Intershop, and the operating companies each one serves.',
-		status: 'planned',
+		status: 'in-progress',
 	},
 	{
 		title: 'Intershop API',

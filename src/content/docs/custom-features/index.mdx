@@ -1,0 +1,38 @@
+---
+title: Custom Features
+description: Functionality built by the platform team beyond standard Intershop, and the operating companies each one serves.
+---
+
+import { CustomFeatureArea, CustomFeatureMatrix } from '@/components/features/CustomFeatureCatalog';
+
+Customizations the platform team has built on top of Intershop on the central instance. Most began
+as a request from one OpCo, but each is built once and **switched on per OpCo** — so any OpCo on the
+central instance can adopt a customization another OpCo asked for, without new development.
+
+<CustomFeatureMatrix />
+
+:::note[Gaps are shown, not guessed]
+Where it hasn't been confirmed whether an OpCo uses a customization, the table says **Not
+documented**. How a customization is switched on for an OpCo is also still to be documented.
+:::
+
+## Quotes
+
+<CustomFeatureArea id="quotes" />
+
+## Registration and sign-in
+
+<CustomFeatureArea id="identity" />
+
+## Catalog, pricing, and promotions
+
+Three of these customizations do the same job: replace many small API calls with one bulk call, so
+product listings and search results load with fewer requests.
+
+<CustomFeatureArea id="catalog" />
+
+## Basket
+
+<CustomFeatureArea id="basket" />
+
+Standard Intershop capabilities are documented under [Feature Lists](/features/).
