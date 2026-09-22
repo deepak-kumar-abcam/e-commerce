@@ -18,6 +18,8 @@ const standardApiGroup = createOpenAPISidebarGroup();
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://deepak-kumar-abcam.github.io',
+  	base: '/e-commerce',
 	integrations: [
 		starlight({
 			title: 'Commerce Platform Docs',
