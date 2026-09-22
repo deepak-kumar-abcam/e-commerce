@@ -5,8 +5,11 @@
  * into openapi/intershop/, one YAML file per API. The docs regenerate from
  * those files, so this is all a refresh needs.
  *
+ * Every OpCo sales channel serves the same APIs from its own site and REST
+ * application; the defaults below are the PHX US one.
+ *
  *   npm run api:fetch
- *   npm run api:fetch -- --site PHX-PHXUS-Site --app PheneomenexRest
+ *   npm run api:fetch -- --site "<OpCo site>" --app "<OpCo REST application>"
  *
  * Files for APIs the server no longer lists are removed. Hand-edited files are
  * overwritten, so change specs at the source rather than here.

@@ -12,11 +12,15 @@ request body, responses, and code samples.
 <ApiSummary />
 
 :::note[Source]
-Exported from the **Phenomenex US** REST application (`PHX-PHXUS-Site/PheneomenexRest`), the same
-definitions as its
-[Swagger UI](https://shop.lifesciences.danaher.com/INTERSHOP/static/WFS/SMC/-/-/en_US/swagger/is_index.html?app=PHX-PHXUS-Site/PheneomenexRest).
-Other OpCos' REST applications may switch customizations on or off — see
-[Custom Features](/custom-features/).
+Exported from an OpCo's REST application — `{OpCo site}/{OpCo REST application}` — the same
+definitions its Swagger UI serves. Every OpCo sales channel exposes these APIs from its own
+application, so the reference can be generated from any of them.
+
+Currently checked in: the **Phenomenex US** application
+(`PHX-PHXUS-Site/PheneomenexRest`,
+[Swagger UI](https://shop.lifesciences.danaher.com/INTERSHOP/static/WFS/SMC/-/-/en_US/swagger/is_index.html?app=PHX-PHXUS-Site/PheneomenexRest)).
+Customizations are switched on per OpCo, so another OpCo's application may expose a different set
+of endpoints — see [Custom Features](/custom-features/).
 :::
 
 ## APIs
@@ -42,6 +46,13 @@ them all from the live Swagger endpoint:
 
 ```bash
 npm run api:fetch
+```
+
+To generate the reference from a different OpCo's application instead, pass its site and REST
+application:
+
+```bash
+npm run api:fetch -- --site "{OpCo site}" --app "{OpCo REST application}"
 ```
 
 Or replace, add, or delete a YAML file by hand. Either way the sidebar, pages, and the tables above
