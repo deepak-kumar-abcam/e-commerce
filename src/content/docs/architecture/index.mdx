@@ -1,0 +1,34 @@
+---
+title: Architecture Diagrams
+description: The systems around the central Intershop instance — storefront, search, identity, product information, integration, and each OpCo's systems of record.
+---
+
+import { ArchitectureMap } from '@/components/architecture/ArchitectureMap';
+
+The central Intershop instance is one part of a wider set of systems, most of them shared by every
+operating company on it and run by the platform team. This page maps them; the
+[flow diagrams](/flows/) follow each kind of data through them hop by hop.
+
+## Component map
+
+<ArchitectureMap />
+
+## How it fits together
+
+- **AEM is the storefront.** Intershop hosts no customer-facing pages. Each OpCo's storefront,
+  checkout included, is built in Adobe Experience Manager, whose components call Intershop's REST
+  APIs directly. Customers sign in through the central Auth0 tenant.
+- **Commerce consumes data it doesn't own.** Products are created in each OpCo's ERP and enriched in
+  inRiver, the central PIM, before they reach Intershop and Coveo. Customers, customer-specific
+  prices, quotes, and segments come from the ERP and CRM. See the [flow diagrams](/flows/).
+- **Inbound data travels as files.** ERPs and, for Phenomenex, WebDB drop files on the Danaher Life
+  Sciences SFTP server; Boomi picks them up and delivers them to inRiver and Intershop.
+- **Everything behind the sale differs per OpCo.** Orders go to each OpCo's own ERP, payment runs
+  through its own provider, and campaigns through its own marketing platform.
+
+## Not yet documented
+
+- The **outbound flows**: orders from Intershop to each ERP, payment authorisation, and Auth0
+  sign-in and registration.
+- Each OpCo's **CRM**.
+- Whether **inRiver feeds AEM**, and whether **Coveo** indexes AEM content as well as product data.

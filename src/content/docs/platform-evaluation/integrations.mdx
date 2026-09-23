@@ -40,5 +40,7 @@ it, so it is in the [proof of concept](/platform-evaluation/poc/#poc-auth0).
 
 ## Product data carries over
 
-Because the ERPs feed the PIM, and the PIM feeds commerce, moving the catalog means pointing the
-existing feed at commercetools' Import API — not rebuilding the catalog.
+Because the ERPs feed inRiver, and Boomi carries inRiver's output to commerce, moving the catalog
+means re-pointing those Boomi processes at commercetools' Import API — not rebuilding the catalog.
+The same holds for the customer, pricing, quote, and segment feeds that Boomi delivers today; see
+the [flow diagrams](/flows/).

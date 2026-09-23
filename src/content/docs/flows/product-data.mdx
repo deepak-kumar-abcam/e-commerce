@@ -1,0 +1,33 @@
+---
+title: Product data
+description: How product data travels from each OpCo's ERP through inRiver to Intershop and Coveo.
+sidebar:
+  order: 1
+---
+
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
+
+Products — SKUs, titles, and list prices — are created in each operating company's ERP. inRiver, the
+central PIM, enriches them with descriptions, images, and attributes, and publishes the result to
+Intershop for the storefront and to Coveo for search and recommendations.
+
+The route is broadly the same for every OpCo on the central instance, with some variations per OpCo
+that are not yet documented. inRiver also carries some **list prices** today; they are planned to
+move out of it.
+
+## At a glance
+
+<FlowSummary flow="product-data" />
+
+## How it flows
+
+<FlowStory client:visible flow="product-data" />
+
+## Hop by hop
+
+<FlowHops flow="product-data" />
+
+## Open questions
+
+<FlowQuestions flow="product-data" />

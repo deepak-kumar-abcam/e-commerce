@@ -15,7 +15,7 @@
  */
 
 export const evaluationMeta = {
-	asOf: '2026-09-18',
+	asOf: '2026-09-23',
 	owner: 'Platform team',
 	nextReview: '2026-12-18',
 	/** What the comparison covers: the central instance only, not the wider estate. */
@@ -888,15 +888,46 @@ export const integrationRows: ComparisonRow[] = [
 	},
 	{
 		id: 'pim',
-		capability: 'Product data (ERP → PIM feed)',
+		capability: 'Product data (ERP → inRiver feed)',
 		why: 'Product data is mastered upstream, not in commerce.',
-		intershop: production('Consumes the PIM feed. The PIM product in use is not yet documented.'),
+		intershop: production(
+			'Consumes product data, and some list prices, from inRiver, the central PIM, delivered by Boomi.'
+		),
 		commercetools: {
 			rating: 'configurable',
 			summary:
 				'Import API, with partial-import status since March 2026; CSV import up to 100 MB or 500,000 rows. Re-points the existing feed rather than rebuilding the catalog.',
 			evidence: 'vendor-claim',
 			sources: ['ctRecapQ1'],
+		},
+	},
+	{
+		id: 'boomi',
+		capability: 'Boomi (inbound data feeds)',
+		why: 'Product, customer, pricing, quote, and segment data all reach commerce through Boomi.',
+		intershop: production(
+			'Boomi delivers files from the Danaher Life Sciences SFTP server to Intershop: product data via inRiver for every OpCo, and customer, pricing, quote, and segment data for Phenomenex.'
+		),
+		commercetools: {
+			rating: 'unknown',
+			summary:
+				'Boomi processes would be re-pointed at commercetools APIs. Whether a Boomi connector for commercetools exists was not checked.',
+			evidence: 'unconfirmed',
+			sources: [],
+		},
+	},
+	{
+		id: 'coveo',
+		capability: 'Coveo (search and recommendations)',
+		intershop: production(
+			'Coveo is fed product data from inRiver. Whether it reads anything from Intershop is not documented.'
+		),
+		commercetools: {
+			rating: 'unknown',
+			summary:
+				'Not assessed. Because Coveo is fed from inRiver, the commerce platform may not sit on its path at all.',
+			evidence: 'unconfirmed',
+			sources: [],
 		},
 	},
 	{

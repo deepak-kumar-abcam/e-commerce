@@ -1,0 +1,27 @@
+---
+title: Flow Diagrams
+description: How product, customer, pricing, quote, and segment data reach the central Intershop instance, hop by hop.
+sidebar:
+  label: Overview
+  order: 0
+---
+
+import { FlowIndex } from '@/components/flows/DataFlow';
+
+How data reaches the central instance from the systems that own it. Each flow names the system the
+data is mastered in, every hop it takes, and which operating companies it has been documented for.
+The [architecture diagrams](/architecture/) show the same systems as one map.
+
+<FlowIndex />
+
+## Reading the diagrams
+
+- **Solid arrows** are live today; **dashed** ones are planned changes.
+- **"via Boomi"** marks a hop carried by a Boomi process.
+- Anything not yet confirmed — a system, a schedule, a format — is marked **Not documented** rather
+  than guessed.
+
+## Still to come
+
+Outbound journeys — order capture, payment authorisation, and customer registration and sign-on —
+will be added here.

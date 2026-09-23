@@ -33,10 +33,11 @@ own code and their own teams: Pall and Beckman Coulter Life Sciences on ICM 14, 
 Biosystems on ICM 10. This site lists them so the full picture is visible, but documents only the
 central instance in depth.
 
-On the central instance, what is shared is the commerce platform itself and customer identity
-(Auth0). What differs is everything behind the sale: each operating company processes orders in its own ERP, takes payment through its
+On the central instance, the platform team runs everything that is shared: the commerce platform
+itself, the AEM storefronts, customer identity (Auth0), the inRiver PIM, Coveo search, and the Boomi
+integrations that feed them. What differs is everything behind the sale: each operating company processes orders in its own ERP, takes payment through its
 own provider, and runs campaigns from its own marketing automation platform. Intershop is the
-common front end that talks to all of them.
+common commerce layer that talks to all of them.
 
 This site documents both halves — the platform capabilities every central-instance OpCo draws on,
 and the integrations that connect each one to its own backend systems.
@@ -54,6 +55,9 @@ touches, without assuming technical background. If you are implementing or integ
 On the central instance:
 
 <IntegrationLandscape />
+
+The [architecture diagrams](/architecture/) add the product-information and integration layers
+behind this — inRiver, Coveo, Boomi — and the [flow diagrams](/flows/) follow the data through them.
 
 ## Integration reference
 
