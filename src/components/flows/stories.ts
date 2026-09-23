@@ -9,7 +9,7 @@ import type { DataFlow, NodeId } from '@/data/integrations';
  * Coordinates are in a 400-wide viewBox; `height` sets its aspect ratio.
  */
 
-export type StoryIcon = 'erp' | 'sftp' | 'pim' | 'commerce' | 'search';
+export type StoryIcon = 'erp' | 'crm' | 'staging' | 'sftp' | 'pim' | 'commerce' | 'search';
 
 export interface StoryNode {
 	key: string;
@@ -22,6 +22,8 @@ export interface StoryNode {
 	y: number;
 	/** Where the label sits relative to the circle. */
 	label?: 'below' | 'left' | 'right';
+	/** An OpCo this flow isn't documented for: drawn dashed, never lit, no curves. */
+	ghost?: boolean;
 }
 
 export interface StoryEdge {
@@ -41,8 +43,11 @@ export interface StoryStep {
 	nodes: string[];
 	/** Curves this step draws. */
 	edges: string[];
-	/** Which facts to list under the step. */
-	facts: 'erp-per-opco' | 'hops';
+	/**
+	 * Which facts to list under the step: each OpCo's source system (its ERP
+	 * or CRM), or the hops the step draws.
+	 */
+	facts: { source: 'erp' | 'crm' } | 'hops';
 }
 
 export interface FlowStoryLayout {
@@ -72,7 +77,7 @@ const curve = (x1: number, a: number, x2: number, b: number) => {
 const drop = (x1: number, y1: number, x2: number, y2: number) => curve(x1, y1 + R, x2, y2 - R);
 
 /** Below-circle labels take this much room, so curves leaving them start underneath. */
-const LABEL = 18;
+const LABEL = 28;
 
 export const productDataStory: FlowStoryLayout = {
 	flow: 'product-data',
@@ -129,7 +134,7 @@ export const productDataStory: FlowStoryLayout = {
 			body: 'SKUs, titles, and list prices start life in the operating company’s own ERP — a different system for each.',
 			nodes: Object.keys(erpX).map((opco) => `erp-${opco}`),
 			edges: [],
-			facts: 'erp-per-opco',
+			facts: { source: 'erp' },
 		},
 		{
 			title: 'Dropped on the SFTP server',
@@ -162,6 +167,156 @@ export const productDataStory: FlowStoryLayout = {
 	],
 };
 
+// ---------------------------------------------------------------------------
+// The CRM route: ERP or CRM → WebDB → SFTP → Intershop, documented for PHX
+// ---------------------------------------------------------------------------
+
+interface StepCopy {
+	title: string;
+	body: string;
+}
+
+interface CrmRouteCopy {
+	/** Step 1: where the data starts. */
+	source: StepCopy;
+	/** The ERP → CRM step, for routes that start in the ERP. */
+	toCrm?: StepCopy;
+	/** The last step: loaded into Intershop. */
+	load: StepCopy;
+}
+
+/**
+ * Build a story for a flow on the shared CRM route. The top row shows every
+ * central-instance OpCo; those the flow isn't documented for are ghosts, so
+ * the gap stays visible in the picture.
+ */
+function crmRouteStory(
+	flow: DataFlow['id'],
+	start: 'erp' | 'crm',
+	documentedFor: string,
+	copy: CrmRouteCopy
+): FlowStoryLayout {
+	const chain: { node: NodeId; icon: StoryIcon }[] = [
+		...(start === 'erp' ? [{ node: 'crm', icon: 'crm' as const }] : []),
+		{ node: 'webdb', icon: 'staging' },
+		{ node: 'sftp', icon: 'sftp' },
+		{ node: 'intershop', icon: 'commerce' },
+	];
+	const top = erpY;
+	const first = 240; // y of the first node under the source row
+	const gap = 125;
+	const ys = chain.map((_, i) => first + i * gap);
+	const sourceX = erpX[documentedFor as keyof typeof erpX];
+	const sourceIcon: StoryIcon = start === 'erp' ? 'erp' : 'crm';
+
+	const nodes: StoryNode[] = [
+		...Object.entries(erpX).map(([opco, x]) => ({
+			key: `source-${opco}`,
+			node: start,
+			opco,
+			icon: sourceIcon,
+			x,
+			y: top,
+			ghost: opco !== documentedFor,
+		})),
+		...chain.map((c, i) => ({
+			key: c.node,
+			node: c.node,
+			icon: c.icon,
+			x: 200,
+			y: ys[i],
+			label: c.node === 'intershop' ? ('below' as const) : ('right' as const),
+		})),
+	];
+
+	const edges: StoryEdge[] = chain.map((c, i) => {
+		const from = i === 0 ? start : chain[i - 1].node;
+		const d =
+			i === 0
+				? curve(sourceX, top + R + LABEL, 200, ys[0] - R)
+				: drop(200, ys[i - 1], 200, ys[i]);
+		// Label only the hops that have something to say: a carrier or a doubt.
+		const labelled = (from === 'erp' && c.node === 'crm') || c.node === 'intershop';
+		return {
+			key: `${from}-${c.node}`,
+			hop: { from, to: c.node },
+			d,
+			labelAt: labelled ? { x: i === 0 ? (sourceX + 200) / 2 : 200, y: ((i === 0 ? top : ys[i - 1]) + ys[i]) / 2 + (i === 0 ? 14 : 0) } : undefined,
+		};
+	});
+
+	const edgeInto = (node: NodeId) => edges.find((e) => e.hop.to === node)!.key;
+	const generic: Partial<Record<string, StepCopy>> = {
+		webdb: {
+			title: 'Staged in WebDB',
+			body: 'WebDB, Phenomenex’s staging database, collects the data from the CRM before it is sent on.',
+		},
+		sftp: {
+			title: 'Dropped on the SFTP server',
+			body: 'WebDB exports it as files to the Danaher Life Sciences SFTP server — the same landing point the product feed uses.',
+		},
+	};
+
+	const steps: StoryStep[] = [
+		{ ...copy.source, nodes: [`source-${documentedFor}`], edges: [], facts: { source: start } },
+		...chain.map((c) => {
+			const text = c.node === 'crm' ? copy.toCrm : c.node === 'intershop' ? copy.load : generic[c.node];
+			if (!text) throw new Error(`No copy for the ${c.node} step of "${flow}"`);
+			return { ...text, nodes: [c.node], edges: [edgeInto(c.node)], facts: 'hops' as const };
+		}),
+	];
+
+	return { flow, height: ys.at(-1)! + 70, nodes, edges, steps };
+}
+
 export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 	'product-data': productDataStory,
+	'customer-data': crmRouteStory('customer-data', 'erp', 'phenomenex', {
+		source: {
+			title: 'Starts in the ERP',
+			body: 'The documented route begins in Phenomenex’s ERP — although customers are said to be created in the CRM. Which of the two masters them is not yet confirmed.',
+		},
+		toCrm: {
+			title: 'Passed to the CRM',
+			body: 'Customer profiles, contacts, and addresses move from the ERP to the CRM. This leg is recorded as described, not yet confirmed.',
+		},
+		load: {
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads customer profiles, contacts, and addresses into Intershop.',
+		},
+	}),
+	'customer-pricing': crmRouteStory('customer-pricing', 'erp', 'phenomenex', {
+		source: {
+			title: 'Agreed in the ERP',
+			body: 'Customer-specific pricing agreements are created in Phenomenex’s ERP.',
+		},
+		toCrm: {
+			title: 'Passed to the CRM',
+			body: 'The integration notes route pricing through the CRM, the same path as customer data. Whether it really goes that way is not yet confirmed.',
+		},
+		load: {
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads each customer’s negotiated prices into Intershop.',
+		},
+	}),
+	quotes: crmRouteStory('quotes', 'crm', 'phenomenex', {
+		source: {
+			title: 'Raised in the CRM',
+			body: 'Quotes — their details, quoted prices, and the customer — are created in Phenomenex’s CRM.',
+		},
+		load: {
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads the quotes into Intershop for use in the storefront.',
+		},
+	}),
+	'customer-segments': crmRouteStory('customer-segments', 'crm', 'phenomenex', {
+		source: {
+			title: 'Maintained in the CRM',
+			body: 'Market lists group customers by demographics, purchase history, and behaviour. They are maintained in Phenomenex’s CRM.',
+		},
+		load: {
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads segment membership into Intershop for use in the storefront.',
+		},
+	}),
 };

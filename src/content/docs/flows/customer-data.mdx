@@ -5,7 +5,8 @@ sidebar:
   order: 2
 ---
 
-import { FlowDiagram, FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
 
 Customer profiles, with their contacts and addresses, reach Intershop by way of the CRM, WebDB, and
 the Danaher Life Sciences SFTP server. Which system masters them is not yet confirmed. The route below is documented for **Phenomenex** only.
@@ -14,9 +15,9 @@ the Danaher Life Sciences SFTP server. Which system masters them is not yet conf
 
 <FlowSummary flow="customer-data" />
 
-## Route
+## How it flows
 
-<FlowDiagram flow="customer-data" />
+<FlowStory client:visible flow="customer-data" />
 
 ## Hop by hop
 

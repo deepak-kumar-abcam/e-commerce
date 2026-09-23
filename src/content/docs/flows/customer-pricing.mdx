@@ -5,7 +5,8 @@ sidebar:
   order: 3
 ---
 
-import { FlowDiagram, FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
 
 Customer-specific pricing agreements are created in the ERP and reach Intershop along the same route
 as customer data. The route below is documented for **Phenomenex** only.
@@ -14,9 +15,9 @@ as customer data. The route below is documented for **Phenomenex** only.
 
 <FlowSummary flow="customer-pricing" />
 
-## Route
+## How it flows
 
-<FlowDiagram flow="customer-pricing" />
+<FlowStory client:visible flow="customer-pricing" />
 
 ## Hop by hop
 

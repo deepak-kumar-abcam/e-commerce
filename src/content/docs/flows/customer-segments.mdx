@@ -5,7 +5,8 @@ sidebar:
   order: 5
 ---
 
-import { FlowDiagram, FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
 
 Customer segments, known as market lists, group customers by criteria such as demographics,
 purchase history, and behaviour. They are maintained in the CRM and sent to Intershop. The route
@@ -15,9 +16,9 @@ below is documented for **Phenomenex** only.
 
 <FlowSummary flow="customer-segments" />
 
-## Route
+## How it flows
 
-<FlowDiagram flow="customer-segments" />
+<FlowStory client:visible flow="customer-segments" />
 
 ## Hop by hop
 

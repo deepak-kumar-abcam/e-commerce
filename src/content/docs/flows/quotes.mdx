@@ -5,7 +5,8 @@ sidebar:
   order: 4
 ---
 
-import { FlowDiagram, FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
 
 Quotes — their details, prices, and customer — are raised in the CRM and sent to Intershop so
 customers can see and act on them in the storefront. The route below is documented for
@@ -15,9 +16,9 @@ customers can see and act on them in the storefront. The route below is document
 
 <FlowSummary flow="quotes" />
 
-## Route
+## How it flows
 
-<FlowDiagram flow="quotes" />
+<FlowStory client:visible flow="quotes" />
 
 ## Hop by hop
 

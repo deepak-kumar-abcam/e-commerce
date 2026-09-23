@@ -1,4 +1,4 @@
-import { Connector, NotDocumented, PlannedBadge } from '@/components/diagram/parts';
+import { NotDocumented, PlannedBadge, UnconfirmedBadge } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,13 +8,9 @@ import {
 	getFlow,
 	resolveNode,
 	type DataFlow,
-	type Hop,
-	type NodeId,
-	type Route,
 } from '@/data/integrations';
 import { centralOpcos } from '@/data/platform';
 import { withBase } from '@/lib/url';
-import { cn } from '@/lib/utils';
 
 /**
  * Data-flow pages, all rendered from `integrations.ts`. Each page composes
@@ -42,7 +38,8 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 				<dt className="text-xs tracking-wide text-muted-foreground uppercase sm:pt-1">Carries</dt>
 				<dd className="flex flex-wrap gap-1.5">
 					{flow.carries.map((item) => (
-						<Badge key={item} variant="secondary">
+						// Long items must wrap on phones rather than widen the page.
+						<Badge key={item} variant="secondary" className="shrink whitespace-normal">
 							{item}
 						</Badge>
 					))}
@@ -50,11 +47,7 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 				<dt className="text-xs tracking-wide text-muted-foreground uppercase sm:pt-1">Mastered in</dt>
 				<dd className="flex flex-wrap items-center gap-1.5">
 					<Badge>{master.title}</Badge>
-					{!flow.master.confirmed && (
-						<Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300">
-							Unconfirmed
-						</Badge>
-					)}
+					{!flow.master.confirmed && <UnconfirmedBadge />}
 				</dd>
 			</dl>
 
@@ -88,100 +81,6 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 					</TableBody>
 				</Table>
 			</div>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Diagram
-// ---------------------------------------------------------------------------
-
-/** Split a route's hops into linear chains; a hop that doesn't continue the last one starts a branch. */
-function chains(hops: Hop[]): Hop[][] {
-	const result: Hop[][] = [];
-	for (const hop of hops) {
-		const current = result.at(-1);
-		if (current && current.at(-1)!.to === hop.from) current.push(hop);
-		else result.push([hop]);
-	}
-	return result;
-}
-
-function FlowNode({ id, opcos, planned }: { id: NodeId; opcos: string[]; planned: boolean }) {
-	const node = resolveNode(id, opcos);
-	return (
-		<div
-			className={cn(
-				'w-full max-w-xs rounded-lg bg-background px-3 py-2 text-center',
-				id === 'intershop' ? 'border-2 border-primary/40' : 'border',
-				planned && 'border-dashed'
-			)}
-		>
-			<div className="text-sm font-medium">{node.title}</div>
-			<div className="mt-1 flex justify-center">
-				{node.system ? (
-					<span className="text-xs text-muted-foreground">{node.system}</span>
-				) : (
-					<NotDocumented />
-				)}
-			</div>
-			{node.detail && <div className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{node.detail}</div>}
-		</div>
-	);
-}
-
-function hopLabel(hop: Hop): string | undefined {
-	if (hop.via === 'boomi') return 'via Boomi';
-	if (hop.status === 'planned') return 'Route not documented';
-	return undefined;
-}
-
-function Chain({ hops, opcos }: { hops: Hop[]; opcos: string[] }) {
-	return (
-		<div className="flex flex-col items-center">
-			<FlowNode id={hops[0].from} opcos={opcos} planned={false} />
-			{hops.map((hop) => (
-				<div key={`${hop.from}-${hop.to}`} className="flex w-full flex-col items-center">
-					<Connector label={hopLabel(hop)} planned={hop.status === 'planned'} />
-					<FlowNode id={hop.to} opcos={opcos} planned={false} />
-				</div>
-			))}
-		</div>
-	);
-}
-
-function RouteDiagram({ route }: { route: Route }) {
-	const parts = chains(route.hops);
-	const planned = route.hops.some((h) => h.status === 'planned');
-	return (
-		<div className={cn('rounded-xl bg-card p-4', planned ? 'border border-dashed' : 'border')}>
-			<div className="mb-3 flex flex-wrap items-center gap-2">
-				<span className="text-xs font-semibold tracking-wide text-foreground uppercase">{route.label}</span>
-				{planned && <PlannedBadge />}
-			</div>
-			<div className={cn('grid gap-6', parts.length > 1 && 'sm:grid-cols-2')}>
-				{parts.map((chain, i) => (
-					<div key={i}>
-						{i > 0 && (
-							<div className="mb-2 text-center text-xs text-muted-foreground">
-								Branch from {resolveNode(chain[0].from, route.opcos).title}
-							</div>
-						)}
-						<Chain hops={chain} opcos={route.opcos} />
-					</div>
-				))}
-			</div>
-		</div>
-	);
-}
-
-export function FlowDiagram({ flow: id }: { flow: FlowId }) {
-	const flow = getFlow(id);
-	return (
-		<div className="not-content space-y-4">
-			{flow.routes.map((route) => (
-				<RouteDiagram key={route.label} route={route} />
-			))}
 		</div>
 	);
 }
@@ -234,7 +133,10 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 								<Value value={hop.format} />
 							</TableCell>
 							<TableCell className="align-top">
-								{hop.status === 'planned' ? <PlannedBadge /> : <Badge variant="secondary">Live</Badge>}
+								<div className="flex flex-wrap gap-1">
+									{hop.status === 'planned' ? <PlannedBadge /> : <Badge variant="secondary">Live</Badge>}
+									{hop.unconfirmed && <UnconfirmedBadge />}
+								</div>
 							</TableCell>
 						</TableRow>
 					))}

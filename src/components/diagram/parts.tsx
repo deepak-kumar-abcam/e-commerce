@@ -80,3 +80,12 @@ export function PlannedBadge({ title }: { title?: string }) {
 		</Badge>
 	);
 }
+
+/** A fact recorded as described but not yet confirmed. */
+export function UnconfirmedBadge({ label = 'Unconfirmed' }: { label?: string }) {
+	return (
+		<Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300">
+			{label}
+		</Badge>
+	);
+}

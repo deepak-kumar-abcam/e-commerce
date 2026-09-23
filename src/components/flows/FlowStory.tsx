@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Database, FolderInput, Layers, Search, ShoppingCart, type LucideIcon } from 'lucide-react';
+import { Database, FolderInput, Layers, Search, ShoppingCart, TableProperties, Users, type LucideIcon } from 'lucide-react';
 
-import { NotDocumented } from '@/components/diagram/parts';
+import { NotDocumented, UnconfirmedBadge } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
 import { getFlow, resolveNode, type Hop, type NodeId } from '@/data/integrations';
 import { centralOpcos } from '@/data/platform';
@@ -18,6 +18,8 @@ import { flowStories, type FlowStoryLayout, type StoryIcon, type StoryNode } fro
 
 const icons: Record<StoryIcon, LucideIcon> = {
 	erp: Database,
+	crm: Users,
+	staging: TableProperties,
 	sftp: FolderInput,
 	pim: Layers,
 	commerce: ShoppingCart,
@@ -92,7 +94,13 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 			{layout.edges.map((edge) => {
 				if (!edge.labelAt) return null;
 				const hop = findHop(layout.flow, edge.hop.from, edge.hop.to);
-				const text = hop.status === 'planned' ? 'Planned' : hop.via === 'boomi' ? 'via Boomi' : 'via ?';
+				const text = hop.status === 'planned'
+					? 'Planned'
+					: hop.unconfirmed
+						? 'Unconfirmed'
+						: hop.via === 'boomi'
+							? 'via Boomi'
+							: 'via ?';
 				const stage = stageOf(edge.key, 'edge');
 				return (
 					<span
@@ -100,7 +108,8 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 						className={cn(
 							'absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-background px-1.5 py-px text-[0.65rem] whitespace-nowrap transition-colors duration-500',
 							stage === 'idle' ? 'text-muted-foreground' : 'border-primary/50 text-primary',
-							hop.status === 'planned' && 'border-dashed'
+							hop.status === 'planned' && 'border-dashed',
+							hop.unconfirmed && 'border-dashed border-amber-500/60 text-amber-700 dark:text-amber-300'
 						)}
 						style={{ left: pct(edge.labelAt.x, 400), top: pct(edge.labelAt.y, layout.height) }}
 					>
@@ -119,10 +128,12 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 						key={node.key}
 						className="absolute"
 						style={{ left: pct(node.x, 400), top: pct(node.y, layout.height) }}
+						title={node.ghost ? `${title}: not documented for this flow` : undefined}
 					>
 						<div
 							className={cn(
 								'absolute flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border bg-background transition-all duration-500',
+								node.ghost && 'border-dashed opacity-50',
 								stage === 'idle' && 'text-muted-foreground',
 								stage === 'reached' && 'border-primary/50 text-primary',
 								stage === 'active' && 'border-primary text-primary shadow-[0_0_0_5px] shadow-primary/15'
@@ -138,7 +149,10 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 								side === 'left' && 'right-8 -translate-y-1/2 text-right'
 							)}
 						>
-							<div className={cn('font-medium', stage === 'idle' ? 'text-muted-foreground' : 'text-foreground')}>{title}</div>
+							<div className={cn('font-medium', stage === 'idle' ? 'text-muted-foreground' : 'text-foreground')}>
+								{title}
+								{node.ghost && <span className="sr-only"> (not documented for this flow)</span>}
+							</div>
 							{/* Per-OpCo nodes sit too close together to name their system; step 1 lists them. */}
 							{!node.opco && (
 								<div className="text-muted-foreground">{system ?? <span className="italic">not documented</span>}</div>
@@ -192,6 +206,7 @@ function HopFacts({ hop, opcos }: { hop: Hop; opcos: string[] }) {
 			</FactRow>
 		);
 	}
+	const doubt = hop.unconfirmed && <UnconfirmedBadge key="unconfirmed" />;
 	const known = [
 		hop.via === 'boomi' && 'via Boomi',
 		hop.mechanism && (hop.mechanism === 'file' ? 'File' : 'API'),
@@ -206,6 +221,7 @@ function HopFacts({ hop, opcos }: { hop: Hop; opcos: string[] }) {
 	].filter(Boolean) as string[];
 	return (
 		<FactRow label={label} stacked>
+			{doubt}
 			{known.map(chip)}
 			{missing.length > 0 && <NotDocumented label={`Not documented: ${missing.join(', ')}`} />}
 		</FactRow>
@@ -280,14 +296,22 @@ export function FlowStory({ flow: flowId }: { flow: FlowId }) {
 							</h3>
 							<p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
 							<div className="mt-4">
-								{step.facts === 'erp-per-opco'
-									? centralOpcos
-											.filter((o) => opcos.includes(o.id))
-											.map((o) => (
+								{step.facts !== 'hops'
+									? centralOpcos.map((o) => {
+											const source = step.facts !== 'hops' && step.facts.source;
+											const system = source && resolveNode(source, [o.id]).system;
+											return (
 												<FactRow key={o.id} label={o.name}>
-													{o.orderBackend ? <Badge variant="secondary">{o.orderBackend.name}</Badge> : <NotDocumented />}
+													{!opcos.includes(o.id) ? (
+														<NotDocumented label="Route not documented" />
+													) : system ? (
+														<Badge variant="secondary">{system}</Badge>
+													) : (
+														<NotDocumented />
+													)}
 												</FactRow>
-											))
+											);
+										})
 									: hops.map((hop) => <HopFacts key={`${hop.from}-${hop.to}`} hop={hop} opcos={opcos} />)}
 							</div>
 						</li>

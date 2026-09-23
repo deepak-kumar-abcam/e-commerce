@@ -105,6 +105,8 @@ export interface Hop {
 	/** e.g. "CSV", "XML". */
 	format: string | null;
 	status: 'live' | 'planned';
+	/** Recorded as described but not yet confirmed; drawn with a question mark. */
+	unconfirmed?: boolean;
 	note?: string;
 }
 
@@ -152,11 +154,17 @@ const toSftp = (from: NodeId): Hop => hop(from, 'sftp', { mechanism: 'file' });
 const allCentral = centralOpcos.map((o) => o.id);
 const phxOnly = ['phenomenex'];
 
-/** The PHX route every CRM-sourced flow shares, per the integration notes. */
-const crmToIntershop = (start: NodeId[]): Hop[] => {
+/**
+ * The PHX route every CRM-sourced flow shares, per the integration notes.
+ * `unconfirmedErpHop` flags the ERP → CRM leg where the notes contradict
+ * themselves or haven't been checked.
+ */
+const crmToIntershop = (start: NodeId[], { unconfirmedErpHop = false } = {}): Hop[] => {
 	const chain: NodeId[] = [...start, 'webdb'];
 	return [
-		...chain.slice(1).map((to, i) => hop(chain[i], to)),
+		...chain
+			.slice(1)
+			.map((to, i) => hop(chain[i], to, chain[i] === 'erp' && unconfirmedErpHop ? { unconfirmed: true } : {})),
 		toSftp('webdb'),
 		hop('sftp', 'intershop', { via: 'boomi' }),
 	];
@@ -210,7 +218,9 @@ export const dataFlows: DataFlow[] = [
 		summary: 'Customer accounts, contacts, and addresses, from the CRM into Intershop.',
 		carries: ['Customer profiles', 'Contacts', 'Addresses'],
 		master: { node: 'crm', confirmed: false },
-		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm']) }],
+		routes: [
+			{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm'], { unconfirmedErpHop: true }) },
+		],
 		openQuestions: [
 			'Which system masters customer data? The integration notes say customers are created in the CRM, but the route they give starts in the ERP.',
 			'Which CRM does Phenomenex use?',
@@ -223,7 +233,9 @@ export const dataFlows: DataFlow[] = [
 		summary: 'Negotiated prices per customer, from the ERP into Intershop.',
 		carries: ['Customer-specific pricing agreements'],
 		master: { node: 'erp', confirmed: true },
-		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm']) }],
+		routes: [
+			{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm'], { unconfirmedErpHop: true }) },
+		],
 		openQuestions: [
 			'Does pricing really pass through the CRM? The notes give it the same route as customer data.',
 		],
