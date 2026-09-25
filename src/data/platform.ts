@@ -21,7 +21,30 @@ export type SystemCategory =
 export interface BackendSystem {
 	name: string;
 	category: SystemCategory;
+	/** A confirmed plan to replace it, e.g. "Salesforce". No date unless documented. */
+	migratingTo?: string;
 }
+
+/**
+ * A system an OpCo knowingly doesn't have, as opposed to one nobody has
+ * documented yet (`null`). Renders as "None", with the reason.
+ */
+export interface NotApplicable {
+	notApplicable: true;
+	reason: string;
+}
+
+/** An OpCo's system of a given kind: known, knowingly absent, or not documented. */
+export type SystemSlot = BackendSystem | NotApplicable | null;
+
+export const isNotApplicable = (slot: SystemSlot): slot is NotApplicable =>
+	slot !== null && 'notApplicable' in slot;
+
+/** The system, or `null` when it is absent or not documented. */
+export const systemOf = (slot: SystemSlot): BackendSystem | null =>
+	slot && !isNotApplicable(slot) ? slot : null;
+
+const none = (reason: string): NotApplicable => ({ notApplicable: true, reason });
 
 export type IntershopInstance = 'central' | 'own';
 
@@ -47,11 +70,11 @@ export interface OpCo {
 	managedBy: string;
 	identity: IdentityStatus | null;
 	/** Order management / ERP system that orders are handed off to. */
-	orderBackend: BackendSystem | null;
-	/** CRM that customer, quote, and segment data originate in. */
-	crm: BackendSystem | null;
-	paymentProvider: BackendSystem | null;
-	marketingPlatform: BackendSystem | null;
+	orderBackend: SystemSlot;
+	/** CRM that customer and segment data originate in. */
+	crm: SystemSlot;
+	paymentProvider: SystemSlot;
+	marketingPlatform: SystemSlot;
 	/** Regions live today. `null` until launch details are documented. */
 	regions: string[] | null;
 }
@@ -60,6 +83,7 @@ const PLATFORM_TEAM = 'Platform team';
 const OPCO_TEAM = 'OpCo team';
 const CENTRAL_VERSION = 'ICM 14.5';
 const auth0Live: IdentityStatus = { system: 'Auth0', status: 'live' };
+const salesforce: BackendSystem = { name: 'Salesforce', category: 'crm' };
 
 /** Every OpCo selling on Intershop, across all instances. */
 export const opcos: OpCo[] = [
@@ -71,9 +95,9 @@ export const opcos: OpCo[] = [
 		intershopVersion: CENTRAL_VERSION,
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
-		orderBackend: null,
-		crm: null,
-		paymentProvider: null,
+		orderBackend: none('No legal entity yet'),
+		crm: salesforce,
+		paymentProvider: none('No direct transactions'),
 		marketingPlatform: { name: 'Marketing Cloud', category: 'marketing' },
 		regions: null,
 	},
@@ -86,7 +110,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'Oracle', category: 'order' },
-		crm: null,
+		crm: salesforce,
 		paymentProvider: { name: 'Cybersource', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
 		regions: null,
@@ -100,7 +124,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'Microsoft Dynamics 365', category: 'order' },
-		crm: null,
+		crm: { name: 'Microsoft Dynamics CRM', category: 'crm', migratingTo: 'Salesforce' },
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
 		regions: null,
@@ -114,7 +138,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'SAP', category: 'order' },
-		crm: null,
+		crm: salesforce,
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Salesforce Pardot', category: 'marketing' },
 		regions: null,
@@ -182,6 +206,8 @@ export interface SharedService {
 	role: string;
 	detail: string;
 	category: SystemCategory;
+	/** Where it stands in a migration, shown as a badge. */
+	status?: string;
 }
 
 /**
@@ -205,11 +231,20 @@ export const sharedServices: SharedService[] = [
 	},
 	{
 		id: 'aem',
-		name: 'AEM',
+		name: 'AEM (traditional)',
 		role: 'Storefront & content',
 		detail:
-			'Adobe Experience Manager hosts each OpCo\'s storefront, checkout included, and manages its content and digital assets. Its components call Intershop\'s REST APIs directly.',
+			'Traditional Adobe Experience Manager. Serves the commerce pages, checkout included, and its components call Intershop\'s REST APIs directly. Which other pages remain here is not documented.',
 		category: 'content',
+		status: 'Migrating to EDS',
+	},
+	{
+		id: 'aem-eds',
+		name: 'AEM Edge Delivery Services',
+		role: 'Storefront & content',
+		detail: 'Serves the marketing pages that have moved so far. Every page is planned to move here.',
+		category: 'content',
+		status: 'Target for all pages',
 	},
 	{
 		id: 'inriver',
@@ -223,7 +258,8 @@ export const sharedServices: SharedService[] = [
 		id: 'coveo',
 		name: 'Coveo',
 		role: 'Search & recommendations',
-		detail: 'Product search results and recommendations, built from inRiver product data.',
+		detail:
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries. Indexes product data, fed directly from inRiver, and AEM content.',
 		category: 'search',
 	},
 	{
@@ -280,7 +316,7 @@ export const docSections: DocSection[] = [
 		title: 'Architecture Diagrams',
 		href: '/architecture/',
 		description:
-			'The systems around the central instance — AEM, Coveo, Auth0, inRiver, Boomi — and each OpCo\'s ERP, CRM, payment, and marketing platforms.',
+			'The systems around the central instance — AEM and Edge Delivery Services, Coveo, Auth0, inRiver, Boomi — and each OpCo\'s ERP, CRM, payment, and marketing platforms.',
 		status: 'in-progress',
 	},
 	{

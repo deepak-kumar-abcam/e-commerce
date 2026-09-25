@@ -1,4 +1,4 @@
-import type { DataFlow, NodeId } from '@/data/integrations';
+import { getFlow, type DataFlow, type NodeId } from '@/data/integrations';
 
 /**
  * Presentation for the scroll-driven flow stories: where each node sits in
@@ -79,6 +79,10 @@ const drop = (x1: number, y1: number, x2: number, y2: number) => curve(x1, y1 + 
 /** Below-circle labels take this much room, so curves leaving them start underneath. */
 const LABEL = 28;
 
+/** OpCos the product route is documented for; the rest are ghosts. */
+const productOpcos = getFlow('product-data').routes[0].opcos;
+const productErps = Object.entries(erpX).filter(([opco]) => productOpcos.includes(opco));
+
 export const productDataStory: FlowStoryLayout = {
 	flow: 'product-data',
 	height: 610,
@@ -90,6 +94,7 @@ export const productDataStory: FlowStoryLayout = {
 			icon: 'erp' as const,
 			x,
 			y: erpY,
+			ghost: !productOpcos.includes(opco),
 		})),
 		{ key: 'sftp', node: 'sftp', icon: 'sftp', ...sftp, label: 'right' },
 		{ key: 'inriver', node: 'inriver', icon: 'pim', ...inriver, label: 'right' },
@@ -97,7 +102,7 @@ export const productDataStory: FlowStoryLayout = {
 		{ key: 'coveo', node: 'coveo', icon: 'search', ...coveo },
 	],
 	edges: [
-		...Object.entries(erpX).map(([opco, x]) => ({
+		...productErps.map(([opco, x]) => ({
 			key: `erp-${opco}-sftp`,
 			hop: { from: 'erp', to: 'sftp' },
 			d: curve(x, erpY + R + LABEL, sftp.x, sftp.y - R),
@@ -131,8 +136,8 @@ export const productDataStory: FlowStoryLayout = {
 	steps: [
 		{
 			title: 'Created in each OpCo’s ERP',
-			body: 'SKUs, titles, and list prices start life in the operating company’s own ERP — a different system for each.',
-			nodes: Object.keys(erpX).map((opco) => `erp-${opco}`),
+			body: 'SKUs, titles, and list prices start life in the operating company’s own ERP — a different system for each. Danaher Life Sciences has no ERP yet, so where its products start is not documented.',
+			nodes: productErps.map(([opco]) => `erp-${opco}`),
 			edges: [],
 			facts: { source: 'erp' },
 		},
@@ -140,7 +145,7 @@ export const productDataStory: FlowStoryLayout = {
 			title: 'Dropped on the SFTP server',
 			body: 'Each ERP exports its product data as files to the Danaher Life Sciences SFTP server, the common landing point.',
 			nodes: ['sftp'],
-			edges: Object.keys(erpX).map((opco) => `erp-${opco}-sftp`),
+			edges: productErps.map(([opco]) => `erp-${opco}-sftp`),
 			facts: 'hops',
 		},
 		{
@@ -168,7 +173,7 @@ export const productDataStory: FlowStoryLayout = {
 };
 
 // ---------------------------------------------------------------------------
-// The CRM route: ERP or CRM → WebDB → SFTP → Intershop, documented for PHX
+// The WebDB route: ERP or CRM → WebDB → SFTP → Intershop, documented for PHX
 // ---------------------------------------------------------------------------
 
 interface StepCopy {
@@ -176,28 +181,31 @@ interface StepCopy {
 	body: string;
 }
 
-interface CrmRouteCopy {
+interface WebdbRouteCopy {
 	/** Step 1: where the data starts. */
 	source: StepCopy;
-	/** The ERP → CRM step, for routes that start in the ERP. */
+	/** The ERP → CRM step, for routes that pass through the CRM. */
 	toCrm?: StepCopy;
+	/** The WebDB → SFTP step, when it differs from the generic one. */
+	toSftp?: StepCopy;
 	/** The last step: loaded into Intershop. */
 	load: StepCopy;
 }
 
 /**
- * Build a story for a flow on the shared CRM route. The top row shows every
+ * Build a story for a flow on the shared WebDB route. The top row shows every
  * central-instance OpCo; those the flow isn't documented for are ghosts, so
- * the gap stays visible in the picture.
+ * the gap stays visible in the picture. `throughCrm` inserts the ERP → CRM leg.
  */
-function crmRouteStory(
+function webdbRouteStory(
 	flow: DataFlow['id'],
 	start: 'erp' | 'crm',
 	documentedFor: string,
-	copy: CrmRouteCopy
+	copy: WebdbRouteCopy,
+	{ throughCrm = false } = {}
 ): FlowStoryLayout {
 	const chain: { node: NodeId; icon: StoryIcon }[] = [
-		...(start === 'erp' ? [{ node: 'crm', icon: 'crm' as const }] : []),
+		...(throughCrm ? [{ node: 'crm', icon: 'crm' as const }] : []),
 		{ node: 'webdb', icon: 'staging' },
 		{ node: 'sftp', icon: 'sftp' },
 		{ node: 'intershop', icon: 'commerce' },
@@ -246,12 +254,13 @@ function crmRouteStory(
 	});
 
 	const edgeInto = (node: NodeId) => edges.find((e) => e.hop.to === node)!.key;
+	const feeder = throughCrm || start === 'crm' ? 'CRM' : 'ERP';
 	const generic: Partial<Record<string, StepCopy>> = {
 		webdb: {
 			title: 'Staged in WebDB',
-			body: 'WebDB, Phenomenex’s staging database, collects the data from the CRM before it is sent on.',
+			body: `WebDB, Phenomenex’s staging database, collects the data from the ${feeder} before it is sent on.`,
 		},
-		sftp: {
+		sftp: copy.toSftp ?? {
 			title: 'Dropped on the SFTP server',
 			body: 'WebDB exports it as files to the Danaher Life Sciences SFTP server — the same landing point the product feed uses.',
 		},
@@ -271,45 +280,55 @@ function crmRouteStory(
 
 export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 	'product-data': productDataStory,
-	'customer-data': crmRouteStory('customer-data', 'erp', 'phenomenex', {
-		source: {
-			title: 'Starts in the ERP',
-			body: 'The documented route begins in Phenomenex’s ERP — although customers are said to be created in the CRM. Which of the two masters them is not yet confirmed.',
+	'customer-data': webdbRouteStory(
+		'customer-data',
+		'erp',
+		'phenomenex',
+		{
+			source: {
+				title: 'Starts in the ERP',
+				body: 'The documented route begins in Phenomenex’s ERP — although customers are said to be created in the CRM. Which of the two masters them is not yet confirmed.',
+			},
+			toCrm: {
+				title: 'Passed to the CRM',
+				body: 'Customer profiles, contacts, and addresses move from the ERP to the CRM. This leg is recorded as described, not yet confirmed.',
+			},
+			load: {
+				title: 'Loaded into Intershop',
+				body: 'Boomi picks up the files and loads customer profiles, contacts, and addresses into Intershop.',
+			},
 		},
-		toCrm: {
-			title: 'Passed to the CRM',
-			body: 'Customer profiles, contacts, and addresses move from the ERP to the CRM. This leg is recorded as described, not yet confirmed.',
-		},
-		load: {
-			title: 'Loaded into Intershop',
-			body: 'Boomi picks up the files and loads customer profiles, contacts, and addresses into Intershop.',
-		},
-	}),
-	'customer-pricing': crmRouteStory('customer-pricing', 'erp', 'phenomenex', {
+		{ throughCrm: true }
+	),
+	'customer-pricing': webdbRouteStory('customer-pricing', 'erp', 'phenomenex', {
 		source: {
 			title: 'Agreed in the ERP',
 			body: 'Customer-specific pricing agreements are created in Phenomenex’s ERP.',
 		},
-		toCrm: {
-			title: 'Passed to the CRM',
-			body: 'The integration notes route pricing through the CRM, the same path as customer data. Whether it really goes that way is not yet confirmed.',
+		toSftp: {
+			title: 'Pushed to the SFTP server',
+			body: 'A scheduled job — one per data type — exports the prices from WebDB as files to the Danaher Life Sciences SFTP server.',
 		},
 		load: {
 			title: 'Loaded into Intershop',
 			body: 'Boomi picks up the files and loads each customer’s negotiated prices into Intershop.',
 		},
 	}),
-	quotes: crmRouteStory('quotes', 'crm', 'phenomenex', {
+	quotes: webdbRouteStory('quotes', 'erp', 'phenomenex', {
 		source: {
-			title: 'Raised in the CRM',
-			body: 'Quotes — their details, quoted prices, and the customer — are created in Phenomenex’s CRM.',
+			title: 'Created in the ERP',
+			body: 'Quotes — their details, quoted prices, and the customer — are created in Phenomenex’s ERP.',
+		},
+		toSftp: {
+			title: 'Pushed to the SFTP server',
+			body: 'A scheduled job — one per data type — exports the quotes from WebDB as files to the Danaher Life Sciences SFTP server.',
 		},
 		load: {
 			title: 'Loaded into Intershop',
 			body: 'Boomi picks up the files and loads the quotes into Intershop for use in the storefront.',
 		},
 	}),
-	'customer-segments': crmRouteStory('customer-segments', 'crm', 'phenomenex', {
+	'customer-segments': webdbRouteStory('customer-segments', 'crm', 'phenomenex', {
 		source: {
 			title: 'Maintained in the CRM',
 			body: 'Market lists group customers by demographics, purchase history, and behaviour. They are maintained in Phenomenex’s CRM.',

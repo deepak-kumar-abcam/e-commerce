@@ -15,7 +15,7 @@
  */
 
 export const evaluationMeta = {
-	asOf: '2026-09-23',
+	asOf: '2026-09-25',
 	owner: 'Platform team',
 	nextReview: '2026-12-18',
 	/** What the comparison covers: the central instance only, not the wider estate. */
@@ -861,9 +861,11 @@ export const integrationRows: ComparisonRow[] = [
 	{
 		id: 'aem',
 		capability: 'AEM front end',
-		why: 'AEM components call Intershop REST APIs directly today.',
+		why: 'AEM components call Intershop REST APIs directly today, and pages are moving from traditional AEM to Edge Delivery Services.',
 		critical: true,
-		intershop: production('AEM components call Intershop REST APIs directly, with no intermediate API layer.'),
+		intershop: production(
+			'Traditional AEM components call Intershop REST APIs directly, with no intermediate API layer; checkout still runs there. Marketing pages have moved to AEM Edge Delivery Services, where every page is planned to move. Whether Edge Delivery Services pages call Intershop is not documented.'
+		),
 		commercetools: {
 			rating: 'custom',
 			summary:
@@ -920,7 +922,7 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'coveo',
 		capability: 'Coveo (search and recommendations)',
 		intershop: production(
-			'Coveo is fed product data from inRiver. Whether it reads anything from Intershop is not documented.'
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries. Indexes product data, fed directly from inRiver, and AEM content. Whether it reads anything from Intershop is not documented.'
 		),
 		commercetools: {
 			rating: 'unknown',

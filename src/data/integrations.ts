@@ -9,7 +9,14 @@
  * question in `openQuestions` instead of resolving it silently.
  */
 
-import { centralOpcos, sharedServices, type OpCo, type SystemCategory } from './platform';
+import {
+	centralOpcos,
+	isNotApplicable,
+	sharedServices,
+	type OpCo,
+	type SystemCategory,
+	type SystemSlot,
+} from './platform';
 
 // ---------------------------------------------------------------------------
 // Systems
@@ -21,6 +28,8 @@ export interface IntegrationSystem {
 	role: string;
 	detail: string;
 	category: SystemCategory;
+	/** Where it stands in a migration, shown as a badge. */
+	status?: string;
 	/** OpCo ids that use it; `null` = shared by every central-instance OpCo. */
 	opcos: string[] | null;
 }
@@ -39,7 +48,8 @@ const plumbing: IntegrationSystem[] = [
 		id: 'webdb',
 		name: 'WebDB',
 		role: 'Staging database',
-		detail: 'Stages customer, pricing, quote, and segment data from the CRM before it is sent on.',
+		detail:
+			'Stages customer-specific pricing and quotes from the ERP, and customer and segment data from the CRM, then sends them to the SFTP server as files.',
 		category: 'integration',
 		opcos: ['phenomenex'],
 	},
@@ -65,9 +75,13 @@ export interface ResolvedNode {
 	perOpco: boolean;
 }
 
-const opcoRoles: Record<'erp' | 'crm', { title: string; pick: (o: OpCo) => string | null }> = {
-	erp: { title: 'ERP', pick: (o) => o.orderBackend?.name ?? null },
-	crm: { title: 'CRM', pick: (o) => o.crm?.name ?? null },
+/** The system's name, "None" when the OpCo knowingly has none, or `null` when not documented. */
+const slotName = (slot: SystemSlot): string | null =>
+	slot === null ? null : isNotApplicable(slot) ? `None (${slot.reason.toLowerCase()})` : slot.name;
+
+const opcoRoles: Record<'erp' | 'crm', { title: string; pick: (o: OpCo) => SystemSlot }> = {
+	erp: { title: 'ERP', pick: (o) => o.orderBackend },
+	crm: { title: 'CRM', pick: (o) => o.crm },
 };
 
 /**
@@ -79,9 +93,9 @@ export function resolveNode(id: NodeId, opcoIds: string[]): ResolvedNode {
 		const role = opcoRoles[id];
 		const covered = centralOpcos.filter((o) => opcoIds.includes(o.id));
 		if (covered.length === 1) {
-			return { title: role.title, system: role.pick(covered[0]), perOpco: true };
+			return { title: role.title, system: slotName(role.pick(covered[0])), perOpco: true };
 		}
-		const detail = covered.map((o) => `${o.short}: ${role.pick(o) ?? 'not documented'}`).join(' · ');
+		const detail = covered.map((o) => `${o.short}: ${slotName(role.pick(o)) ?? 'not documented'}`).join(' · ');
 		return { title: role.title, system: 'One per OpCo', detail, perOpco: true };
 	}
 	const system = integrationSystems.find((s) => s.id === id);
@@ -96,8 +110,8 @@ export function resolveNode(id: NodeId, opcoIds: string[]): ResolvedNode {
 export interface Hop {
 	from: NodeId;
 	to: NodeId;
-	/** `boomi` = carried by a Boomi process; `null` = not documented. */
-	via: 'boomi' | null;
+	/** `boomi` = carried by a Boomi process; `direct` = no middleware; `null` = not documented. */
+	via: 'boomi' | 'direct' | null;
 	/** How data moves on this hop. */
 	mechanism: 'file' | 'api' | null;
 	/** e.g. "Nightly", "Real-time". */
@@ -152,20 +166,26 @@ const hop = (from: NodeId, to: NodeId, extra: Partial<Hop> = {}): Hop => ({
 const toSftp = (from: NodeId): Hop => hop(from, 'sftp', { mechanism: 'file' });
 
 const allCentral = centralOpcos.map((o) => o.id);
+/** OpCos with an ERP. DHLS has none yet, so product data can't start in one. */
+const withErp = centralOpcos.filter((o) => !isNotApplicable(o.orderBackend)).map((o) => o.id);
 const phxOnly = ['phenomenex'];
 
 /**
- * The PHX route every CRM-sourced flow shares, per the integration notes.
- * `unconfirmedErpHop` flags the ERP → CRM leg where the notes contradict
- * themselves or haven't been checked.
+ * The PHX route through WebDB, which every flow except product data takes:
+ * from the ERP or CRM into WebDB, then as files to the SFTP server for Boomi.
+ * `unconfirmedErpHop` flags an ERP → CRM leg where the notes contradict
+ * themselves or haven't been checked; `scheduled` marks WebDB's per-data-type
+ * scheduled export.
  */
-const crmToIntershop = (start: NodeId[], { unconfirmedErpHop = false } = {}): Hop[] => {
+const viaWebdb = (start: NodeId[], { unconfirmedErpHop = false, scheduled = false } = {}): Hop[] => {
 	const chain: NodeId[] = [...start, 'webdb'];
 	return [
 		...chain
 			.slice(1)
 			.map((to, i) => hop(chain[i], to, chain[i] === 'erp' && unconfirmedErpHop ? { unconfirmed: true } : {})),
-		toSftp('webdb'),
+		scheduled
+			? hop('webdb', 'sftp', { mechanism: 'file', note: 'Pushed by a scheduled job, one per data type.' })
+			: toSftp('webdb'),
 		hop('sftp', 'intershop', { via: 'boomi' }),
 	];
 };
@@ -182,7 +202,7 @@ export const dataFlows: DataFlow[] = [
 		routes: [
 			{
 				label: 'Current route',
-				opcos: allCentral,
+				opcos: withErp,
 				hops: [
 					toSftp('erp'),
 					hop('sftp', 'inriver', { via: 'boomi', note: 'inRiver enriches the ERP data.' }),
@@ -190,12 +210,12 @@ export const dataFlows: DataFlow[] = [
 						via: 'boomi',
 						note: 'Carries list prices as well as product data.',
 					}),
-					hop('inriver', 'coveo', { note: 'Whether this runs through Boomi is not documented.' }),
+					hop('inriver', 'coveo', { via: 'direct', note: 'inRiver feeds Coveo directly, not through Boomi.' }),
 				],
 			},
 			{
 				label: 'List prices, planned',
-				opcos: allCentral,
+				opcos: withErp,
 				hops: [
 					hop('erp', 'intershop', {
 						status: 'planned',
@@ -206,7 +226,7 @@ export const dataFlows: DataFlow[] = [
 		],
 		variations: Object.fromEntries(allCentral.map((id) => [id, null])),
 		openQuestions: [
-			'Does Coveo receive product data from inRiver directly or through Boomi, and does it also index AEM content?',
+			'Danaher Life Sciences has no ERP yet (no legal entity). Where do its products originate?',
 			'Does inRiver feed AEM? The platform evaluation says the PIM feeds AEM as well as Intershop; the integration notes mention only Intershop and Coveo.',
 			'Where will list prices come from once they leave inRiver, and when?',
 		],
@@ -219,11 +239,10 @@ export const dataFlows: DataFlow[] = [
 		carries: ['Customer profiles', 'Contacts', 'Addresses'],
 		master: { node: 'crm', confirmed: false },
 		routes: [
-			{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm'], { unconfirmedErpHop: true }) },
+			{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp', 'crm'], { unconfirmedErpHop: true }) },
 		],
 		openQuestions: [
 			'Which system masters customer data? The integration notes say customers are created in the CRM, but the route they give starts in the ERP.',
-			'Which CRM does Phenomenex use?',
 		],
 	},
 	{
@@ -233,22 +252,24 @@ export const dataFlows: DataFlow[] = [
 		summary: 'Negotiated prices per customer, from the ERP into Intershop.',
 		carries: ['Customer-specific pricing agreements'],
 		master: { node: 'erp', confirmed: true },
-		routes: [
-			{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['erp', 'crm'], { unconfirmedErpHop: true }) },
-		],
+		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) }],
 		openQuestions: [
-			'Does pricing really pass through the CRM? The notes give it the same route as customer data.',
+			'How do customer-specific prices reach Intershop from the SCIEX (Oracle) and Leica Microsystems (SAP) ERPs?',
+			'How often does WebDB’s scheduled job run, and what file format does it write?',
 		],
 	},
 	{
 		id: 'quotes',
 		title: 'Quotes',
 		href: '/flows/quotes/',
-		summary: 'Quotes raised in the CRM, made available to customers in Intershop.',
+		summary: 'Quotes from the ERP, made available to customers in Intershop.',
 		carries: ['Quote details', 'Quoted prices', 'Customer'],
-		master: { node: 'crm', confirmed: true },
-		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['crm']) }],
-		openQuestions: [],
+		master: { node: 'erp', confirmed: true },
+		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) }],
+		openQuestions: [
+			'How do quotes reach Intershop from the SCIEX (Oracle) and Leica Microsystems (SAP) ERPs?',
+			'How often does WebDB’s scheduled job run, and what file format does it write?',
+		],
 	},
 	{
 		id: 'customer-segments',
@@ -257,7 +278,7 @@ export const dataFlows: DataFlow[] = [
 		summary: 'Market lists from the CRM, used to target customers in Intershop.',
 		carries: ['Segment membership (demographics, purchase history, behaviour)'],
 		master: { node: 'crm', confirmed: true },
-		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: crmToIntershop(['crm']) }],
+		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['crm']) }],
 		openQuestions: [],
 	},
 ];

@@ -90,6 +90,7 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 // ---------------------------------------------------------------------------
 
 const mechanismLabel = { file: 'File', api: 'API' } as const;
+const viaLabel = { boomi: 'Boomi', direct: 'Direct' } as const;
 
 export function FlowHops({ flow: id }: { flow: FlowId }) {
 	const flow = getFlow(id);
@@ -121,7 +122,7 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 								)}
 							</TableCell>
 							<TableCell className="align-top">
-								<Value value={hop.via === 'boomi' ? 'Boomi' : null} />
+								<Value value={hop.via && viaLabel[hop.via]} />
 							</TableCell>
 							<TableCell className="align-top">
 								<Value value={hop.mechanism && mechanismLabel[hop.mechanism]} />

@@ -100,7 +100,9 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 						? 'Unconfirmed'
 						: hop.via === 'boomi'
 							? 'via Boomi'
-							: 'via ?';
+							: hop.via === 'direct'
+								? 'Direct'
+								: 'via ?';
 				const stage = stageOf(edge.key, 'edge');
 				return (
 					<span
@@ -209,6 +211,7 @@ function HopFacts({ hop, opcos }: { hop: Hop; opcos: string[] }) {
 	const doubt = hop.unconfirmed && <UnconfirmedBadge key="unconfirmed" />;
 	const known = [
 		hop.via === 'boomi' && 'via Boomi',
+		hop.via === 'direct' && 'Direct',
 		hop.mechanism && (hop.mechanism === 'file' ? 'File' : 'API'),
 		hop.frequency,
 		hop.format,

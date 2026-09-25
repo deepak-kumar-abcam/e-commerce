@@ -1,6 +1,6 @@
 ---
 title: Architecture Diagrams
-description: The systems around the central Intershop instance — storefront, search, identity, product information, integration, and each OpCo's systems of record.
+description: The systems around the central Intershop instance — AEM and Edge Delivery Services, search, identity, product information, integration, and each OpCo's systems of record.
 ---
 
 import { ArchitectureMap } from '@/components/architecture/ArchitectureMap';
@@ -15,20 +15,34 @@ operating company on it and run by the platform team. This page maps them; the
 
 ## How it fits together
 
-- **AEM is the storefront.** Intershop hosts no customer-facing pages. Each OpCo's storefront,
-  checkout included, is built in Adobe Experience Manager, whose components call Intershop's REST
-  APIs directly. Customers sign in through the central Auth0 tenant.
+- **AEM is the storefront, in two parts.** Intershop hosts no customer-facing pages. Marketing pages
+  have moved to **AEM Edge Delivery Services**; checkout and the other commerce pages still run on
+  **traditional AEM**, whose components call Intershop's REST APIs directly. Every page is planned
+  to move to Edge Delivery Services. Customers sign in through the central Auth0 tenant.
+- **Search runs in the page.** AEM pages load Coveo through the Coveo Headless and Atomic libraries.
+  Coveo indexes product data, fed directly by inRiver, and AEM content.
 - **Commerce consumes data it doesn't own.** Products are created in each OpCo's ERP and enriched in
-  inRiver, the central PIM, before they reach Intershop and Coveo. Customers, customer-specific
-  prices, quotes, and segments come from the ERP and CRM. See the [flow diagrams](/flows/).
-- **Inbound data travels as files.** ERPs and, for Phenomenex, WebDB drop files on the Danaher Life
-  Sciences SFTP server; Boomi picks them up and delivers them to inRiver and Intershop.
+  inRiver, the central PIM, before they reach Intershop and Coveo. Customer-specific prices and
+  quotes come from the ERP; customers and segments from the CRM. See the [flow diagrams](/flows/).
+- **Inbound data travels as files.** ERPs drop files on the Danaher Life Sciences SFTP server. For
+  Phenomenex, pricing, quotes, customers, and segments are staged in WebDB first, which sends them
+  on to the SFTP server — pricing and quotes on scheduled jobs, one per data type. Boomi picks the files up and delivers them to inRiver and
+  Intershop.
 - **Everything behind the sale differs per OpCo.** Orders go to each OpCo's own ERP, payment runs
-  through its own provider, and campaigns through its own marketing platform.
+  through its own provider, and campaigns through its own marketing platform. Danaher Life Sciences
+  has **no ERP** yet, because no legal entity has been established, and **takes no payments**,
+  because it doesn't transact directly.
+- **CRM is converging on Salesforce.** Danaher Life Sciences, SCIEX, and Leica Microsystems use
+  Salesforce; Phenomenex uses Microsoft Dynamics CRM and plans to move to Salesforce.
 
 ## Not yet documented
 
 - The **outbound flows**: orders from Intershop to each ERP, payment authorisation, and Auth0
   sign-in and registration.
-- Each OpCo's **CRM**.
-- Whether **inRiver feeds AEM**, and whether **Coveo** indexes AEM content as well as product data.
+- Which pages beyond marketing and checkout run on which AEM, and whether **Edge Delivery Services
+  pages call Intershop or Auth0** directly.
+- How **AEM content reaches Coveo**: crawled, or pushed.
+- Whether **inRiver feeds AEM**, or AEM pages get product content only from Coveo and Intershop.
+- How customer-specific prices and quotes reach Intershop for **SCIEX and Leica Microsystems**.
+- Where **Danaher Life Sciences' products** originate, with no ERP.
+- Whether the OpCos on Salesforce share **one org or have one each**, and when Phenomenex moves.

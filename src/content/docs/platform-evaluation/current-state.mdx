@@ -25,7 +25,9 @@ the evaluation's terms — except where marked as not yet documented.
   major release, so there is no upgrade backlog behind the comparison.
 - **Headless.** Intershop hosts no customer-facing pages. **Adobe Experience Manager (AEM)** is the
   front end for every OpCo on the instance — marketing site and product catalog alike — and its components call
-  Intershop's REST APIs **directly**, with no API layer in between.
+  Intershop's REST APIs **directly**, with no API layer in between. Marketing pages have moved to
+  AEM **Edge Delivery Services**, and checkout still runs on traditional AEM; every page is planned
+  to move to Edge Delivery Services.
 - **ERP integrations live inside the codebase.** Orders reach Microsoft Dynamics 365 (Phenomenex),
   SAP (Leica Microsystems), and Oracle (SCIEX) through Java cartridges in the shared Intershop
   codebase.

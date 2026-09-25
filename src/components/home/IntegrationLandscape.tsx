@@ -1,5 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { Connector, Layer } from '@/components/diagram/parts';
+import { Connector, Layer, SystemValue } from '@/components/diagram/parts';
 import { centralOpcos } from '@/data/platform';
 
 /**
@@ -26,17 +25,17 @@ const backendGroups = [
 	{
 		title: 'Order management',
 		caption: 'One per operating company',
-		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.orderBackend?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.orderBackend })),
 	},
 	{
 		title: 'Payment',
 		caption: 'Two providers, shared',
-		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.paymentProvider?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.paymentProvider })),
 	},
 	{
 		title: 'Marketing automation',
 		caption: 'Campaign & lead data',
-		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.marketingPlatform?.name ?? null })),
+		rows: centralOpcos.map((o) => ({ opco: o.short, system: o.marketingPlatform })),
 	},
 ];
 
@@ -82,13 +81,7 @@ export function IntegrationLandscape() {
 								{group.rows.map((row) => (
 									<li key={row.opco} className="flex items-center justify-between gap-2 text-sm">
 										<span className="text-muted-foreground">{row.opco}</span>
-										{row.system ? (
-											<Badge variant="secondary">{row.system}</Badge>
-										) : (
-											<Badge variant="outline" className="text-muted-foreground">
-												Not documented
-											</Badge>
-										)}
+										<SystemValue slot={row.system} />
 									</li>
 								))}
 							</ul>

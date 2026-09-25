@@ -8,8 +8,9 @@ sidebar:
 import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
 import { FlowStory } from '@/components/flows/FlowStory';
 
-Customer-specific pricing agreements are created in the ERP and reach Intershop along the same route
-as customer data. The route below is documented for **Phenomenex** only.
+Customer-specific pricing agreements are created in the ERP and staged in WebDB, which pushes them
+to the SFTP server on a scheduled job for Boomi to load into Intershop. The route below is
+documented for **Phenomenex** only.
 
 ## At a glance
 
