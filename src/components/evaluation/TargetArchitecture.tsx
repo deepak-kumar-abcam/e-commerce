@@ -1,3 +1,4 @@
+import { Connector, Layer } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
 import { centralOpcos } from '@/data/platform';
 import { cn } from '@/lib/utils';
@@ -7,33 +8,6 @@ import { cn } from '@/lib/utils';
  * Store per OpCo. Components we would have to build are drawn dashed, so the
  * build scope is visible in the picture itself.
  */
-
-function Layer({
-	label,
-	caption,
-	children,
-	tone = 'default',
-}: {
-	label: string;
-	caption?: string;
-	children: React.ReactNode;
-	tone?: 'default' | 'core';
-}) {
-	return (
-		<div
-			className={cn(
-				'rounded-xl p-4',
-				tone === 'core' ? 'border-2 border-primary/40 bg-primary/5' : 'border bg-card'
-			)}
-		>
-			<div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-				<span className="text-xs font-semibold tracking-wide text-foreground uppercase">{label}</span>
-				{caption && <span className="text-xs text-muted-foreground">{caption}</span>}
-			</div>
-			{children}
-		</div>
-	);
-}
 
 type NodeKind = 'existing' | 'platform' | 'build' | 'partner';
 
@@ -57,22 +31,6 @@ function Node({
 		<div className={cn('rounded-lg px-3 py-2', kindStyles[kind])}>
 			<div className="text-sm font-medium">{title}</div>
 			{detail && <div className="mt-0.5 text-xs leading-snug text-muted-foreground">{detail}</div>}
-		</div>
-	);
-}
-
-/** `up` flips the arrow, for data that flows up the stack (e.g. the PIM feed). */
-function Connector({ label, up = false }: { label?: string; up?: boolean }) {
-	return (
-		<div className={cn('flex flex-col items-center py-1.5', up && 'flex-col-reverse')} aria-hidden="true">
-			<div className="h-3 w-px bg-border" />
-			{label && (
-				<span className="my-1 text-[0.7rem] tracking-wide text-muted-foreground uppercase">{label}</span>
-			)}
-			<div className="h-3 w-px bg-border" />
-			<svg width="9" height="6" viewBox="0 0 9 6" className={cn('fill-border', up && 'rotate-180')}>
-				<path d="M4.5 6 0 0h9z" />
-			</svg>
 		</div>
 	);
 }
@@ -176,8 +134,8 @@ export function TargetArchitecture() {
 
 			<Layer label="Upstream" caption="Unchanged — product data is mastered before commerce">
 				<div className="grid gap-2 sm:grid-cols-2">
-					<Node title="ERP → PIM" detail="Product master. The PIM product in use is not yet documented." />
-					<Node title="Import API" detail="PIM feed re-pointed at commercetools." kind="platform" />
+					<Node title="ERP → inRiver" detail="Product master, delivered by Boomi." />
+					<Node title="Import API" detail="inRiver feed re-pointed at commercetools." kind="platform" />
 				</div>
 			</Layer>
 		</div>

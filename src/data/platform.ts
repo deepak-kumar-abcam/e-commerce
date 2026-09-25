@@ -6,7 +6,17 @@
  * of silently reading as complete.
  */
 
-export type SystemCategory = 'order' | 'payment' | 'marketing' | 'identity' | 'commerce';
+export type SystemCategory =
+	| 'order'
+	| 'crm'
+	| 'payment'
+	| 'marketing'
+	| 'identity'
+	| 'commerce'
+	| 'content'
+	| 'pim'
+	| 'search'
+	| 'integration';
 
 export interface BackendSystem {
 	name: string;
@@ -38,6 +48,8 @@ export interface OpCo {
 	identity: IdentityStatus | null;
 	/** Order management / ERP system that orders are handed off to. */
 	orderBackend: BackendSystem | null;
+	/** CRM that customer, quote, and segment data originate in. */
+	crm: BackendSystem | null;
 	paymentProvider: BackendSystem | null;
 	marketingPlatform: BackendSystem | null;
 	/** Regions live today. `null` until launch details are documented. */
@@ -60,6 +72,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: null,
+		crm: null,
 		paymentProvider: null,
 		marketingPlatform: { name: 'Marketing Cloud', category: 'marketing' },
 		regions: null,
@@ -73,6 +86,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'Oracle', category: 'order' },
+		crm: null,
 		paymentProvider: { name: 'Cybersource', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
 		regions: null,
@@ -86,6 +100,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'Microsoft Dynamics 365', category: 'order' },
+		crm: null,
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
 		regions: null,
@@ -99,6 +114,7 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'SAP', category: 'order' },
+		crm: null,
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Salesforce Pardot', category: 'marketing' },
 		regions: null,
@@ -112,6 +128,7 @@ export const opcos: OpCo[] = [
 		managedBy: OPCO_TEAM,
 		identity: null,
 		orderBackend: null,
+		crm: null,
 		paymentProvider: null,
 		marketingPlatform: null,
 		regions: null,
@@ -129,6 +146,7 @@ export const opcos: OpCo[] = [
 			note: 'Joining the same Auth0 tenant as the central-instance OpCos.',
 		},
 		orderBackend: null,
+		crm: null,
 		paymentProvider: null,
 		marketingPlatform: null,
 		regions: null,
@@ -142,6 +160,7 @@ export const opcos: OpCo[] = [
 		managedBy: OPCO_TEAM,
 		identity: null,
 		orderBackend: null,
+		crm: null,
 		paymentProvider: null,
 		marketingPlatform: null,
 		regions: null,
@@ -157,19 +176,63 @@ export const separateOpcos = opcos.filter((o) => o.instance === 'own');
 /** Distinct Intershop instances: the central one plus one per separate OpCo. */
 export const instanceCount = 1 + separateOpcos.length;
 
-/** Services shared by every OpCo on the central instance. */
-export const sharedServices = [
+export interface SharedService {
+	id: string;
+	name: string;
+	role: string;
+	detail: string;
+	category: SystemCategory;
+}
+
+/**
+ * Services shared by every OpCo on the central instance, all run by the
+ * platform team. How data moves between them is in `integrations.ts`.
+ */
+export const sharedServices: SharedService[] = [
 	{
+		id: 'intershop',
 		name: 'Intershop',
 		role: 'Commerce platform',
 		detail: 'One centrally managed instance serving the central-instance OpCos.',
-		category: 'commerce' as SystemCategory,
+		category: 'commerce',
 	},
 	{
+		id: 'auth0',
 		name: 'Auth0',
 		role: 'CIAM & single sign-on',
 		detail: 'Central customer identity tenant, shared by the central-instance OpCos.',
-		category: 'identity' as SystemCategory,
+		category: 'identity',
+	},
+	{
+		id: 'aem',
+		name: 'AEM',
+		role: 'Storefront & content',
+		detail:
+			'Adobe Experience Manager hosts each OpCo\'s storefront, checkout included, and manages its content and digital assets. Its components call Intershop\'s REST APIs directly.',
+		category: 'content',
+	},
+	{
+		id: 'inriver',
+		name: 'inRiver',
+		role: 'Product information (PIM)',
+		detail:
+			'Single source of truth for product data: enriches what the ERPs send and feeds Intershop and Coveo. Also holds some list prices today, which are being moved out.',
+		category: 'pim',
+	},
+	{
+		id: 'coveo',
+		name: 'Coveo',
+		role: 'Search & recommendations',
+		detail: 'Product search results and recommendations, built from inRiver product data.',
+		category: 'search',
+	},
+	{
+		id: 'boomi',
+		name: 'Boomi',
+		role: 'Integration platform',
+		detail:
+			'Picks up files from the Danaher Life Sciences SFTP server and delivers them to inRiver and Intershop.',
+		category: 'integration',
 	},
 ];
 
@@ -217,8 +280,8 @@ export const docSections: DocSection[] = [
 		title: 'Architecture Diagrams',
 		href: '/architecture/',
 		description:
-			'How the platform is structured and where it sits relative to the ERP, payment, identity, and marketing systems around it.',
-		status: 'planned',
+			'The systems around the central instance — AEM, Coveo, Auth0, inRiver, Boomi — and each OpCo\'s ERP, CRM, payment, and marketing platforms.',
+		status: 'in-progress',
 	},
 	{
 		title: 'Low-Level Design',
@@ -231,8 +294,8 @@ export const docSections: DocSection[] = [
 		title: 'Flow Diagrams',
 		href: '/flows/',
 		description:
-			'Step-by-step journeys such as order capture, payment authorisation, and customer registration, annotated per system.',
-		status: 'planned',
+			'How product, customer, pricing, quote, and segment data reach Intershop, hop by hop — with order and payment journeys to follow.',
+		status: 'in-progress',
 	},
 ];
 

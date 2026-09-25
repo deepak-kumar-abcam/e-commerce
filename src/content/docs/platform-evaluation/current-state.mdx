@@ -29,9 +29,15 @@ the evaluation's terms — except where marked as not yet documented.
 - **ERP integrations live inside the codebase.** Orders reach Microsoft Dynamics 365 (Phenomenex),
   SAP (Leica Microsystems), and Oracle (SCIEX) through Java cartridges in the shared Intershop
   codebase.
-- **Product data is mastered upstream.** The ERPs feed a PIM, which feeds AEM and Intershop.
-  Commerce consumes product data rather than owning it.
-- **Shared services.** Auth0 provides central sign-on for every OpCo on the instance. Payments run through Stripe
+- **Product data is mastered upstream.** The ERPs feed **inRiver**, the central PIM, which
+  enriches it and feeds Intershop and Coveo. Files travel through the Danaher Life Sciences SFTP
+  server and **Boomi**. Commerce consumes product data, and some list prices, rather than owning
+  them. See the [product data flow](/flows/product-data/).
+- **Customer data arrives the same way.** For Phenomenex, customers, customer-specific prices,
+  quotes, and segments come from the ERP and CRM through WebDB, the SFTP server, and Boomi.
+- **Shared services.** Auth0 provides central sign-on for every OpCo on the instance, and **Coveo**
+  provides search and recommendations. The full set is on the
+  [architecture diagrams](/architecture/). Payments run through Stripe
   (Phenomenex, Leica Microsystems) and Cybersource (SCIEX).
 
 ## How it is run
@@ -79,7 +85,9 @@ B2B usage.
 
 ## Not yet documented
 
-- Which **PIM** product is in use, and exactly how it feeds AEM and Intershop.
+- Whether **inRiver feeds AEM**. Earlier notes for this evaluation said the PIM feeds both AEM and
+  Intershop; the platform team's integration notes describe feeds to Intershop and Coveo only.
+- Where **list prices** will come from once they move out of inRiver.
 - Which **B2B features** each OpCo relies on — see the
   [usage checklist](/platform-evaluation/b2b/#which-opcos-use-what).
 - The **order backend and payment provider** for Danaher Life Sciences.

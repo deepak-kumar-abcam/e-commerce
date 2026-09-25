@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { Connector, Layer } from '@/components/diagram/parts';
 import { centralOpcos } from '@/data/platform';
 
 /**
@@ -6,34 +7,6 @@ import { centralOpcos } from '@/data/platform';
  * storefronts, identity, and the single Intershop instance) sits above the
  * systems that differ per operating company.
  */
-
-function Layer({
-	label,
-	caption,
-	children,
-	tone = 'default',
-}: {
-	label: string;
-	caption?: string;
-	children: React.ReactNode;
-	tone?: 'default' | 'core';
-}) {
-	return (
-		<div
-			className={
-				tone === 'core'
-					? 'rounded-xl border-2 border-primary/40 bg-primary/5 p-4'
-					: 'rounded-xl border bg-card p-4'
-			}
-		>
-			<div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-				<span className="text-xs font-semibold tracking-wide text-foreground uppercase">{label}</span>
-				{caption && <span className="text-xs text-muted-foreground">{caption}</span>}
-			</div>
-			{children}
-		</div>
-	);
-}
 
 function Node({ children, emphasis = false }: { children: React.ReactNode; emphasis?: boolean }) {
 	return (
@@ -45,24 +18,6 @@ function Node({ children, emphasis = false }: { children: React.ReactNode; empha
 			}
 		>
 			{children}
-		</div>
-	);
-}
-
-/** Vertical connector between layers, so the stack reads as a flow. */
-function Connector({ label }: { label?: string }) {
-	return (
-		<div className="flex flex-col items-center py-1.5" aria-hidden="true">
-			<div className="h-3 w-px bg-border" />
-			{label && (
-				<span className="my-1 text-[0.7rem] tracking-wide text-muted-foreground uppercase">
-					{label}
-				</span>
-			)}
-			<div className="h-3 w-px bg-border" />
-			<svg width="9" height="6" viewBox="0 0 9 6" className="fill-border">
-				<path d="M4.5 6 0 0h9z" />
-			</svg>
 		</div>
 	);
 }
