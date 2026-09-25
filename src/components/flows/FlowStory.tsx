@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Database, FolderInput, Layers, Search, ShoppingCart, TableProperties, Users, type LucideIcon } from 'lucide-react';
+import {
+	Database,
+	FileCheck,
+	FolderInput,
+	Layers,
+	Search,
+	ShoppingCart,
+	TableProperties,
+	UserCog,
+	Users,
+	type LucideIcon,
+} from 'lucide-react';
 
 import { NotDocumented, UnconfirmedBadge } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +35,8 @@ const icons: Record<StoryIcon, LucideIcon> = {
 	pim: Layers,
 	commerce: ShoppingCart,
 	search: Search,
+	order: FileCheck,
+	team: UserCog,
 };
 
 type FlowId = FlowStoryLayout['flow'];
@@ -66,7 +79,8 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 				</defs>
 				{layout.edges.map((edge) => {
 					const stage = stageOf(edge.key, 'edge');
-					const planned = findHop(layout.flow, edge.hop.from, edge.hop.to).status === 'planned';
+					const hop = findHop(layout.flow, edge.hop.from, edge.hop.to);
+					const planned = hop.status === 'planned';
 					return (
 						<g key={edge.key}>
 							{/* Faint track, always visible, so the whole route reads before it's drawn. */}
@@ -76,6 +90,7 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 								fill="none"
 								pathLength={1}
 								markerEnd={stage === 'idle' ? undefined : 'url(#flow-arrow)'}
+								markerStart={stage !== 'idle' && hop.sync ? 'url(#flow-arrow)' : undefined}
 								className={cn(
 									'stroke-primary transition-[stroke-dashoffset,opacity] duration-700 ease-out motion-reduce:transition-none',
 									stage === 'active' ? 'opacity-100' : 'opacity-60'
@@ -98,11 +113,15 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 					? 'Planned'
 					: hop.unconfirmed
 						? 'Unconfirmed'
-						: hop.via === 'boomi'
-							? 'via Boomi'
-							: hop.via === 'direct'
-								? 'Direct'
-								: 'via ?';
+						: hop.sync
+							? 'Request / response'
+							: hop.mechanism === 'batch'
+								? 'Batch job'
+								: hop.via === 'boomi'
+									? 'via Boomi'
+									: hop.via === 'direct'
+										? hop.mechanism === 'api' ? 'Direct API' : 'Direct'
+										: 'via ?';
 				const stage = stageOf(edge.key, 'edge');
 				return (
 					<span
@@ -212,7 +231,8 @@ function HopFacts({ hop, opcos }: { hop: Hop; opcos: string[] }) {
 	const known = [
 		hop.via === 'boomi' && 'via Boomi',
 		hop.via === 'direct' && 'Direct',
-		hop.mechanism && (hop.mechanism === 'file' ? 'File' : 'API'),
+		hop.mechanism && { file: 'File', api: 'API', batch: 'Batch job' }[hop.mechanism],
+		hop.sync && 'Request/response',
 		hop.frequency,
 		hop.format,
 	].filter(Boolean) as string[];

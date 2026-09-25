@@ -330,7 +330,7 @@ export const docSections: DocSection[] = [
 		title: 'Flow Diagrams',
 		href: '/flows/',
 		description:
-			'How product, customer, pricing, quote, and segment data reach Intershop, hop by hop — with order and payment journeys to follow.',
+			'How product, customer, pricing, quote, and segment data reach Intershop, and how orders reach the ERP, hop by hop — with payment and sign-in journeys to follow.',
 		status: 'in-progress',
 	},
 ];

@@ -9,7 +9,7 @@ import { getFlow, type DataFlow, type NodeId } from '@/data/integrations';
  * Coordinates are in a 400-wide viewBox; `height` sets its aspect ratio.
  */
 
-export type StoryIcon = 'erp' | 'crm' | 'staging' | 'sftp' | 'pim' | 'commerce' | 'search';
+export type StoryIcon = 'erp' | 'crm' | 'staging' | 'sftp' | 'pim' | 'commerce' | 'search' | 'order' | 'team';
 
 export interface StoryNode {
 	key: string;
@@ -278,8 +278,103 @@ function webdbRouteStory(
 	return { flow, height: ys.at(-1)! + 70, nodes, edges, steps };
 }
 
+// ---------------------------------------------------------------------------
+// Orders, documented for PHX: simulated at checkout, then through the ERP
+// ---------------------------------------------------------------------------
+
+const ord = {
+	intershop: { x: 150, y: 60 },
+	erp: { x: 310, y: 60 },
+	preorder: { x: 150, y: 250 },
+	booking: { x: 310, y: 350 },
+	sales: { x: 150, y: 480 },
+};
+
+export const ordersStory: FlowStoryLayout = {
+	flow: 'orders',
+	height: 550,
+	nodes: [
+		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...ord.intershop, label: 'left' },
+		{ key: 'erp', node: 'erp', icon: 'erp', ...ord.erp },
+		{ key: 'preorder', node: 'preorder', icon: 'staging', ...ord.preorder, label: 'left' },
+		{ key: 'order-booking', node: 'order-booking', icon: 'team', ...ord.booking },
+		{ key: 'sales-order', node: 'sales-order', icon: 'order', ...ord.sales, label: 'left' },
+	],
+	edges: [
+		{
+			key: 'intershop-erp',
+			hop: { from: 'intershop', to: 'erp' },
+			d: `M${ord.intershop.x + R},${ord.intershop.y} L${ord.erp.x - R},${ord.erp.y}`,
+			labelAt: { x: 230, y: 16 },
+		},
+		{
+			key: 'intershop-preorder',
+			hop: { from: 'intershop', to: 'preorder' },
+			d: drop(ord.intershop.x, ord.intershop.y, ord.preorder.x, ord.preorder.y),
+			labelAt: { x: 150, y: 155 },
+		},
+		{
+			key: 'preorder-sales-order',
+			hop: { from: 'preorder', to: 'sales-order' },
+			d: drop(ord.preorder.x, ord.preorder.y, ord.sales.x, ord.sales.y),
+			labelAt: { x: 150, y: 365 },
+		},
+		{
+			key: 'preorder-order-booking',
+			hop: { from: 'preorder', to: 'order-booking' },
+			// Out of the pre-order table's side, down into the team.
+			d: `M${ord.preorder.x + R},${ord.preorder.y} C${ord.booking.x},${ord.preorder.y} ${ord.booking.x},${ord.preorder.y} ${ord.booking.x},${ord.booking.y - R}`,
+		},
+		{
+			key: 'order-booking-sales-order',
+			hop: { from: 'order-booking', to: 'sales-order' },
+			// From under the team's label, back into the sales order's side.
+			d: `M${ord.booking.x},${ord.booking.y + R + LABEL} C${ord.booking.x},${ord.sales.y} ${ord.booking.x},${ord.sales.y} ${ord.sales.x + R},${ord.sales.y}`,
+			labelAt: { x: 240, y: 478 },
+		},
+	],
+	steps: [
+		{
+			title: 'Checked against the ERP at checkout',
+			body: 'During checkout, Intershop calls Phenomenex’s ERP — Order Simulate — and gets back tax, shipping, and an estimated delivery date. If the customer’s account has a block in the ERP, they can’t place the order.',
+			nodes: ['intershop', 'erp'],
+			edges: ['intershop-erp'],
+			facts: 'hops',
+		},
+		{
+			title: 'Created in the pre-order table',
+			body: 'When the customer places the order, Intershop creates it directly in the ERP — no Boomi, no files. It lands in a pre-order table.',
+			nodes: ['preorder'],
+			edges: ['intershop-preorder'],
+			facts: 'hops',
+		},
+		{
+			title: 'Converted to a sales order',
+			body: 'A batch job in the ERP converts pre-orders into sales orders, which the ERP then fulfils.',
+			nodes: ['sales-order'],
+			edges: ['preorder-sales-order'],
+			facts: 'hops',
+		},
+		{
+			title: 'Or flagged for the order booking team',
+			body: 'If information is missing — for example, the customer is new and not yet in the ERP — the order is flagged in the ERP for the order booking team to resolve by hand.',
+			nodes: ['order-booking'],
+			edges: ['preorder-order-booking'],
+			facts: 'hops',
+		},
+		{
+			title: 'Resolved, then processed',
+			body: 'Once the team has resolved it, the order goes on to become a sales order. This leg is recorded as described, not yet confirmed.',
+			nodes: ['sales-order'],
+			edges: ['order-booking-sales-order'],
+			facts: 'hops',
+		},
+	],
+};
+
 export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 	'product-data': productDataStory,
+	orders: ordersStory,
 	'customer-data': webdbRouteStory(
 		'customer-data',
 		'erp',

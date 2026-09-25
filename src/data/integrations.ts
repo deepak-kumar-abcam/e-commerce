@@ -61,6 +61,40 @@ export const integrationSystems: IntegrationSystem[] = [
 ];
 
 /**
+ * Stages inside Phenomenex's ERP that an order passes through. Not systems in
+ * their own right, so flows can name them but the architecture map doesn't.
+ */
+const erpStages: IntegrationSystem[] = [
+	{
+		id: 'preorder',
+		name: 'Pre-order table',
+		role: 'In the ERP',
+		detail: 'Where orders from Intershop land in the ERP, until the batch job converts them.',
+		category: 'order',
+		opcos: ['phenomenex'],
+	},
+	{
+		id: 'sales-order',
+		name: 'Sales order',
+		role: 'In the ERP',
+		detail: 'The order as the ERP fulfils it.',
+		category: 'order',
+		opcos: ['phenomenex'],
+	},
+	{
+		id: 'order-booking',
+		name: 'Order booking team',
+		role: 'Manual intervention',
+		detail: 'Resolves orders flagged in the ERP for missing information.',
+		category: 'order',
+		opcos: ['phenomenex'],
+	},
+];
+
+/** Everything a flow step can name besides an OpCo's own ERP or CRM. */
+const flowNodes = [...integrationSystems, ...erpStages];
+
+/**
  * A step in a flow: a shared system by id, or an OpCo's own ERP or CRM, which
  * resolves per OpCo from `platform.ts`.
  */
@@ -98,7 +132,7 @@ export function resolveNode(id: NodeId, opcoIds: string[]): ResolvedNode {
 		const detail = covered.map((o) => `${o.short}: ${slotName(role.pick(o)) ?? 'not documented'}`).join(' · ');
 		return { title: role.title, system: 'One per OpCo', detail, perOpco: true };
 	}
-	const system = integrationSystems.find((s) => s.id === id);
+	const system = flowNodes.find((s) => s.id === id);
 	if (!system) throw new Error(`Unknown integration system "${id}"`);
 	return { title: system.name, system: system.role, perOpco: false };
 }
@@ -112,8 +146,10 @@ export interface Hop {
 	to: NodeId;
 	/** `boomi` = carried by a Boomi process; `direct` = no middleware; `null` = not documented. */
 	via: 'boomi' | 'direct' | null;
-	/** How data moves on this hop. */
-	mechanism: 'file' | 'api' | null;
+	/** How data moves on this hop. `batch` = a scheduled job inside one system. */
+	mechanism: 'file' | 'api' | 'batch' | null;
+	/** A synchronous call whose response the caller waits for; drawn with arrows both ways. */
+	sync?: boolean;
 	/** e.g. "Nightly", "Real-time". */
 	frequency: string | null;
 	/** e.g. "CSV", "XML". */
@@ -133,7 +169,9 @@ export interface Route {
 }
 
 export interface DataFlow {
-	id: 'product-data' | 'customer-data' | 'customer-pricing' | 'quotes' | 'customer-segments';
+	id: 'product-data' | 'customer-data' | 'customer-pricing' | 'quotes' | 'customer-segments' | 'orders';
+	/** `inbound` = into Intershop from the systems that own the data; `outbound` = from Intershop. */
+	direction: 'inbound' | 'outbound';
 	title: string;
 	href: string;
 	summary: string;
@@ -141,6 +179,8 @@ export interface DataFlow {
 	carries: string[];
 	/** Where the data is created and owned. */
 	master: { node: NodeId; confirmed: boolean };
+	/** OpCos this flow knowingly doesn't apply to, with the reason. */
+	notApplicable?: Record<string, string>;
 	routes: Route[];
 	/**
 	 * How each central-instance OpCo's route differs from the one documented.
@@ -193,6 +233,7 @@ const viaWebdb = (start: NodeId[], { unconfirmedErpHop = false, scheduled = fals
 export const dataFlows: DataFlow[] = [
 	{
 		id: 'product-data',
+		direction: 'inbound',
 		title: 'Product data',
 		href: '/flows/product-data/',
 		summary:
@@ -233,6 +274,7 @@ export const dataFlows: DataFlow[] = [
 	},
 	{
 		id: 'customer-data',
+		direction: 'inbound',
 		title: 'Customer data',
 		href: '/flows/customer-data/',
 		summary: 'Customer accounts, contacts, and addresses, from the CRM into Intershop.',
@@ -247,6 +289,7 @@ export const dataFlows: DataFlow[] = [
 	},
 	{
 		id: 'customer-pricing',
+		direction: 'inbound',
 		title: 'Customer-specific pricing',
 		href: '/flows/customer-pricing/',
 		summary: 'Negotiated prices per customer, from the ERP into Intershop.',
@@ -260,6 +303,7 @@ export const dataFlows: DataFlow[] = [
 	},
 	{
 		id: 'quotes',
+		direction: 'inbound',
 		title: 'Quotes',
 		href: '/flows/quotes/',
 		summary: 'Quotes from the ERP, made available to customers in Intershop.',
@@ -273,6 +317,7 @@ export const dataFlows: DataFlow[] = [
 	},
 	{
 		id: 'customer-segments',
+		direction: 'inbound',
 		title: 'Customer segments',
 		href: '/flows/customer-segments/',
 		summary: 'Market lists from the CRM, used to target customers in Intershop.',
@@ -280,6 +325,68 @@ export const dataFlows: DataFlow[] = [
 		master: { node: 'crm', confirmed: true },
 		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['crm']) }],
 		openQuestions: [],
+	},
+	{
+		id: 'orders',
+		direction: 'outbound',
+		title: 'Orders',
+		href: '/flows/orders/',
+		summary:
+			'Checked against the ERP during checkout, then created directly in it and converted to a sales order.',
+		carries: [
+			'Orders',
+			'Tax, shipping, and estimated delivery date (from Order Simulate)',
+			'Account blocks (from Order Simulate)',
+		],
+		master: { node: 'intershop', confirmed: true },
+		notApplicable: { 'danaher-life-sciences': 'No direct transactions' },
+		routes: [
+			{
+				label: 'Phenomenex',
+				opcos: phxOnly,
+				hops: [
+					hop('intershop', 'erp', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'During checkout',
+						note: 'Order Simulate: returns tax, shipping, and an estimated delivery date, and stops the order if the account has a block in the ERP.',
+					}),
+					hop('intershop', 'preorder', {
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'Real-time, on submit',
+						note: 'Intershop creates the order directly in the ERP.',
+					}),
+					hop('preorder', 'sales-order', {
+						via: 'direct',
+						mechanism: 'batch',
+						note: 'A batch job converts pre-orders to sales orders.',
+					}),
+					hop('preorder', 'order-booking', {
+						via: 'direct',
+						note: 'Flagged for manual intervention when information is missing, e.g. a new customer not yet in the ERP.',
+					}),
+					hop('order-booking', 'sales-order', {
+						via: 'direct',
+						unconfirmed: true,
+						note: 'Once resolved, the order goes on to become a sales order.',
+					}),
+				],
+			},
+		],
+		openQuestions: [
+			'When is Order Simulate called: on entering checkout, on each address or shipping change, or at final review?',
+			'If Order Simulate fails or times out, can the customer still place the order?',
+			'Which kinds of ERP block stop an order, and what does the customer see?',
+			'Is the ERP’s tax final on the order? Is shipping a cost, a choice of options, or both? Is the delivery date per order or per line?',
+			'Does the ERP return anything when the order is created, such as an order number, and how are failed calls retried?',
+			'How often does the batch job run?',
+			'Besides a new customer, what flags an order for manual intervention?',
+			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
+			'Where does Stripe payment authorisation sit relative to Order Simulate and order creation? Payment will be documented as its own flow.',
+			'How do SCIEX (Oracle) and Leica Microsystems (SAP) orders reach their ERPs?',
+		],
 	},
 ];
 

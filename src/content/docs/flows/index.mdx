@@ -1,6 +1,6 @@
 ---
 title: Flow Diagrams
-description: How product, customer, pricing, quote, and segment data reach the central Intershop instance, hop by hop.
+description: How product, customer, pricing, quote, and segment data reach the central Intershop instance, and how orders leave it, hop by hop.
 sidebar:
   label: Overview
   order: 0
@@ -8,16 +8,23 @@ sidebar:
 
 import { FlowIndex } from '@/components/flows/DataFlow';
 
-How data reaches the central instance from the systems that own it. Each flow names the system the
-data is mastered in, every hop it takes, and which operating companies it has been documented for.
-The [architecture diagrams](/architecture/) show the same systems as one map.
+How data reaches the central instance from the systems that own it, and how orders leave it. Each
+flow names the system the data starts in, every hop it takes, and which operating companies it has
+been documented for. The [architecture diagrams](/architecture/) show the same systems as one map.
 
-<FlowIndex />
+## Inbound
+
+<FlowIndex direction="inbound" />
+
+## Outbound
+
+<FlowIndex direction="outbound" />
 
 ## Reading the diagrams
 
 - **Solid arrows** are live today; **dashed** ones are planned changes.
-- **"via Boomi"** marks a hop carried by a Boomi process.
+- **"via Boomi"** marks a hop carried by a Boomi process; **"Direct"** one with no middleware.
+- **Arrows at both ends** mark a request/response call, whose answer the caller waits for.
 - **Unconfirmed** marks a hop recorded as described but not yet checked.
 - Faded, dashed circles are operating companies the flow is not yet documented for.
 - Anything not yet confirmed — a system, a schedule, a format — is marked **Not documented** rather
@@ -25,5 +32,5 @@ The [architecture diagrams](/architecture/) show the same systems as one map.
 
 ## Still to come
 
-Outbound journeys — order capture, payment authorisation, and customer registration and sign-on —
+The remaining outbound journeys — payment authorisation, and customer registration and sign-on —
 will be added here.

@@ -77,7 +77,11 @@ export function ArchitectureMap() {
 
 			<Connector label="REST APIs, called directly by traditional AEM" />
 
-			<Layer label="Commerce" caption="Central Intershop instance, managed by the platform team" tone="core">
+			<Layer
+				label="Commerce"
+				caption="Central Intershop instance, managed by the platform team. Calls each OpCo's ERP directly for orders, and for PHX to simulate them at checkout"
+				tone="core"
+			>
 				<System id="intershop" emphasis />
 			</Layer>
 
