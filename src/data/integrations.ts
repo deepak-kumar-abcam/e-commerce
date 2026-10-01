@@ -547,7 +547,7 @@ export const dataFlows: DataFlow[] = [
 						mechanism: 'api',
 						sync: true,
 						frequency: 'At checkout',
-						note: 'The checkout page renders Cybersource’s card fields in an iframe with the Microform library. Cybersource checks the card and returns a short-lived token with the masked card details. Cards are offered in the US and Canada only.',
+						note: 'Uses Intershop’s Cybersource connector. The checkout page renders Cybersource’s card fields in an iframe with the Microform library. Cybersource checks the card and returns a short-lived token with the masked card details. Cards are offered in the US and Canada only.',
 					}),
 					hop('aem', 'intershop', {
 						via: 'direct',
@@ -589,8 +589,6 @@ export const dataFlows: DataFlow[] = [
 			},
 		],
 		openQuestions: [
-			'Where does an uploaded purchase order document go when a customer pays by invoice?',
-			'Is the Cybersource integration also built by the platform team?',
 		],
 	},
 ];

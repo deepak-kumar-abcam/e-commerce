@@ -827,7 +827,7 @@ export const b2bRows: ComparisonRow[] = [
 		id: 'po-payment',
 		capability: 'Purchase order and invoice payment',
 		intershop: production(
-			'Pay by invoice is in production for every OpCo that takes orders: the customer gives a purchase order number and can upload the purchase order document.'
+			'Pay by invoice is in production for every OpCo that takes orders: the customer gives a purchase order number and can upload the purchase order document, which is sent to the ERP with the order.'
 		),
 		commercetools: {
 			rating: 'configurable',
@@ -946,7 +946,7 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'stripe',
 		capability: 'Stripe (Phenomenex, Leica)',
 		intershop: production(
-			'In production for Phenomenex and Leica Microsystems, built by the platform team rather than on Intershop’s Stripe connector.'
+			'In production for Phenomenex and Leica Microsystems, built by the platform team because Intershop’s Stripe connector doesn’t support saving cards with SetupIntents.'
 		),
 		commercetools: {
 			rating: 'partner',
@@ -958,7 +958,7 @@ export const integrationRows: ComparisonRow[] = [
 	{
 		id: 'cybersource',
 		capability: 'Cybersource (SCIEX)',
-		intershop: production('In production for SCIEX.'),
+		intershop: production('In production for SCIEX, on Intershop’s Cybersource connector.'),
 		commercetools: {
 			rating: 'partner',
 			summary: 'Listed on the commercetools marketplace; who maintains the connector was not confirmed.',
