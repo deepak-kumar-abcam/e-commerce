@@ -15,7 +15,7 @@
  */
 
 export const evaluationMeta = {
-	asOf: '2026-09-25',
+	asOf: '2026-10-01',
 	owner: 'Platform team',
 	nextReview: '2026-12-18',
 	/** What the comparison covers: the central instance only, not the wider estate. */
@@ -826,12 +826,9 @@ export const b2bRows: ComparisonRow[] = [
 	{
 		id: 'po-payment',
 		capability: 'Purchase order and invoice payment',
-		intershop: {
-			rating: 'unknown',
-			summary: 'Not confirmed from public sources.',
-			evidence: 'unconfirmed',
-			sources: [],
-		},
+		intershop: production(
+			'Pay by invoice is in production for every OpCo that takes orders: the customer gives a purchase order number and can upload the purchase order document.'
+		),
 		commercetools: {
 			rating: 'configurable',
 			summary: 'A purchase-order number field on carts went GA in Q1 2026; invoice settlement would sit with the ERP.',
@@ -948,7 +945,9 @@ export const integrationRows: ComparisonRow[] = [
 	{
 		id: 'stripe',
 		capability: 'Stripe (Phenomenex, Leica)',
-		intershop: production('In production for Phenomenex and Leica Microsystems.'),
+		intershop: production(
+			'In production for Phenomenex and Leica Microsystems, built by the platform team rather than on Intershop’s Stripe connector.'
+		),
 		commercetools: {
 			rating: 'partner',
 			summary: 'Official Stripe connector for Connect and Checkout, maintained by Stripe.',

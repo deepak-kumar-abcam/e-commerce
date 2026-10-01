@@ -9,7 +9,18 @@ import { getFlow, type DataFlow, type NodeId } from '@/data/integrations';
  * Coordinates are in a 400-wide viewBox; `height` sets its aspect ratio.
  */
 
-export type StoryIcon = 'erp' | 'crm' | 'staging' | 'sftp' | 'pim' | 'commerce' | 'search' | 'order' | 'team';
+export type StoryIcon =
+	| 'erp'
+	| 'crm'
+	| 'staging'
+	| 'sftp'
+	| 'pim'
+	| 'commerce'
+	| 'search'
+	| 'order'
+	| 'team'
+	| 'payment'
+	| 'storefront';
 
 export interface StoryNode {
 	key: string;
@@ -28,8 +39,8 @@ export interface StoryNode {
 
 export interface StoryEdge {
 	key: string;
-	/** The hop this curve draws, looked up in the flow's routes. */
-	hop: { from: NodeId; to: NodeId };
+	/** The hop this curve draws, looked up in the flow's routes; `key` when two hops share ends. */
+	hop: { from: NodeId; to: NodeId; key?: string };
 	/** SVG path in viewBox coordinates. */
 	d: string;
 	/** Optional label position on the curve. */
@@ -372,7 +383,174 @@ export const ordersStory: FlowStoryLayout = {
 	],
 };
 
+// ---------------------------------------------------------------------------
+// Payments: Stripe on the left (PHX, LMS), Cybersource on the right (SCIEX)
+// ---------------------------------------------------------------------------
+
+const pay = {
+	aem: { x: 210, y: 60 },
+	stripe: { x: 50, y: 240 },
+	intershop: { x: 210, y: 240 },
+	cybersource: { x: 370, y: 240 },
+	phx: { x: 105, y: 470 },
+	service: { x: 210, y: 470 },
+	sciex: { x: 340, y: 470 },
+	finance: { x: 40, y: 600 },
+};
+
+/**
+ * Where curves leave a node from under its two-line label. More room than
+ * `LABEL`, since this diagram is tall and so drawn at a smaller scale.
+ */
+const under = (n: { x: number; y: number }) => n.y + 85;
+
+export const paymentsStory: FlowStoryLayout = {
+	flow: 'payments',
+	height: 670,
+	nodes: [
+		{ key: 'aem', node: 'aem', icon: 'storefront', ...pay.aem },
+		{ key: 'stripe', node: 'stripe', icon: 'payment', ...pay.stripe },
+		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...pay.intershop },
+		{ key: 'cybersource', node: 'cybersource', icon: 'payment', ...pay.cybersource },
+		{ key: 'erp-phx', node: 'erp', opco: 'phenomenex', icon: 'erp', ...pay.phx },
+		{ key: 'lms-customer-service', node: 'lms-customer-service', icon: 'team', ...pay.service },
+		{ key: 'erp-sciex', node: 'erp', opco: 'sciex', icon: 'erp', ...pay.sciex },
+		{ key: 'lms-finance', node: 'lms-finance', icon: 'team', ...pay.finance },
+	],
+	edges: [
+		{
+			key: 'intershop-stripe-prepare',
+			hop: { from: 'intershop', to: 'stripe', key: 'prepare' },
+			d: `M${pay.intershop.x - R},${pay.intershop.y} L${pay.stripe.x + R},${pay.stripe.y}`,
+		},
+		{
+			key: 'aem-stripe',
+			hop: { from: 'aem', to: 'stripe' },
+			d: curve(pay.aem.x, under(pay.aem), pay.stripe.x, pay.stripe.y - R),
+		},
+		{
+			key: 'aem-cybersource',
+			hop: { from: 'aem', to: 'cybersource' },
+			d: curve(pay.aem.x, under(pay.aem), pay.cybersource.x, pay.cybersource.y - R),
+		},
+		{
+			key: 'aem-intershop',
+			hop: { from: 'aem', to: 'intershop' },
+			d: `M${pay.aem.x},${under(pay.aem)} L${pay.intershop.x},${pay.intershop.y - R}`,
+		},
+		{
+			key: 'intershop-stripe-authorise',
+			hop: { from: 'intershop', to: 'stripe', key: 'authorise' },
+			// Arcs over the checkout call between the same two systems.
+			d: `M${pay.intershop.x - 18},${pay.intershop.y - 13} Q130,190 ${pay.stripe.x + 16},${pay.stripe.y - 13}`,
+		},
+		{
+			key: 'intershop-cybersource-token',
+			hop: { from: 'intershop', to: 'cybersource', key: 'token' },
+			d: `M${pay.intershop.x + R},${pay.intershop.y} L${pay.cybersource.x - R},${pay.cybersource.y}`,
+		},
+		{
+			key: 'intershop-cybersource-authorise',
+			hop: { from: 'intershop', to: 'cybersource', key: 'authorise' },
+			d: `M${pay.intershop.x + 18},${pay.intershop.y - 13} Q290,190 ${pay.cybersource.x - 16},${pay.cybersource.y - 13}`,
+		},
+		{
+			key: 'intershop-erp-phx',
+			hop: { from: 'intershop', to: 'erp', key: 'phx-order' },
+			d: `M${pay.intershop.x},${under(pay.intershop)} C190,360 160,${pay.phx.y} ${pay.phx.x + R},${pay.phx.y}`,
+		},
+		{
+			key: 'intershop-service',
+			hop: { from: 'intershop', to: 'lms-customer-service' },
+			d: `M${pay.intershop.x},${under(pay.intershop)} L${pay.service.x},${pay.service.y - R}`,
+			labelAt: { x: pay.intershop.x, y: 395 },
+		},
+		{
+			key: 'intershop-erp-sciex',
+			hop: { from: 'intershop', to: 'erp', key: 'sciex-order' },
+			d: `M${pay.intershop.x},${under(pay.intershop)} C230,360 280,${pay.sciex.y} ${pay.sciex.x - R},${pay.sciex.y}`,
+		},
+		{
+			key: 'erp-phx-stripe',
+			hop: { from: 'erp', to: 'stripe' },
+			// Lands beside the finance team's curve, under Stripe's label.
+			d: curve(pay.phx.x, pay.phx.y - R, pay.stripe.x + 12, under(pay.stripe)),
+			labelAt: { x: 84, y: 395 },
+		},
+		{
+			key: 'erp-sciex-cybersource',
+			hop: { from: 'erp', to: 'cybersource' },
+			d: curve(pay.sciex.x, pay.sciex.y - R, pay.cybersource.x, under(pay.cybersource)),
+			labelAt: { x: 355, y: 395 },
+		},
+		{
+			key: 'service-finance',
+			hop: { from: 'lms-customer-service', to: 'lms-finance' },
+			d: `M${pay.service.x},${under(pay.service)} C${pay.service.x},${pay.finance.y} 150,${pay.finance.y} ${pay.finance.x + R},${pay.finance.y}`,
+			labelAt: { x: 160, y: 590 },
+		},
+		{
+			key: 'finance-stripe',
+			hop: { from: 'lms-finance', to: 'stripe' },
+			d: curve(pay.finance.x, pay.finance.y - R, pay.stripe.x - 8, under(pay.stripe)),
+			labelAt: { x: 43, y: 500 },
+		},
+	],
+	steps: [
+		{
+			title: 'Stripe’s payment form prepared',
+			body: 'For Phenomenex and Leica Microsystems, Intershop begins checkout by creating a Stripe SetupIntent, whose key renders Stripe’s payment form. Returning customers are shown the cards they saved before, fetched from Stripe. The integration is the platform team’s own, configured per sales channel in Intershop managed services.',
+			nodes: ['intershop', 'stripe'],
+			edges: ['intershop-stripe-prepare'],
+			facts: 'hops',
+		},
+		{
+			title: 'Card entered in the provider’s iframe',
+			body: 'The checkout page in AEM renders the provider’s own card form in an iframe — Stripe.js for Stripe, Microform for Cybersource — so the card goes to the provider. Stripe checks it, with 3-D Secure for customers in the EU and Australia, and saves it to the customer. Cybersource checks it and returns a short-lived token with the masked card details.',
+			nodes: ['aem', 'stripe', 'cybersource'],
+			edges: ['aem-stripe', 'aem-cybersource'],
+			facts: 'hops',
+		},
+		{
+			title: 'SCIEX cards saved in Intershop',
+			body: 'Stripe keeps saved cards itself. For SCIEX, the short-lived token goes to Intershop’s PaymentInstruments API. Intershop exchanges it with Cybersource for a stored token and saves that with the last four digits, expiry, and cardholder name, so the customer can use the card again.',
+			nodes: ['intershop', 'cybersource'],
+			edges: ['aem-intershop', 'intershop-cybersource-token'],
+			facts: 'hops',
+		},
+		{
+			title: 'Authorised when the order is placed',
+			body: 'When the customer places the order, Intershop has Stripe authorise the order total, tax and shipping included, with manual capture: a hold on the card, not yet a charge. SCIEX orders get a $0.10 authorisation instead. If the provider declines, the order can’t be placed.',
+			nodes: ['stripe', 'cybersource'],
+			edges: ['intershop-stripe-authorise', 'intershop-cybersource-authorise'],
+			facts: 'hops',
+		},
+		{
+			title: 'Handed on with the order',
+			body: 'Phenomenex and SCIEX create the order in their ERP through its REST API, and the payment travels in the same payload: the Stripe IDs for Phenomenex, the card details and stored token for SCIEX. Leica Microsystems orders land in the customer service team’s queue.',
+			nodes: ['erp-phx', 'lms-customer-service', 'erp-sciex'],
+			edges: ['intershop-erp-phx', 'intershop-service', 'intershop-erp-sciex'],
+			facts: 'hops',
+		},
+		{
+			title: 'Captured by the ERP on invoice',
+			body: 'When an order is invoiced, Phenomenex’s ERP captures through Stripe — less than authorised if the invoice is lower, more if it is higher, or in several captures for a split shipment — then records a payment journal against the paid invoice and fulfils the order. Extended authorisation is enabled; if it still expires, the ERP creates a new PaymentIntent on the saved card. Refunds go through Stripe the same way. SCIEX’s ERP authorises and captures the invoiced amount afresh on the stored token; the $0.10 hold is never captured.',
+			nodes: ['stripe', 'cybersource'],
+			edges: ['erp-phx-stripe', 'erp-sciex-cybersource'],
+			facts: 'hops',
+		},
+		{
+			title: 'Captured by hand for Leica Microsystems',
+			body: 'Leica Microsystems has no ERP integration for payments yet; one with SAP is planned but not on the roadmap. Customer service processes the order, generates the invoice, and emails finance, who capture the amount in the Stripe Dashboard — or charge the saved card afresh if the authorisation has expired. Refunds are made by hand too.',
+			nodes: ['lms-customer-service', 'lms-finance', 'stripe'],
+			edges: ['service-finance', 'finance-stripe'],
+			facts: 'hops',
+		},
+	],
+};
+
 export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
+	payments: paymentsStory,
 	'product-data': productDataStory,
 	orders: ordersStory,
 	'customer-data': webdbRouteStory(

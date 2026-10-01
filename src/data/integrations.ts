@@ -13,6 +13,7 @@ import {
 	centralOpcos,
 	isNotApplicable,
 	sharedServices,
+	systemOf,
 	type OpCo,
 	type SystemCategory,
 	type SystemSlot,
@@ -91,8 +92,49 @@ const erpStages: IntegrationSystem[] = [
 	},
 ];
 
+/**
+ * Payment providers, one per name in `platform.ts`, with the OpCos that use
+ * each. Ids are the lowercased name, e.g. `stripe`.
+ */
+const paymentProviders: IntegrationSystem[] = [
+	...centralOpcos
+		.reduce((byName, o) => {
+			const provider = systemOf(o.paymentProvider);
+			if (provider) byName.set(provider.name, [...(byName.get(provider.name) ?? []), o]);
+			return byName;
+		}, new Map<string, OpCo[]>())
+		.entries(),
+].map(([name, users]) => ({
+	id: name.toLowerCase(),
+	name,
+	role: 'Payment provider',
+	detail: `Card payments for ${users.map((o) => o.short).join(' and ')}.`,
+	category: 'payment' as const,
+	opcos: users.map((o) => o.id),
+}));
+
+/** Leica Microsystems teams that capture payments by hand, until SAP does. */
+const lmsTeams: IntegrationSystem[] = [
+	{
+		id: 'lms-customer-service',
+		name: 'Customer service',
+		role: 'LMS team',
+		detail: 'Processes orders from its queue and generates the invoice.',
+		category: 'order',
+		opcos: ['leica-microsystems'],
+	},
+	{
+		id: 'lms-finance',
+		name: 'Finance',
+		role: 'LMS team',
+		detail: 'Captures payments by hand in the Stripe Dashboard.',
+		category: 'payment',
+		opcos: ['leica-microsystems'],
+	},
+];
+
 /** Everything a flow step can name besides an OpCo's own ERP or CRM. */
-const flowNodes = [...integrationSystems, ...erpStages];
+const flowNodes = [...integrationSystems, ...erpStages, ...paymentProviders, ...lmsTeams];
 
 /**
  * A step in a flow: a shared system by id, or an OpCo's own ERP or CRM, which
@@ -142,12 +184,17 @@ export function resolveNode(id: NodeId, opcoIds: string[]): ResolvedNode {
 // ---------------------------------------------------------------------------
 
 export interface Hop {
+	/** Tells apart hops between the same two systems, e.g. two calls made at different times. */
+	key?: string;
 	from: NodeId;
 	to: NodeId;
 	/** `boomi` = carried by a Boomi process; `direct` = no middleware; `null` = not documented. */
 	via: 'boomi' | 'direct' | null;
-	/** How data moves on this hop. `batch` = a scheduled job inside one system. */
-	mechanism: 'file' | 'api' | 'batch' | null;
+	/**
+	 * How data moves on this hop. `batch` = a scheduled job inside one system;
+	 * `manual` = done by hand, e.g. in a vendor's dashboard.
+	 */
+	mechanism: 'file' | 'api' | 'batch' | 'email' | 'manual' | null;
 	/** A synchronous call whose response the caller waits for; drawn with arrows both ways. */
 	sync?: boolean;
 	/** e.g. "Nightly", "Real-time". */
@@ -169,7 +216,7 @@ export interface Route {
 }
 
 export interface DataFlow {
-	id: 'product-data' | 'customer-data' | 'customer-pricing' | 'quotes' | 'customer-segments' | 'orders';
+	id: 'product-data' | 'customer-data' | 'customer-pricing' | 'quotes' | 'customer-segments' | 'orders' | 'payments';
 	/** `inbound` = into Intershop from the systems that own the data; `outbound` = from Intershop. */
 	direction: 'inbound' | 'outbound';
 	title: string;
@@ -190,6 +237,14 @@ export interface DataFlow {
 	openQuestions: string[];
 }
 
+export const mechanismLabel: Record<NonNullable<Hop['mechanism']>, string> = {
+	file: 'File',
+	api: 'API',
+	batch: 'Batch job',
+	email: 'Email',
+	manual: 'Manual',
+};
+
 /** A hop with nothing known beyond its ends. */
 const hop = (from: NodeId, to: NodeId, extra: Partial<Hop> = {}): Hop => ({
 	from,
@@ -209,6 +264,37 @@ const allCentral = centralOpcos.map((o) => o.id);
 /** OpCos with an ERP. DHLS has none yet, so product data can't start in one. */
 const withErp = centralOpcos.filter((o) => !isNotApplicable(o.orderBackend)).map((o) => o.id);
 const phxOnly = ['phenomenex'];
+
+/**
+ * Stripe at checkout, the same for Phenomenex and Leica Microsystems: the
+ * card is saved to Stripe, then the order total is authorised for capture
+ * later. Intershop makes the server-side calls.
+ */
+const stripeCheckout: Hop[] = [
+	hop('intershop', 'stripe', {
+		key: 'prepare',
+		via: 'direct',
+		mechanism: 'api',
+		sync: true,
+		frequency: 'At checkout',
+		note: 'Creates the SetupIntent whose key renders Stripe’s payment form, and fetches the customer’s saved payment methods so returning customers can pick one. Built by the platform team, not Intershop’s Stripe connector; the Stripe settings live in Intershop managed services, one per sales channel.',
+	}),
+	hop('aem', 'stripe', {
+		via: 'direct',
+		mechanism: 'api',
+		sync: true,
+		frequency: 'At checkout',
+		note: 'The checkout page renders Stripe’s payment form in an iframe with Stripe.js. The card goes to Stripe, which checks it and saves it to the customer as a payment method for later charges. 3-D Secure applies to customers in the EU and Australia.',
+	}),
+	hop('intershop', 'stripe', {
+		key: 'authorise',
+		via: 'direct',
+		mechanism: 'api',
+		sync: true,
+		frequency: 'On order submission',
+		note: 'Authorises the order total, tax and shipping from Order Simulate included, on the saved card with manual capture: a hold, not yet a charge. If Stripe declines, the order can’t be placed.',
+	}),
+];
 
 /**
  * The PHX route through WebDB, which every flow except product data takes:
@@ -384,8 +470,127 @@ export const dataFlows: DataFlow[] = [
 			'How often does the batch job run?',
 			'Besides a new customer, what flags an order for manual intervention?',
 			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
-			'Where does Stripe payment authorisation sit relative to Order Simulate and order creation? Payment will be documented as its own flow.',
-			'How do SCIEX (Oracle) and Leica Microsystems (SAP) orders reach their ERPs?',
+			'How do Leica Microsystems (SAP) orders reach the ERP? SCIEX orders go to Oracle through its REST order-create API (see Payments); the rest of that route is not documented.',
+		],
+	},
+	{
+		id: 'payments',
+		direction: 'outbound',
+		title: 'Payments',
+		href: '/flows/payments/',
+		summary:
+			'Cards saved with Stripe or Cybersource at checkout, authorised when the order is placed, and captured once it is invoiced.',
+		carries: [
+			'Saved cards (provider tokens and masked details)',
+			'Authorisations',
+			'Captures',
+			'Refunds',
+		],
+		master: { node: 'aem', confirmed: true },
+		notApplicable: { 'danaher-life-sciences': 'No direct transactions' },
+		routes: [
+			{
+				label: 'Phenomenex: Stripe, captured by the ERP',
+				opcos: phxOnly,
+				hops: [
+					...stripeCheckout,
+					hop('intershop', 'erp', {
+						key: 'phx-order',
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'Real-time, on submit',
+						note: 'The PaymentIntent and payment method IDs travel in the order-create payload of the ERP’s REST API.',
+					}),
+					hop('erp', 'stripe', {
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'On invoice',
+						note: 'When the order is invoiced, the ERP captures the invoiced amount. It can capture less than authorised (lower tax, or an order customer service reduced), more, or in several captures for a split shipment; over-capture and multicapture are enabled on the Stripe account at Stripe’s special request. If the authorisation expires despite extended authorisation being enabled, the ERP creates a new PaymentIntent on the payment method from the order. It then records a payment journal against the paid invoice and fulfils the order. Refunds also go through the ERP’s Stripe integration.',
+					}),
+				],
+			},
+			{
+				label: 'Leica Microsystems: Stripe, captured by hand',
+				opcos: ['leica-microsystems'],
+				hops: [
+					...stripeCheckout,
+					hop('intershop', 'lms-customer-service', {
+						note: 'The order lands in the customer service team’s queue. How it gets there is not documented.',
+					}),
+					hop('lms-customer-service', 'lms-finance', {
+						via: 'direct',
+						mechanism: 'email',
+						frequency: 'On invoice',
+						note: 'The team processes the order, generates the invoice, and emails finance to capture the payment.',
+					}),
+					hop('lms-finance', 'stripe', {
+						via: 'direct',
+						mechanism: 'manual',
+						frequency: 'On invoice',
+						note: 'Finance captures the amount by hand in the Stripe Dashboard. If the authorisation has expired, finance charges the saved card afresh. Refunds are also made by hand in the Dashboard.',
+					}),
+					hop('erp', 'stripe', {
+						key: 'lms-planned',
+						via: 'direct',
+						mechanism: 'api',
+						status: 'planned',
+						note: 'An SAP integration is to take over capture. It is not on the roadmap yet.',
+					}),
+				],
+			},
+			{
+				label: 'SCIEX: Cybersource, captured by the ERP',
+				opcos: ['sciex'],
+				hops: [
+					hop('aem', 'cybersource', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'At checkout',
+						note: 'The checkout page renders Cybersource’s card fields in an iframe with the Microform library. Cybersource checks the card and returns a short-lived token with the masked card details. Cards are offered in the US and Canada only.',
+					}),
+					hop('aem', 'intershop', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'At checkout',
+						note: 'The short-lived token goes to Intershop through its PaymentInstruments API.',
+					}),
+					hop('intershop', 'cybersource', {
+						key: 'token',
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'At checkout',
+						note: 'Intershop exchanges the short-lived token for a stored (TMS) token, and saves it as a payment instrument with the last four digits, expiry month and year, and cardholder name, so the customer can use the card again.',
+					}),
+					hop('intershop', 'cybersource', {
+						key: 'authorise',
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'On order submission',
+						note: 'Authorises $0.10 (USD or CAD) on the card, not the order amount.',
+					}),
+					hop('intershop', 'erp', {
+						key: 'sciex-order',
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'On order submission',
+						note: 'The whole order, card details and stored token included, goes in the order-create payload of the ERP’s REST API.',
+					}),
+					hop('erp', 'cybersource', {
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'On invoice',
+						note: 'When the order is invoiced, the ERP authorises and captures the invoiced amount afresh on the stored token. The $0.10 authorisation is not captured. Refunds are made by hand in Cybersource.',
+					}),
+				],
+			},
+		],
+		openQuestions: [
+			'Where does an uploaded purchase order document go when a customer pays by invoice?',
+			'Is the Cybersource integration also built by the platform team?',
 		],
 	},
 ];

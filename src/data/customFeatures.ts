@@ -25,6 +25,7 @@ export const customFeatureAreas: CustomFeatureArea[] = [
 	{ id: 'identity', title: 'Registration and sign-in' },
 	{ id: 'catalog', title: 'Catalog, pricing, and promotions' },
 	{ id: 'basket', title: 'Basket' },
+	{ id: 'payment', title: 'Payment' },
 ];
 
 export interface CustomFeature {
@@ -167,6 +168,26 @@ export const customFeatures: CustomFeature[] = [
 			sciex: 'available',
 			'leica-microsystems': 'available',
 		},
+	},
+	{
+		id: 'stripe-payments',
+		title: 'Stripe card payments',
+		area: 'payment',
+		icon: 'CreditCard',
+		summary: 'Cards saved to Stripe at checkout and authorised on order submission, for capture once the order is invoiced.',
+		standard: 'Intershop offers a Stripe connector. The platform team doesn’t use it; why is not documented.',
+		custom:
+			'Intershop creates the Stripe SetupIntent that renders Stripe’s payment form, lists the customer’s saved cards, and authorises the order total with manual capture. See the payments flow for the full journey.',
+		details: [
+			'Stripe settings are held in Intershop managed services, one per sales channel.',
+			'Each OpCo has its own Stripe organisation, with several accounts for selling globally.',
+		],
+		apis: [],
+		status: { phenomenex: 'enabled', 'leica-microsystems': 'enabled' },
+		openQuestions: [
+			'Why Intershop’s Stripe connector wasn’t used.',
+			'Which REST APIs the storefront calls for it.',
+		],
 	},
 ];
 

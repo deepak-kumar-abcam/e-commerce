@@ -6,6 +6,7 @@ import {
 	dataFlows,
 	documentedOpcos,
 	getFlow,
+	mechanismLabel,
 	resolveNode,
 	type DataFlow,
 	type Hop,
@@ -94,14 +95,14 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 // Hop table
 // ---------------------------------------------------------------------------
 
-const mechanismLabel = { file: 'File', api: 'API', batch: 'Batch job' } as const;
 const mechanismOf = (hop: Hop) =>
 	hop.mechanism && (hop.sync ? `${mechanismLabel[hop.mechanism]}, request/response` : mechanismLabel[hop.mechanism]);
 const viaLabel = { boomi: 'Boomi', direct: 'Direct' } as const;
 
 export function FlowHops({ flow: id }: { flow: FlowId }) {
 	const flow = getFlow(id);
-	const rows = flow.routes.flatMap((route) => route.hops.map((hop) => ({ route, hop })));
+	// Name each route above its hops when there is more than one to tell apart.
+	const headed = flow.routes.length > 1;
 	return (
 		<div className="not-content overflow-x-auto rounded-xl border">
 			<Table>
@@ -116,8 +117,18 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{rows.map(({ route, hop }) => (
-						<TableRow key={`${route.label}-${hop.from}-${hop.to}`}>
+					{flow.routes.flatMap((route) => [
+						...(headed
+							? [
+									<TableRow key={route.label} className="bg-muted/50 hover:bg-muted/50">
+										<TableCell colSpan={6} className="font-semibold">
+											{route.label}
+										</TableCell>
+									</TableRow>,
+								]
+							: []),
+						...route.hops.map((hop) => (
+						<TableRow key={[route.label, hop.from, hop.to, hop.key].join('-')}>
 							<TableCell className="align-top">
 								<div className="font-medium">
 									{resolveNode(hop.from, route.opcos).title} → {resolveNode(hop.to, route.opcos).title}
@@ -147,7 +158,8 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 								</div>
 							</TableCell>
 						</TableRow>
-					))}
+						)),
+					])}
 				</TableBody>
 			</Table>
 		</div>
