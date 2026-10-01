@@ -22,8 +22,9 @@ invoiced. The OpCos differ in which provider they use, how much they authorise, 
   authorisation. If an authorisation still expires, the ERP creates a new PaymentIntent on the
   payment method it received with the order. It then records a payment journal against the paid
   invoice. Refunds go through the same integration.
-- **Leica Microsystems** uses **Stripe** the same way up to the authorisation. Capture is
-  **manual**: customer service invoices the order and emails finance, who capture the amount in the
+- **Leica Microsystems** uses **Stripe** the same way up to the authorisation. The order reaches
+  customer service as an email notification; a REST API to SAP is planned for later in 2026.
+  Capture is **manual**: customer service invoices the order and emails finance, who capture the amount in the
   Stripe Dashboard, or charge the saved card afresh if the authorisation has expired. Refunds are
   made by hand in the Dashboard too. An SAP integration is planned but not yet on the roadmap.
 - **SCIEX** uses **Cybersource**, for cards in the US and Canada, through Intershop's Cybersource
@@ -40,8 +41,8 @@ sales channel. 3-D Secure applies to Stripe customers in the EU and Australia. N
 are used.
 
 Every OpCo that takes orders also offers **pay by invoice**: the customer gives a purchase order
-number and can upload the purchase order document, which goes to the ERP as binary data in the
-order-create API call. No payment provider is involved, so it isn't part of this flow.
+number and can upload the purchase order document. Where the order goes through the ERP's
+order-create API, the document travels in that call as binary data. No payment provider is involved, so it isn't part of this flow.
 
 Danaher Life Sciences takes no direct payments. How orders reach the ERP is covered by the
 [orders flow](/flows/orders/).

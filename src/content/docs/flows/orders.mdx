@@ -1,6 +1,6 @@
 ---
 title: Orders
-description: How orders leave Intershop for the ERP — checked with Order Simulate at checkout, then created directly in the ERP — documented for Phenomenex.
+description: How orders leave Intershop for the ERP — checked with Order Simulate at checkout, then created directly in the ERP — documented for Phenomenex, with Leica Microsystems' email route.
 sidebar:
   order: 6
 ---
@@ -9,7 +9,8 @@ import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlo
 import { FlowStory } from '@/components/flows/FlowStory';
 
 Orders are the first **outbound** flow: they start in Intershop and end in the operating company's
-ERP. Unlike the inbound feeds, they travel by direct API call — no Boomi, no files.
+ERP. Unlike the inbound feeds, they travel by direct API call — no Boomi, no files — except at
+Leica Microsystems, where they still go by email.
 
 For **Phenomenex**, the ERP is involved twice. During checkout, Intershop calls the ERP's **Order
 Simulate** API, which returns tax, shipping, and an estimated delivery date — and stops the order if
@@ -18,9 +19,12 @@ it directly in the ERP's pre-order table, and a batch job converts it into a sal
 with missing information, such as a customer who is new and not yet in the ERP, are flagged for the
 order booking team to resolve.
 
-Danaher Life Sciences takes no direct orders. How SCIEX and Leica Microsystems orders reach their
-ERPs is not yet documented. Card payments, authorised when the order is placed and captured on
-invoice, are covered by the [payments flow](/flows/payments/).
+For **Leica Microsystems**, Intershop emails each order to the customer service team today. Sending
+it to SAP through a REST API is planned for later in 2026.
+
+Danaher Life Sciences takes no direct orders. SCIEX orders go to Oracle through its REST
+order-create API; the rest of that route is not yet documented. Card payments, authorised when the
+order is placed and captured on invoice, are covered by the [payments flow](/flows/payments/).
 
 ## At a glance
 

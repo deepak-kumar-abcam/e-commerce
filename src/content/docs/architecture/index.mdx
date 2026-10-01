@@ -28,7 +28,9 @@ operating company on it and run by the platform team. This page maps them; the
   Phenomenex, pricing, quotes, customers, and segments are staged in WebDB first, which sends them
   on to the SFTP server — pricing and quotes on scheduled jobs, one per data type. Boomi picks the files up and delivers them to inRiver and
   Intershop.
-- **Orders go out by direct API.** Intershop calls each OpCo's ERP itself, with no Boomi or files.
+- **Orders go out by direct API.** Intershop calls each OpCo's ERP itself, with no Boomi or files —
+  except Leica Microsystems, whose orders are emailed to customer service until a REST API to SAP
+  arrives, planned for later in 2026.
   For Phenomenex it calls the ERP twice: **Order Simulate** during checkout, for tax, shipping, an
   estimated delivery date, and any account block; then to create the order in the ERP's pre-order
   table, from which a batch job makes a sales order. See the [orders flow](/flows/orders/).
@@ -42,7 +44,7 @@ operating company on it and run by the platform team. This page maps them; the
 ## Not yet documented
 
 - The remaining **outbound flow**: Auth0 sign-in and registration.
-- How **SCIEX and Leica Microsystems** orders reach their ERPs.
+- What happens to **SCIEX** orders beyond Oracle's order-create API.
 - Which pages beyond marketing and checkout run on which AEM, and whether **Edge Delivery Services
   pages call Intershop or Auth0** directly.
 - How **AEM content reaches Coveo**: crawled, or pushed.

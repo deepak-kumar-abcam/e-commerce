@@ -827,7 +827,7 @@ export const b2bRows: ComparisonRow[] = [
 		id: 'po-payment',
 		capability: 'Purchase order and invoice payment',
 		intershop: production(
-			'Pay by invoice is in production for every OpCo that takes orders: the customer gives a purchase order number and can upload the purchase order document, which is sent to the ERP with the order.'
+			'Pay by invoice is in production for every OpCo that takes orders: the customer gives a purchase order number and can upload the purchase order document, which is sent with the order.'
 		),
 		commercetools: {
 			rating: 'configurable',

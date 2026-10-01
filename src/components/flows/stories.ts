@@ -527,7 +527,7 @@ export const paymentsStory: FlowStoryLayout = {
 		},
 		{
 			title: 'Handed on with the order',
-			body: 'Phenomenex and SCIEX create the order in their ERP through its REST API, and the payment travels in the same payload: the Stripe IDs for Phenomenex, the card details and stored token for SCIEX. Leica Microsystems orders land in the customer service team’s queue.',
+			body: 'Phenomenex and SCIEX create the order in their ERP through its REST API, and the payment travels in the same payload: the Stripe IDs for Phenomenex, the card details and stored token for SCIEX. Leica Microsystems orders are emailed to the customer service team; a REST API to SAP is planned for later in 2026.',
 			nodes: ['erp-phx', 'lms-customer-service', 'erp-sciex'],
 			edges: ['intershop-erp-phx', 'intershop-service', 'intershop-erp-sciex'],
 			facts: 'hops',

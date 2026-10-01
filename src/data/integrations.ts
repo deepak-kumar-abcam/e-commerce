@@ -418,7 +418,7 @@ export const dataFlows: DataFlow[] = [
 		title: 'Orders',
 		href: '/flows/orders/',
 		summary:
-			'Checked against the ERP during checkout, then created directly in it and converted to a sales order.',
+			'Checked against the ERP during checkout, then created directly in it and converted to a sales order; emailed to customer service for Leica Microsystems.',
 		carries: [
 			'Orders',
 			'Tax, shipping, and estimated delivery date (from Order Simulate)',
@@ -460,6 +460,25 @@ export const dataFlows: DataFlow[] = [
 					}),
 				],
 			},
+			{
+				label: 'Leica Microsystems',
+				opcos: ['leica-microsystems'],
+				hops: [
+					hop('intershop', 'lms-customer-service', {
+						via: 'direct',
+						mechanism: 'email',
+						frequency: 'On order submission',
+						note: 'Intershop sends the order to the customer service team as an email notification.',
+					}),
+					hop('intershop', 'erp', {
+						key: 'lms-order-planned',
+						via: 'direct',
+						mechanism: 'api',
+						status: 'planned',
+						note: 'Planned for later in 2026: orders to go to SAP through a REST API instead of by email.',
+					}),
+				],
+			},
 		],
 		openQuestions: [
 			'When is Order Simulate called: on entering checkout, on each address or shipping change, or at final review?',
@@ -470,7 +489,8 @@ export const dataFlows: DataFlow[] = [
 			'How often does the batch job run?',
 			'Besides a new customer, what flags an order for manual intervention?',
 			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
-			'How do Leica Microsystems (SAP) orders reach the ERP? SCIEX orders go to Oracle through its REST order-create API (see Payments); the rest of that route is not documented.',
+			'SCIEX orders go to Oracle through its REST order-create API (see Payments). Is there an order check during checkout, and what happens in Oracle after the order is created?',
+			'For Leica Microsystems, how does customer service get the order into SAP today, and is the purchase order document attached to the email?',
 		],
 	},
 	{
@@ -515,7 +535,17 @@ export const dataFlows: DataFlow[] = [
 				hops: [
 					...stripeCheckout,
 					hop('intershop', 'lms-customer-service', {
-						note: 'The order lands in the customer service team’s queue. How it gets there is not documented.',
+						via: 'direct',
+						mechanism: 'email',
+						frequency: 'On order submission',
+						note: 'Intershop sends the order to the customer service team as an email notification.',
+					}),
+					hop('intershop', 'erp', {
+						key: 'lms-order-planned',
+						via: 'direct',
+						mechanism: 'api',
+						status: 'planned',
+						note: 'Planned for later in 2026: orders to go to SAP through a REST API instead of by email.',
 					}),
 					hop('lms-customer-service', 'lms-finance', {
 						via: 'direct',
