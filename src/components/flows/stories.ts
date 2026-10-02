@@ -37,6 +37,11 @@ export interface StoryNode {
 	label?: 'below' | 'left' | 'right';
 	/** An OpCo this flow isn't documented for: drawn dashed, never lit, no curves. */
 	ghost?: boolean;
+	/**
+	 * Shorter text where the full name or role would collide with a neighbour;
+	 * the full text stays in the tooltip.
+	 */
+	short?: { title?: string; system?: string };
 }
 
 export interface StoryEdge {
@@ -379,38 +384,41 @@ export const customerPricingStory: FlowStoryLayout = {
 // Sign-in: Auth0 for every OpCo, with each OpCo's own additions
 // ---------------------------------------------------------------------------
 
+/** Every sign-in node has a two-line label, so curves leaving one start further down. */
+const LABEL2 = 62;
+
 const sign = {
 	storefront: { x: 200, y: 50 },
 	sciexDb: { x: 350, y: 50 },
-	b2c: { x: 50, y: 200 },
-	auth0: { x: 200, y: 200 },
-	onelogin: { x: 350, y: 200 },
-	intershop: { x: 110, y: 380 },
-	salesforce: { x: 300, y: 380 },
-	webApi: { x: 60, y: 520 },
-	webdb: { x: 60, y: 660 },
+	b2c: { x: 50, y: 220 },
+	auth0: { x: 200, y: 220 },
+	onelogin: { x: 350, y: 220 },
+	intershop: { x: 110, y: 410 },
+	salesforce: { x: 300, y: 410 },
+	webApi: { x: 60, y: 580 },
+	webdb: { x: 60, y: 740 },
 };
 
 export const signInStory: FlowStoryLayout = {
 	flow: 'sign-in',
-	height: 730,
+	height: 810,
 	nodes: [
-		{ key: 'storefront', node: 'storefront', icon: 'storefront', ...sign.storefront },
-		{ key: 'sciex-website-db', node: 'sciex-website-db', icon: 'erp', ...sign.sciexDb },
-		{ key: 'azure-b2c', node: 'azure-b2c', icon: 'identity', ...sign.b2c },
-		{ key: 'auth0', node: 'auth0', icon: 'identity', ...sign.auth0 },
-		{ key: 'onelogin', node: 'onelogin', icon: 'identity', ...sign.onelogin },
+		{ key: 'storefront', node: 'storefront', icon: 'storefront', ...sign.storefront, short: { system: 'EDS or AEM' } },
+		{ key: 'sciex-website-db', node: 'sciex-website-db', icon: 'erp', ...sign.sciexDb, short: { title: 'SCIEX web DB', system: 'AEM backend' } },
+		{ key: 'azure-b2c', node: 'azure-b2c', icon: 'identity', ...sign.b2c, short: { system: 'Legacy PHX IdP' } },
+		{ key: 'auth0', node: 'auth0', icon: 'identity', ...sign.auth0, short: { system: 'CIAM' } },
+		{ key: 'onelogin', node: 'onelogin', icon: 'identity', ...sign.onelogin, short: { system: 'LMS partner IdP' } },
 		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...sign.intershop },
 		{ key: 'crm-sciex', node: 'crm', opco: 'sciex', icon: 'crm', ...sign.salesforce },
-		{ key: 'phx-web-api', node: 'phx-web-api', icon: 'api', ...sign.webApi },
+		{ key: 'phx-web-api', node: 'phx-web-api', icon: 'api', ...sign.webApi, short: { system: 'PHX backend' } },
 		{ key: 'webdb', node: 'webdb', icon: 'staging', ...sign.webdb },
 	],
 	edges: [
 		{
 			key: 'storefront-auth0',
 			hop: { from: 'storefront', to: 'auth0' },
-			d: `M${sign.storefront.x},${sign.storefront.y + R + LABEL} L${sign.auth0.x},${sign.auth0.y - R}`,
-			labelAt: { x: 200, y: 135 },
+			d: `M${sign.storefront.x},${sign.storefront.y + R + LABEL2} L${sign.auth0.x},${sign.auth0.y - R}`,
+			labelAt: { x: 200, y: 166 },
 		},
 		{
 			key: 'auth0-azure-b2c',
@@ -425,24 +433,24 @@ export const signInStory: FlowStoryLayout = {
 		{
 			key: 'auth0-crm',
 			hop: { from: 'auth0', to: 'crm' },
-			d: curve(sign.auth0.x, sign.auth0.y + R + LABEL, sign.salesforce.x, sign.salesforce.y - R),
+			d: curve(sign.auth0.x, sign.auth0.y + R + LABEL2, sign.salesforce.x, sign.salesforce.y - R),
 		},
 		{
 			key: 'storefront-intershop',
 			hop: { from: 'storefront', to: 'intershop' },
 			// Out of the storefront's side, down past Auth0 into Intershop.
 			d: `M${sign.storefront.x - R},${sign.storefront.y} C${sign.intershop.x},${sign.storefront.y} ${sign.intershop.x},${sign.storefront.y} ${sign.intershop.x},${sign.intershop.y - R}`,
-			labelAt: { x: 110, y: 300 },
+			labelAt: { x: 110, y: 343 },
 		},
 		{
 			key: 'intershop-phx-web-api',
 			hop: { from: 'intershop', to: 'phx-web-api' },
-			d: curve(sign.intershop.x, sign.intershop.y + R + LABEL, sign.webApi.x, sign.webApi.y - R),
+			d: curve(sign.intershop.x, sign.intershop.y + R + LABEL2, sign.webApi.x, sign.webApi.y - R),
 		},
 		{
 			key: 'phx-web-api-webdb',
 			hop: { from: 'phx-web-api', to: 'webdb' },
-			d: `M${sign.webApi.x},${sign.webApi.y + R + LABEL} L${sign.webdb.x},${sign.webdb.y - R}`,
+			d: `M${sign.webApi.x},${sign.webApi.y + R + LABEL2} L${sign.webdb.x},${sign.webdb.y - R}`,
 		},
 		{
 			key: 'storefront-sciex-website-db',

@@ -154,14 +154,21 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 			{layout.nodes.map((node) => {
 				const Icon = icons[node.icon];
 				const stage = stageOf(node.key, 'node');
-				const { title, system } = nodeText(node, opcos);
+				const full = nodeText(node, opcos);
+				const title = node.short?.title ?? full.title;
+				const system = node.short?.system ?? full.system;
+				const tooltip = node.ghost
+					? `${full.title}: not documented for this flow`
+					: node.short
+						? [full.title, full.system].filter(Boolean).join(' — ')
+						: undefined;
 				const side = node.label ?? 'below';
 				return (
 					<div
 						key={node.key}
 						className="absolute"
 						style={{ left: pct(node.x, 400), top: pct(node.y, layout.height) }}
-						title={node.ghost ? `${title}: not documented for this flow` : undefined}
+						title={tooltip}
 					>
 						<div
 							className={cn(
