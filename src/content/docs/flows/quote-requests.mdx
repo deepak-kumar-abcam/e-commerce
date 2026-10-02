@@ -13,11 +13,10 @@ them directly: it has no ERP and takes no orders or payments. Shoppers instead a
 **eRFQ quote cart** in Intershop and submit it as a quote request — signed in or not, through the
 [anonymous quote requests](/custom-features/#anonymous-erfq) customization.
 
-Intershop pushes each request to the central **Salesforce Marketing Cloud** as a **lead**, with
-comments that identify the products' OpCos. Marketing Cloud is integrated with each OpCo, and routes
+Intershop sends each request straight to the central **Salesforce Marketing Cloud** as a **lead**,
+through its REST API, with comments that identify the products' OpCos. Marketing Cloud is integrated with each OpCo, and routes
 the lead to the OpCo that sells each product, for its own sales team to follow up. A request
-covering several OpCos is split, so each OpCo gets its own lead for its own products. How Intershop
-sends the lead to Marketing Cloud, and when, is not yet documented.
+covering several OpCos is split, so each OpCo gets its own lead for its own products.
 
 ## At a glance
 

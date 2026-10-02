@@ -14,10 +14,15 @@ Leica Microsystems, where they still go by email.
 
 For **Phenomenex**, the ERP is involved twice. During checkout, Intershop calls the ERP's **Order
 Simulate** API, which returns tax, shipping, and an estimated delivery date — and stops the order if
-the customer's account has a block in the ERP. When the customer places the order, Intershop creates
-it directly in the ERP's pre-order table, and a batch job converts it into a sales order. Orders
-with missing information, such as a customer who is new and not yet in the ERP, are flagged for the
-order booking team to resolve.
+the customer's account has a block in the ERP. It runs on the shipping page, once the customer has
+chosen their addresses, and again on the payment page, so the values are current before the order
+is submitted. If Order Simulate fails, the customer can't submit the order.
+
+When the customer places the order, Intershop creates it directly in the ERP's pre-order table, and
+a batch job converts it into a sales order. If that call fails, the order stays in Intershop and a
+**reprocess job** tries again. If there is a problem with the order data, Intershop sends the order
+to **customer service** to enter by hand. Orders that reach the ERP with missing information, such
+as a customer who is new and not yet in the ERP, are flagged for the order booking team to resolve.
 
 For **SCIEX**, Intershop creates the order through Oracle's REST order-create API, with no check
 against Oracle during checkout. Oracle books it directly when the account, ship-to, and bill-to

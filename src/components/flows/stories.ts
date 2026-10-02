@@ -472,7 +472,7 @@ export const signInStory: FlowStoryLayout = {
 		},
 		{
 			title: 'SCIEX users posted to Salesforce',
-			body: 'SCIEX asks for the customer’s industry, and whether they want access to the Absorb learning portal and the IAP program. An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with both access flags.',
+			body: 'SCIEX asks for the customer’s industry, and whether they want access to the Absorb learning portal and the Innovation Advisory Panel (IAP), its community network. An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with both access flags.',
 			nodes: ['crm-sciex'],
 			edges: ['auth0-crm'],
 			facts: 'hops',
@@ -551,8 +551,8 @@ export const quoteRequestsStory: FlowStoryLayout = {
 			facts: 'hops',
 		},
 		{
-			title: 'Pushed to Marketing Cloud as a lead',
-			body: 'Intershop pushes the request to the central Salesforce Marketing Cloud as a lead, with comments that identify the products’ OpCos.',
+			title: 'Sent to Marketing Cloud as a lead',
+			body: 'Intershop sends the request to the central Salesforce Marketing Cloud as a lead, through its REST API, with comments that identify the products’ OpCos.',
 			nodes: ['sfmc'],
 			edges: ['intershop-sfmc'],
 			facts: 'hops',
@@ -574,17 +574,19 @@ export const quoteRequestsStory: FlowStoryLayout = {
 const ord = {
 	intershop: { x: 150, y: 60 },
 	erp: { x: 310, y: 60 },
-	preorder: { x: 150, y: 250 },
-	booking: { x: 310, y: 350 },
-	sales: { x: 150, y: 480 },
+	cs: { x: 310, y: 200 },
+	preorder: { x: 150, y: 300 },
+	booking: { x: 310, y: 420 },
+	sales: { x: 150, y: 560 },
 };
 
 export const ordersStory: FlowStoryLayout = {
 	flow: 'orders',
-	height: 550,
+	height: 630,
 	nodes: [
 		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...ord.intershop, label: 'left' },
 		{ key: 'erp', node: 'erp', icon: 'erp', ...ord.erp },
+		{ key: 'phx-customer-service', node: 'phx-customer-service', icon: 'team', ...ord.cs },
 		{ key: 'preorder', node: 'preorder', icon: 'staging', ...ord.preorder, label: 'left' },
 		{ key: 'order-booking', node: 'order-booking', icon: 'team', ...ord.booking },
 		{ key: 'sales-order', node: 'sales-order', icon: 'order', ...ord.sales, label: 'left' },
@@ -600,13 +602,19 @@ export const ordersStory: FlowStoryLayout = {
 			key: 'intershop-preorder',
 			hop: { from: 'intershop', to: 'preorder' },
 			d: drop(ord.intershop.x, ord.intershop.y, ord.preorder.x, ord.preorder.y),
-			labelAt: { x: 150, y: 155 },
+			labelAt: { x: 150, y: 180 },
+		},
+		{
+			key: 'intershop-phx-customer-service',
+			hop: { from: 'intershop', to: 'phx-customer-service' },
+			// Off Intershop's lower right, under the ERP's label, into the team's side.
+			d: `M${ord.intershop.x + 16},${ord.intershop.y + 16} C${ord.intershop.x + 50},${ord.cs.y} ${ord.intershop.x + 80},${ord.cs.y} ${ord.cs.x - R},${ord.cs.y}`,
 		},
 		{
 			key: 'preorder-sales-order',
 			hop: { from: 'preorder', to: 'sales-order' },
 			d: drop(ord.preorder.x, ord.preorder.y, ord.sales.x, ord.sales.y),
-			labelAt: { x: 150, y: 365 },
+			labelAt: { x: 150, y: 430 },
 		},
 		{
 			key: 'preorder-order-booking',
@@ -618,23 +626,30 @@ export const ordersStory: FlowStoryLayout = {
 			key: 'order-booking-sales-order',
 			hop: { from: 'order-booking', to: 'sales-order' },
 			// From under the team's label, back into the sales order's side.
-			d: `M${ord.booking.x},${ord.booking.y + R + LABEL} C${ord.booking.x},${ord.sales.y} ${ord.booking.x},${ord.sales.y} ${ord.sales.x + R},${ord.sales.y}`,
-			labelAt: { x: 240, y: 478 },
+			d: `M${ord.booking.x},${ord.booking.y + R + LABEL2} C${ord.booking.x},${ord.sales.y} ${ord.booking.x},${ord.sales.y} ${ord.sales.x + R},${ord.sales.y}`,
+			labelAt: { x: 240, y: 558 },
 		},
 	],
 	steps: [
 		{
 			title: 'Checked against the ERP at checkout',
-			body: 'During checkout, Intershop calls Phenomenex’s ERP — Order Simulate — and gets back tax, shipping, and an estimated delivery date. If the customer’s account has a block in the ERP, they can’t place the order.',
+			body: 'Intershop calls Phenomenex’s ERP — Order Simulate — on the checkout shipping page, once the customer has chosen their addresses, and again on the payment page, so the values are current before submission. It gets back tax, shipping, and an estimated delivery date. If the account has a block in the ERP, or the call fails, the customer can’t place the order.',
 			nodes: ['intershop', 'erp'],
 			edges: ['intershop-erp'],
 			facts: 'hops',
 		},
 		{
 			title: 'Created in the pre-order table',
-			body: 'When the customer places the order, Intershop creates it directly in the ERP — no Boomi, no files. It lands in a pre-order table.',
+			body: 'When the customer places the order, Intershop creates it directly in the ERP — no Boomi, no files. It lands in a pre-order table. If the call fails, the order stays in Intershop and a reprocess job tries it again.',
 			nodes: ['preorder'],
 			edges: ['intershop-preorder'],
+			facts: 'hops',
+		},
+		{
+			title: 'Or entered by customer service',
+			body: 'When there is a problem with the order data, Intershop sends the order to customer service instead, who enter it into the ERP by hand.',
+			nodes: ['phx-customer-service'],
+			edges: ['intershop-phx-customer-service'],
 			facts: 'hops',
 		},
 		{

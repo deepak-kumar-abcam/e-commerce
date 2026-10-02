@@ -53,12 +53,13 @@ operating company on it and run by the platform team. This page maps them; the
   has **no ERP** yet, because no legal entity has been established, and **takes no payments**,
   because it doesn't transact directly. See the [payments flow](/flows/payments/).
 - **Danaher Life Sciences generates leads, not orders.** Its shoppers submit quote requests through
-  Intershop's eRFQ quote cart, signed in or not. Each goes as a lead to the central Salesforce
-  Marketing Cloud, which routes it to each product's OpCo. See the [quote requests flow](/flows/quote-requests/).
+  Intershop's eRFQ quote cart, signed in or not. Intershop sends each to the central Salesforce
+  Marketing Cloud as a lead, by REST API, and Marketing Cloud routes it to each product's OpCo. See the [quote requests flow](/flows/quote-requests/).
 - **CRM is converging on Salesforce, one org per OpCo.** Danaher Life Sciences, SCIEX, and Leica
   Microsystems each have their own Salesforce org; Phenomenex uses Microsoft Dynamics CRM, and its
   move to Salesforce is in planning, expected around the third quarter of 2027.
 
 ## Not yet documented
 
-- How Intershop pushes Danaher Life Sciences **leads** to Salesforce Marketing Cloud.
+Nothing at this level. Detailed open questions — schedules, retries, payloads — are kept on each
+[flow](/flows/).

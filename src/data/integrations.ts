@@ -213,12 +213,25 @@ const leadNodes: IntegrationSystem[] = [
 	},
 ];
 
+/** Phenomenex teams that step in when an order can't go through automatically. */
+const phxTeams: IntegrationSystem[] = [
+	{
+		id: 'phx-customer-service',
+		name: 'Customer service',
+		role: 'PHX team',
+		detail: 'Enters orders into the ERP by hand when there is a problem with the order data.',
+		category: 'order',
+		opcos: ['phenomenex'],
+	},
+];
+
 const flowNodes = [
 	...integrationSystems,
 	...erpStages,
 	...paymentProviders,
 	...lmsTeams,
 	...sciexTeams,
+	...phxTeams,
 	...identityNodes,
 	...leadNodes,
 ];
@@ -561,14 +574,17 @@ export const dataFlows: DataFlow[] = [
 						via: 'direct',
 						mechanism: 'api',
 						sync: true,
-						frequency: 'During checkout',
-						note: 'Order Simulate: returns tax, shipping, and an estimated delivery date, and stops the order if the account has a block in the ERP.',
+						frequency: 'On the checkout shipping and payment pages',
+						note: 'Order Simulate: called on the shipping page once the customer has chosen their addresses, and again on the payment page, so the values are current before the order is submitted. Returns tax, shipping, and an estimated delivery date, and stops the order if the account has a block in the ERP. If the call fails, the customer can’t submit the order.',
 					}),
 					hop('intershop', 'preorder', {
 						via: 'direct',
 						mechanism: 'api',
 						frequency: 'Real-time, on submit',
-						note: 'Intershop creates the order directly in the ERP.',
+						note: 'Intershop creates the order directly in the ERP. If the call fails, the order stays in Intershop and a reprocess job tries it again.',
+					}),
+					hop('intershop', 'phx-customer-service', {
+						note: 'When there is a problem with the order data, the order is sent to customer service, who enter it into the ERP by hand.',
 					}),
 					hop('preorder', 'sales-order', {
 						via: 'direct',
@@ -624,11 +640,10 @@ export const dataFlows: DataFlow[] = [
 			},
 		],
 		openQuestions: [
-			'When is Order Simulate called: on entering checkout, on each address or shipping change, or at final review?',
-			'If Order Simulate fails or times out, can the customer still place the order?',
 			'Which kinds of ERP block stop an order, and what does the customer see?',
 			'Is the ERP’s tax final on the order? Is shipping a cost, a choice of options, or both? Is the delivery date per order or per line?',
-			'Does the ERP return anything when the order is created, such as an order number, and how are failed calls retried?',
+			'Does the ERP return anything when the order is created, such as an order number? How often does the reprocess job run, and how many times does it retry?',
+			'How does a Phenomenex order with a data problem reach customer service: by email, or another route?',
 			'How often does the batch job run?',
 			'Besides a new customer, what flags an order for manual intervention?',
 			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
@@ -785,7 +800,9 @@ export const dataFlows: DataFlow[] = [
 						note: 'The shopper adds products to an eRFQ quote cart and submits it, signed in or not, through the eRFQ API extended for anonymous quote requests.',
 					}),
 					hop('intershop', 'sfmc', {
-						note: 'Intershop pushes each quote request to the central Salesforce Marketing Cloud as a lead, with comments that identify the products’ OpCos. How it is sent, and when, is not documented.',
+						via: 'direct',
+						mechanism: 'api',
+						note: 'Intershop sends each quote request to the central Salesforce Marketing Cloud as a lead through its REST API, with comments that identify the products’ OpCos.',
 					}),
 					hop('sfmc', 'opco-crm', {
 						note: 'Marketing Cloud’s integration with each OpCo routes the lead, based on the comments sent with it. A request covering several OpCos is split, so each OpCo gets its own lead for its own products.',
@@ -794,7 +811,6 @@ export const dataFlows: DataFlow[] = [
 			},
 		],
 		openQuestions: [
-			'How does Intershop push the lead to Marketing Cloud — a direct API call, Boomi, or another route — and when: on submission, or in a batch?',
 			'What contact details must a shopper give, and how does the OpCo’s answer reach them?',
 			'Do the other OpCos’ storefronts send quote requests to their CRMs the same way?',
 		],
@@ -864,11 +880,11 @@ export const dataFlows: DataFlow[] = [
 					hop('auth0', 'crm', {
 						via: 'direct',
 						mechanism: 'api',
-						note: 'An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with flags for access to the Absorb learning portal and the IAP program.',
+						note: 'An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with flags for access to the Absorb learning portal and the Innovation Advisory Panel (IAP), SCIEX’s community network.',
 					}),
 					hop('storefront', 'sciex-website-db', {
 						via: 'direct',
-						note: 'The SCIEX website’s AEM backend reads the answers — industry, Absorb access, IAP program — from the ID token and stores them in its database.',
+						note: 'The SCIEX website’s AEM backend reads the answers — industry, Absorb access, IAP — from the ID token and stores them in its database.',
 					}),
 				],
 			},
@@ -887,13 +903,12 @@ export const dataFlows: DataFlow[] = [
 		],
 		variations: {
 			phenomenex: 'Asks for industry. Users still in Azure AD B2C are migrated on first sign-in until the end of Q3 2027; after that, the rest move without passwords and set one on first sign-in.',
-			sciex: 'Asks for industry, Absorb learning portal access, and IAP program access; posts the user to Salesforce. Users were bulk-migrated from Keycloak, hashed passwords included.',
+			sciex: 'Asks for industry, Absorb learning portal access, and Innovation Advisory Panel (IAP) access; posts the user to Salesforce. Users were bulk-migrated from Keycloak, hashed passwords included.',
 			'leica-microsystems': 'No custom forms. Partners can sign in with OneLogin.',
 			'danaher-life-sciences': 'No custom forms.',
 		},
 		openQuestions: [
 			'Which details from the ID token does the token handler use for the user and customer, and how does it match a returning user to an existing Intershop customer?',
-			'What does IAP stand for?',
 		],
 	},
 ];
