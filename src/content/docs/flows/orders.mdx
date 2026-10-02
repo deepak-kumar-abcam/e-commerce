@@ -1,6 +1,6 @@
 ---
 title: Orders
-description: How orders leave Intershop for the ERP — checked with Order Simulate at checkout, then created directly in the ERP — documented for Phenomenex, with Leica Microsystems' email route.
+description: How orders leave Intershop for the ERP — created directly in it, booked or flagged for review — documented for Phenomenex and SCIEX, with Leica Microsystems' email route.
 sidebar:
   order: 6
 ---
@@ -19,11 +19,17 @@ it directly in the ERP's pre-order table, and a batch job converts it into a sal
 with missing information, such as a customer who is new and not yet in the ERP, are flagged for the
 order booking team to resolve.
 
+For **SCIEX**, Intershop creates the order through Oracle's REST order-create API, with no check
+against Oracle during checkout. Oracle books it directly when the account, ship-to, and bill-to
+already exist and it is a normal order within a threshold value. Flags set up by customer service
+hold everything else for manual review: a new account or address, a special request such as
+shipping instructions or notes, or a value over the threshold.
+
 For **Leica Microsystems**, Intershop emails each order to the customer service team today. Sending
 it to SAP through a REST API is planned for later in 2026.
 
-Danaher Life Sciences takes no direct orders. SCIEX orders go to Oracle through its REST
-order-create API; the rest of that route is not yet documented. Card payments, authorised when the
+Danaher Life Sciences takes no direct orders. The diagram below follows Phenomenex's route; the
+hop table covers every route. Card payments, authorised when the
 order is placed and captured on invoice, are covered by the [payments flow](/flows/payments/).
 
 ## At a glance

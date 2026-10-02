@@ -95,7 +95,12 @@ export const customFeatures: CustomFeature[] = [
 			'OpCo-specific IDs come from an API call to that OpCo’s own system and are stored in Intershop.',
 		],
 		apis: ['Token handler'],
-		status: { phenomenex: 'enabled' },
+		status: {
+			'danaher-life-sciences': 'enabled',
+			sciex: 'enabled',
+			phenomenex: 'enabled',
+			'leica-microsystems': 'enabled',
+		},
 		opcoNotes: [
 			{
 				opco: 'phenomenex',

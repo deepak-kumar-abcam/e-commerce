@@ -15,7 +15,7 @@
  */
 
 export const evaluationMeta = {
-	asOf: '2026-10-01',
+	asOf: '2026-10-02',
 	owner: 'Platform team',
 	nextReview: '2026-12-18',
 	/** What the comparison covers: the central instance only, not the wider estate. */
@@ -861,7 +861,7 @@ export const integrationRows: ComparisonRow[] = [
 		why: 'AEM components call Intershop REST APIs directly today, and pages are moving from traditional AEM to Edge Delivery Services.',
 		critical: true,
 		intershop: production(
-			'Traditional AEM components call Intershop REST APIs directly, with no intermediate API layer; checkout still runs there. Marketing pages have moved to AEM Edge Delivery Services, where every page is planned to move. Whether Edge Delivery Services pages call Intershop is not documented.'
+			'AEM calls Intershop REST APIs directly, with no intermediate API layer, for transactional data: list price, unit of measure, minimum order quantity, customer-specific price. Every page except checkout runs on AEM Edge Delivery Services, which calls Intershop and Auth0 directly; checkout still runs on traditional AEM.'
 		),
 		commercetools: {
 			rating: 'custom',
@@ -905,7 +905,7 @@ export const integrationRows: ComparisonRow[] = [
 		capability: 'Boomi (inbound data feeds)',
 		why: 'Product, customer, pricing, quote, and segment data all reach commerce through Boomi.',
 		intershop: production(
-			'Boomi delivers files from the Danaher Life Sciences SFTP server to Intershop: product data via inRiver for every OpCo, and customer, pricing, quote, and segment data for Phenomenex.'
+			'Boomi delivers files from the Danaher Life Sciences SFTP server to Intershop: product data via inRiver for every OpCo, customer, pricing, quote, and segment data for Phenomenex, and customer-specific prices for SCIEX.'
 		),
 		commercetools: {
 			rating: 'unknown',
@@ -919,7 +919,7 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'coveo',
 		capability: 'Coveo (search and recommendations)',
 		intershop: production(
-			'Loaded into AEM pages with the Coveo Headless and Atomic libraries. Indexes product data, fed directly from inRiver, and AEM content. Whether it reads anything from Intershop is not documented.'
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync. Whether it reads anything from Intershop is not documented.'
 		),
 		commercetools: {
 			rating: 'unknown',
@@ -933,7 +933,9 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'auth0',
 		capability: 'Auth0 (CIAM and SSO)',
 		critical: true,
-		intershop: production('Central Auth0 tenant for every OpCo on the central instance.'),
+		intershop: production(
+			'Central Auth0 tenant for every OpCo on the central instance, with common Universal Login pages. A custom Intershop token handler creates the user and customer from the Auth0 token.'
+		),
 		commercetools: {
 			rating: 'custom',
 			summary:

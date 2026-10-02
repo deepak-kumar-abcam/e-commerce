@@ -1,4 +1,4 @@
-import { getFlow, type DataFlow, type NodeId } from '@/data/integrations';
+import { documentedOpcos, getFlow, type DataFlow, type NodeId } from '@/data/integrations';
 
 /**
  * Presentation for the scroll-driven flow stories: where each node sits in
@@ -20,7 +20,9 @@ export type StoryIcon =
 	| 'order'
 	| 'team'
 	| 'payment'
-	| 'storefront';
+	| 'storefront'
+	| 'identity'
+	| 'api';
 
 export interface StoryNode {
 	key: string;
@@ -147,7 +149,7 @@ export const productDataStory: FlowStoryLayout = {
 	steps: [
 		{
 			title: 'Created in each OpCo’s ERP',
-			body: 'SKUs, titles, and list prices start life in the operating company’s own ERP — a different system for each. Danaher Life Sciences has no ERP yet, so where its products start is not documented.',
+			body: 'SKUs, titles, and list prices start life in the operating company’s own ERP — a different system for each. Danaher Life Sciences has no ERP: it is a common marketplace for the other OpCos’ products.',
 			nodes: productErps.map(([opco]) => `erp-${opco}`),
 			edges: [],
 			facts: { source: 'erp' },
@@ -168,7 +170,7 @@ export const productDataStory: FlowStoryLayout = {
 		},
 		{
 			title: 'Published to Intershop and Coveo',
-			body: 'inRiver publishes the enriched product — list prices included — to Intershop for the storefront, and to Coveo for search and recommendations.',
+			body: 'inRiver publishes the enriched product — list prices included — to Intershop for transactional data, and to Coveo, where AEM pages get their product content. Each product goes to its own OpCo’s channel and to Danaher Life Sciences’.',
 			nodes: ['intershop', 'coveo'],
 			edges: ['inriver-intershop', 'inriver-coveo'],
 			facts: 'hops',
@@ -288,6 +290,204 @@ function webdbRouteStory(
 
 	return { flow, height: ys.at(-1)! + 70, nodes, edges, steps };
 }
+
+// ---------------------------------------------------------------------------
+// Customer pricing: SCIEX straight from Oracle, PHX through WebDB
+// ---------------------------------------------------------------------------
+
+const price = {
+	webdb: { x: erpX.phenomenex, y: 210 },
+	sftp: { x: 200, y: 360 },
+	intershop: { x: 200, y: 500 },
+};
+const pricingOpcos = documentedOpcos(getFlow('customer-pricing'));
+
+export const customerPricingStory: FlowStoryLayout = {
+	flow: 'customer-pricing',
+	height: 570,
+	nodes: [
+		...Object.entries(erpX).map(([opco, x]) => ({
+			key: `source-${opco}`,
+			node: 'erp' as const,
+			opco,
+			icon: 'erp' as const,
+			x,
+			y: erpY,
+			ghost: !pricingOpcos.includes(opco),
+		})),
+		{ key: 'webdb', node: 'webdb', icon: 'staging', ...price.webdb, label: 'right' },
+		{ key: 'sftp', node: 'sftp', icon: 'sftp', ...price.sftp, label: 'right' },
+		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...price.intershop },
+	],
+	edges: [
+		{
+			key: 'erp-webdb',
+			hop: { from: 'erp', to: 'webdb' },
+			d: curve(erpX.phenomenex, erpY + R + LABEL, price.webdb.x, price.webdb.y - R),
+		},
+		{
+			key: 'erp-sftp',
+			hop: { from: 'erp', to: 'sftp' },
+			d: curve(erpX.sciex, erpY + R + LABEL, price.sftp.x - 8, price.sftp.y - R),
+			labelAt: { x: 168, y: 210 },
+		},
+		{
+			key: 'webdb-sftp',
+			hop: { from: 'webdb', to: 'sftp' },
+			d: curve(price.webdb.x, price.webdb.y + R, price.sftp.x + 8, price.sftp.y - R),
+		},
+		{
+			key: 'sftp-intershop',
+			hop: { from: 'sftp', to: 'intershop' },
+			d: drop(price.sftp.x, price.sftp.y, price.intershop.x, price.intershop.y),
+			labelAt: { x: 200, y: 430 },
+		},
+	],
+	steps: [
+		{
+			title: 'Agreed in the ERP',
+			body: 'Customer-specific pricing agreements are created in the OpCo’s ERP: Oracle for SCIEX, the ERP for Phenomenex.',
+			nodes: ['source-sciex', 'source-phenomenex'],
+			edges: [],
+			facts: { source: 'erp' },
+		},
+		{
+			title: 'Staged in WebDB for Phenomenex',
+			body: 'Phenomenex’s prices are collected first in WebDB, its staging database.',
+			nodes: ['webdb'],
+			edges: ['erp-webdb'],
+			facts: 'hops',
+		},
+		{
+			title: 'Pushed to the SFTP server',
+			body: 'Scheduled jobs export the prices as files to the Danaher Life Sciences SFTP server: one per data type in WebDB, and one in Oracle, which publishes over SSH.',
+			nodes: ['sftp'],
+			edges: ['erp-sftp', 'webdb-sftp'],
+			facts: 'hops',
+		},
+		{
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads each customer’s negotiated prices into Intershop.',
+			nodes: ['intershop'],
+			edges: ['sftp-intershop'],
+			facts: 'hops',
+		},
+	],
+};
+
+// ---------------------------------------------------------------------------
+// Sign-in: Auth0 for every OpCo, with each OpCo's own additions
+// ---------------------------------------------------------------------------
+
+const sign = {
+	storefront: { x: 200, y: 50 },
+	sciexDb: { x: 350, y: 50 },
+	b2c: { x: 50, y: 200 },
+	auth0: { x: 200, y: 200 },
+	onelogin: { x: 350, y: 200 },
+	intershop: { x: 110, y: 380 },
+	salesforce: { x: 300, y: 380 },
+	webApi: { x: 60, y: 520 },
+	webdb: { x: 60, y: 660 },
+};
+
+export const signInStory: FlowStoryLayout = {
+	flow: 'sign-in',
+	height: 730,
+	nodes: [
+		{ key: 'storefront', node: 'storefront', icon: 'storefront', ...sign.storefront },
+		{ key: 'sciex-website-db', node: 'sciex-website-db', icon: 'erp', ...sign.sciexDb },
+		{ key: 'azure-b2c', node: 'azure-b2c', icon: 'identity', ...sign.b2c },
+		{ key: 'auth0', node: 'auth0', icon: 'identity', ...sign.auth0 },
+		{ key: 'onelogin', node: 'onelogin', icon: 'identity', ...sign.onelogin },
+		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...sign.intershop },
+		{ key: 'crm-sciex', node: 'crm', opco: 'sciex', icon: 'crm', ...sign.salesforce },
+		{ key: 'phx-web-api', node: 'phx-web-api', icon: 'api', ...sign.webApi },
+		{ key: 'webdb', node: 'webdb', icon: 'staging', ...sign.webdb },
+	],
+	edges: [
+		{
+			key: 'storefront-auth0',
+			hop: { from: 'storefront', to: 'auth0' },
+			d: `M${sign.storefront.x},${sign.storefront.y + R + LABEL} L${sign.auth0.x},${sign.auth0.y - R}`,
+			labelAt: { x: 200, y: 135 },
+		},
+		{
+			key: 'auth0-azure-b2c',
+			hop: { from: 'auth0', to: 'azure-b2c' },
+			d: `M${sign.auth0.x - R},${sign.auth0.y} L${sign.b2c.x + R},${sign.b2c.y}`,
+		},
+		{
+			key: 'auth0-onelogin',
+			hop: { from: 'auth0', to: 'onelogin' },
+			d: `M${sign.auth0.x + R},${sign.auth0.y} L${sign.onelogin.x - R},${sign.onelogin.y}`,
+		},
+		{
+			key: 'auth0-crm',
+			hop: { from: 'auth0', to: 'crm' },
+			d: curve(sign.auth0.x, sign.auth0.y + R + LABEL, sign.salesforce.x, sign.salesforce.y - R),
+		},
+		{
+			key: 'storefront-intershop',
+			hop: { from: 'storefront', to: 'intershop' },
+			// Out of the storefront's side, down past Auth0 into Intershop.
+			d: `M${sign.storefront.x - R},${sign.storefront.y} C${sign.intershop.x},${sign.storefront.y} ${sign.intershop.x},${sign.storefront.y} ${sign.intershop.x},${sign.intershop.y - R}`,
+			labelAt: { x: 110, y: 300 },
+		},
+		{
+			key: 'intershop-phx-web-api',
+			hop: { from: 'intershop', to: 'phx-web-api' },
+			d: curve(sign.intershop.x, sign.intershop.y + R + LABEL, sign.webApi.x, sign.webApi.y - R),
+		},
+		{
+			key: 'phx-web-api-webdb',
+			hop: { from: 'phx-web-api', to: 'webdb' },
+			d: `M${sign.webApi.x},${sign.webApi.y + R + LABEL} L${sign.webdb.x},${sign.webdb.y - R}`,
+		},
+		{
+			key: 'storefront-sciex-website-db',
+			hop: { from: 'storefront', to: 'sciex-website-db' },
+			d: `M${sign.storefront.x + R},${sign.storefront.y} L${sign.sciexDb.x - R},${sign.sciexDb.y}`,
+		},
+	],
+	steps: [
+		{
+			title: 'Universal Login, branded per OpCo',
+			body: 'Edge Delivery Services pages and traditional AEM checkout both send the customer to Auth0. Every OpCo uses the same Universal Login pages for sign-in and registration, with common Danaher wording and the OpCo’s own primary branding. Where an OpCo has custom forms and triggers, they ask its own questions and store the answers in the user’s app metadata; the answers come back in the ID token.',
+			nodes: ['storefront', 'auth0'],
+			edges: ['storefront-auth0'],
+			facts: 'hops',
+		},
+		{
+			title: 'Legacy and partner accounts',
+			body: 'Phenomenex users not yet in Auth0 are migrated on their first sign-in: Auth0 checks their password against the legacy Azure AD B2C tenant, then keeps the profile and password itself. Leica Microsystems partners can sign in with their OneLogin profiles, and are asked to set an Auth0 password too. SCIEX users were bulk-migrated from Keycloak, hashed passwords included, so no live connection remains.',
+			nodes: ['azure-b2c', 'onelogin'],
+			edges: ['auth0-azure-b2c', 'auth0-onelogin'],
+			facts: 'hops',
+		},
+		{
+			title: 'SCIEX users posted to Salesforce',
+			body: 'SCIEX asks for the customer’s industry, and whether they want access to the Absorb learning portal and the IAP program. An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with both access flags.',
+			nodes: ['crm-sciex'],
+			edges: ['auth0-crm'],
+			facts: 'hops',
+		},
+		{
+			title: 'User and customer created in Intershop',
+			body: 'The storefront hands the Auth0 token to Intershop, whose custom token handler creates the user and customer in the same step. For Phenomenex it also fetches the web user ID from the PHX Web API and stores it in Intershop.',
+			nodes: ['intershop', 'phx-web-api'],
+			edges: ['storefront-intershop', 'intershop-phx-web-api'],
+			facts: 'hops',
+		},
+		{
+			title: 'Answers kept in the OpCo’s own database',
+			body: 'Phenomenex’s Web API stores the industry the customer chose in WebDB. The SCIEX website’s AEM backend stores its three answers in its own database. Leica Microsystems and Danaher Life Sciences ask no extra questions.',
+			nodes: ['webdb', 'sciex-website-db'],
+			edges: ['phx-web-api-webdb', 'storefront-sciex-website-db'],
+			facts: 'hops',
+		},
+	],
+};
 
 // ---------------------------------------------------------------------------
 // Orders, documented for PHX: simulated at checkout, then through the ERP
@@ -553,6 +753,8 @@ export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 	payments: paymentsStory,
 	'product-data': productDataStory,
 	orders: ordersStory,
+	'sign-in': signInStory,
+	'customer-pricing': customerPricingStory,
 	'customer-data': webdbRouteStory(
 		'customer-data',
 		'erp',
@@ -573,20 +775,6 @@ export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 		},
 		{ throughCrm: true }
 	),
-	'customer-pricing': webdbRouteStory('customer-pricing', 'erp', 'phenomenex', {
-		source: {
-			title: 'Agreed in the ERP',
-			body: 'Customer-specific pricing agreements are created in Phenomenex’s ERP.',
-		},
-		toSftp: {
-			title: 'Pushed to the SFTP server',
-			body: 'A scheduled job — one per data type — exports the prices from WebDB as files to the Danaher Life Sciences SFTP server.',
-		},
-		load: {
-			title: 'Loaded into Intershop',
-			body: 'Boomi picks up the files and loads each customer’s negotiated prices into Intershop.',
-		},
-	}),
 	quotes: webdbRouteStory('quotes', 'erp', 'phenomenex', {
 		source: {
 			title: 'Created in the ERP',

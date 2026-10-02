@@ -23,6 +23,8 @@ export interface BackendSystem {
 	category: SystemCategory;
 	/** A confirmed plan to replace it, e.g. "Salesforce". No date unless documented. */
 	migratingTo?: string;
+	/** Where that plan stands, e.g. a tentative date. Shown with the migration badge. */
+	migrationNote?: string;
 }
 
 /**
@@ -124,7 +126,12 @@ export const opcos: OpCo[] = [
 		managedBy: PLATFORM_TEAM,
 		identity: auth0Live,
 		orderBackend: { name: 'Microsoft Dynamics 365', category: 'order' },
-		crm: { name: 'Microsoft Dynamics CRM', category: 'crm', migratingTo: 'Salesforce' },
+		crm: {
+			name: 'Microsoft Dynamics CRM',
+			category: 'crm',
+			migratingTo: 'Salesforce',
+			migrationNote: 'in planning, expected around Q3 2027',
+		},
 		paymentProvider: { name: 'Stripe', category: 'payment' },
 		marketingPlatform: { name: 'Oracle Eloqua', category: 'marketing' },
 		regions: null,
@@ -226,7 +233,8 @@ export const sharedServices: SharedService[] = [
 		id: 'auth0',
 		name: 'Auth0',
 		role: 'CIAM & single sign-on',
-		detail: 'Central customer identity tenant, shared by the central-instance OpCos.',
+		detail:
+			'Central customer identity tenant, shared by the central-instance OpCos. One set of Universal Login pages for sign-in and registration, branded per OpCo; custom forms collect OpCo-specific answers into each user’s app metadata.',
 		category: 'identity',
 	},
 	{
@@ -234,7 +242,7 @@ export const sharedServices: SharedService[] = [
 		name: 'AEM (traditional)',
 		role: 'Storefront & content',
 		detail:
-			'Traditional Adobe Experience Manager. Serves the commerce pages, checkout included, and its components call Intershop\'s REST APIs directly. Which other pages remain here is not documented.',
+			'Traditional Adobe Experience Manager. Serves the checkout pages, whose components call Intershop\'s REST APIs directly.',
 		category: 'content',
 		status: 'Migrating to EDS',
 	},
@@ -242,7 +250,8 @@ export const sharedServices: SharedService[] = [
 		id: 'aem-eds',
 		name: 'AEM Edge Delivery Services',
 		role: 'Storefront & content',
-		detail: 'Serves the marketing pages that have moved so far. Every page is planned to move here.',
+		detail:
+			'Serves every page except checkout, and calls Intershop\'s REST APIs and Auth0 directly. Checkout is planned to move here too.',
 		category: 'content',
 		status: 'Target for all pages',
 	},
@@ -251,7 +260,7 @@ export const sharedServices: SharedService[] = [
 		name: 'inRiver',
 		role: 'Product information (PIM)',
 		detail:
-			'Single source of truth for product data: enriches what the ERPs send and feeds Intershop and Coveo. Also holds some list prices today, which are being moved out.',
+			'Single source of truth for product data: enriches what the ERPs send and feeds Intershop and Coveo, but not AEM. Also holds some list prices today, which are being moved out.',
 		category: 'pim',
 	},
 	{
@@ -259,7 +268,7 @@ export const sharedServices: SharedService[] = [
 		name: 'Coveo',
 		role: 'Search & recommendations',
 		detail:
-			'Loaded into AEM pages with the Coveo Headless and Atomic libraries. Indexes product data, fed directly from inRiver, and AEM content.',
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync.',
 		category: 'search',
 	},
 	{
@@ -267,7 +276,7 @@ export const sharedServices: SharedService[] = [
 		name: 'Boomi',
 		role: 'Integration platform',
 		detail:
-			'Picks up files from the Danaher Life Sciences SFTP server and delivers them to inRiver and Intershop.',
+			'Picks up files from the Danaher Life Sciences SFTP server — dropped by the ERPs and WebDB — and delivers them to inRiver and Intershop.',
 		category: 'integration',
 	},
 ];
@@ -330,7 +339,7 @@ export const docSections: DocSection[] = [
 		title: 'Flow Diagrams',
 		href: '/flows/',
 		description:
-			'How product, customer, pricing, quote, and segment data reach Intershop, and how orders and payments leave it, hop by hop — with sign-in journeys to follow.',
+			'How product, customer, pricing, quote, and segment data reach Intershop, how orders and payments leave it, and how customers sign in, hop by hop.',
 		status: 'in-progress',
 	},
 ];

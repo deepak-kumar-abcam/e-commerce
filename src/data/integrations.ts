@@ -133,8 +133,67 @@ const lmsTeams: IntegrationSystem[] = [
 	},
 ];
 
+/** SCIEX's team that books orders Oracle flags for review. */
+const sciexTeams: IntegrationSystem[] = [
+	{
+		id: 'sciex-customer-service',
+		name: 'Customer service',
+		role: 'SCIEX team',
+		detail: 'Reviews and books orders that Oracle flags, and handles invoicing.',
+		category: 'order',
+		opcos: ['sciex'],
+	},
+];
+
+/**
+ * Systems on the sign-in journey that aren't run by the platform team, or
+ * belong to one OpCo. Shown in the sign-in flow, not on the architecture map.
+ */
+const identityNodes: IntegrationSystem[] = [
+	{
+		id: 'storefront',
+		name: 'AEM storefront',
+		role: 'Edge Delivery Services or traditional AEM',
+		detail: 'Both send customers to Auth0 to sign in, and receive the ID token back.',
+		category: 'content',
+		opcos: null,
+	},
+	{
+		id: 'azure-b2c',
+		name: 'Azure AD B2C',
+		role: 'Legacy PHX identity provider',
+		detail: 'Holds Phenomenex users not yet migrated to Auth0.',
+		category: 'identity',
+		opcos: ['phenomenex'],
+	},
+	{
+		id: 'onelogin',
+		name: 'OneLogin',
+		role: 'LMS partner identity provider',
+		detail: 'Leica Microsystems partners sign in with their OneLogin profiles.',
+		category: 'identity',
+		opcos: ['leica-microsystems'],
+	},
+	{
+		id: 'phx-web-api',
+		name: 'PHX Web API',
+		role: 'Phenomenex web backend',
+		detail: 'Reads the registration answers from the ID token and stores them in WebDB.',
+		category: 'integration',
+		opcos: ['phenomenex'],
+	},
+	{
+		id: 'sciex-website-db',
+		name: 'SCIEX website database',
+		role: 'Behind the SCIEX AEM backend',
+		detail: 'Where the SCIEX website stores the registration answers from the ID token.',
+		category: 'content',
+		opcos: ['sciex'],
+	},
+];
+
 /** Everything a flow step can name besides an OpCo's own ERP or CRM. */
-const flowNodes = [...integrationSystems, ...erpStages, ...paymentProviders, ...lmsTeams];
+const flowNodes = [...integrationSystems, ...erpStages, ...paymentProviders, ...lmsTeams, ...sciexTeams, ...identityNodes];
 
 /**
  * A step in a flow: a shared system by id, or an OpCo's own ERP or CRM, which
@@ -216,9 +275,21 @@ export interface Route {
 }
 
 export interface DataFlow {
-	id: 'product-data' | 'customer-data' | 'customer-pricing' | 'quotes' | 'customer-segments' | 'orders' | 'payments';
-	/** `inbound` = into Intershop from the systems that own the data; `outbound` = from Intershop. */
-	direction: 'inbound' | 'outbound';
+	id:
+		| 'product-data'
+		| 'customer-data'
+		| 'customer-pricing'
+		| 'quotes'
+		| 'customer-segments'
+		| 'orders'
+		| 'payments'
+		| 'sign-in';
+	/**
+	 * `inbound` = into Intershop from the systems that own the data;
+	 * `outbound` = from Intershop; `identity` = sign-in and registration,
+	 * which start at the storefront and pass through Intershop on the way.
+	 */
+	direction: 'inbound' | 'outbound' | 'identity';
 	title: string;
 	href: string;
 	summary: string;
@@ -264,6 +335,7 @@ const allCentral = centralOpcos.map((o) => o.id);
 /** OpCos with an ERP. DHLS has none yet, so product data can't start in one. */
 const withErp = centralOpcos.filter((o) => !isNotApplicable(o.orderBackend)).map((o) => o.id);
 const phxOnly = ['phenomenex'];
+const sciexOnly = ['sciex'];
 
 /**
  * Stripe at checkout, the same for Phenomenex and Leica Microsystems: the
@@ -341,6 +413,22 @@ export const dataFlows: DataFlow[] = [
 				],
 			},
 			{
+				label: 'Danaher Life Sciences marketplace',
+				opcos: ['danaher-life-sciences'],
+				hops: [
+					hop('inriver', 'intershop', {
+						key: 'dhls',
+						via: 'boomi',
+						note: 'The other OpCos’ products, published from inRiver to the Danaher Life Sciences channel as well as their own.',
+					}),
+					hop('inriver', 'coveo', {
+						key: 'dhls',
+						via: 'direct',
+						note: 'Indexed for the Danaher Life Sciences storefront from the same inRiver feed.',
+					}),
+				],
+			},
+			{
 				label: 'List prices, planned',
 				opcos: withErp,
 				hops: [
@@ -351,11 +439,14 @@ export const dataFlows: DataFlow[] = [
 				],
 			},
 		],
-		variations: Object.fromEntries(allCentral.map((id) => [id, null])),
+		variations: {
+			...Object.fromEntries(allCentral.map((id) => [id, null])),
+			'danaher-life-sciences':
+				'No ERP of its own: a common marketplace hosting the other OpCos’ products, fed to Intershop and Coveo from inRiver.',
+		},
 		openQuestions: [
-			'Danaher Life Sciences has no ERP yet (no legal entity). Where do its products originate?',
-			'Does inRiver feed AEM? The platform evaluation says the PIM feeds AEM as well as Intershop; the integration notes mention only Intershop and Coveo.',
 			'Where will list prices come from once they leave inRiver, and when?',
+			'Danaher Life Sciences takes no orders. How does a shopper there buy a product: handed on to the OpCo’s own storefront?',
 		],
 	},
 	{
@@ -381,10 +472,24 @@ export const dataFlows: DataFlow[] = [
 		summary: 'Negotiated prices per customer, from the ERP into Intershop.',
 		carries: ['Customer-specific pricing agreements'],
 		master: { node: 'erp', confirmed: true },
-		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) }],
+		routes: [
+			{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) },
+			{
+				label: 'SCIEX',
+				opcos: sciexOnly,
+				hops: [
+					hop('erp', 'sftp', {
+						via: 'direct',
+						mechanism: 'file',
+						note: 'A scheduled job in Oracle publishes the prices as files to the SFTP server over SSH.',
+					}),
+					hop('sftp', 'intershop', { via: 'boomi' }),
+				],
+			},
+		],
 		openQuestions: [
-			'How do customer-specific prices reach Intershop from the SCIEX (Oracle) and Leica Microsystems (SAP) ERPs?',
-			'How often does WebDB’s scheduled job run, and what file format does it write?',
+			'How do customer-specific prices reach Intershop from the Leica Microsystems (SAP) ERP?',
+			'How often do WebDB’s and Oracle’s scheduled jobs run, and what file formats do they write?',
 		],
 	},
 	{
@@ -396,8 +501,9 @@ export const dataFlows: DataFlow[] = [
 		carries: ['Quote details', 'Quoted prices', 'Customer'],
 		master: { node: 'erp', confirmed: true },
 		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) }],
+		notApplicable: { sciex: 'No quotes' },
 		openQuestions: [
-			'How do quotes reach Intershop from the SCIEX (Oracle) and Leica Microsystems (SAP) ERPs?',
+			'How do quotes reach Intershop from the Leica Microsystems (SAP) ERP?',
 			'How often does WebDB’s scheduled job run, and what file format does it write?',
 		],
 	},
@@ -418,7 +524,7 @@ export const dataFlows: DataFlow[] = [
 		title: 'Orders',
 		href: '/flows/orders/',
 		summary:
-			'Checked against the ERP during checkout, then created directly in it and converted to a sales order; emailed to customer service for Leica Microsystems.',
+			'Created directly in the ERP — checked against it at checkout for Phenomenex — and booked, or flagged for review; emailed to customer service for Leica Microsystems.',
 		carries: [
 			'Orders',
 			'Tax, shipping, and estimated delivery date (from Order Simulate)',
@@ -461,6 +567,23 @@ export const dataFlows: DataFlow[] = [
 				],
 			},
 			{
+				label: 'SCIEX',
+				opcos: sciexOnly,
+				hops: [
+					hop('intershop', 'erp', {
+						key: 'sciex-order',
+						via: 'direct',
+						mechanism: 'api',
+						frequency: 'On order submission',
+						note: 'Intershop creates the order through Oracle’s REST order-create API. There is no check against Oracle during checkout. Oracle books the order directly when the account, ship-to, and bill-to already exist and it is a normal order within the threshold value.',
+					}),
+					hop('erp', 'sciex-customer-service', {
+						via: 'direct',
+						note: 'Flags set up by customer service hold an order for manual review: a new account or address, a special request such as shipping instructions or notes, or a value over the threshold. The threshold itself is not documented.',
+					}),
+				],
+			},
+			{
 				label: 'Leica Microsystems',
 				opcos: ['leica-microsystems'],
 				hops: [
@@ -489,7 +612,7 @@ export const dataFlows: DataFlow[] = [
 			'How often does the batch job run?',
 			'Besides a new customer, what flags an order for manual intervention?',
 			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
-			'SCIEX orders go to Oracle through its REST order-create API (see Payments). Is there an order check during checkout, and what happens in Oracle after the order is created?',
+			'What is the threshold value above which SCIEX orders are held for review, and does it differ by currency?',
 			'For Leica Microsystems, how does customer service get the order into SAP today, and is the purchase order document attached to the email?',
 		],
 	},
@@ -619,6 +742,104 @@ export const dataFlows: DataFlow[] = [
 			},
 		],
 		openQuestions: [
+		],
+	},
+	{
+		id: 'sign-in',
+		direction: 'identity',
+		title: 'Sign-in and registration',
+		href: '/flows/sign-in/',
+		summary:
+			'One set of Auth0 Universal Login pages for every OpCo; OpCo-specific answers travel back in the ID token, and Intershop creates the user and customer.',
+		carries: [
+			'User profiles',
+			'ID tokens',
+			'OpCo-specific registration answers (app metadata)',
+		],
+		master: { node: 'auth0', confirmed: true },
+		routes: [
+			{
+				label: 'Every OpCo',
+				opcos: allCentral,
+				hops: [
+					hop('storefront', 'auth0', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'On sign-in or registration',
+						note: 'Edge Delivery Services pages and traditional AEM send the customer to Auth0’s Universal Login: common sign-in and registration pages with Danaher login wording, branded with the OpCo’s primary branding. Custom forms and triggers, where an OpCo has them, collect its own questions and store the answers in the user’s app metadata. The ID token comes back to the storefront with those answers.',
+					}),
+					hop('storefront', 'intershop', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'On sign-in or registration',
+						note: 'Intershop’s custom token handler takes the Auth0 token and creates the user and customer in the same step, from the details in the token.',
+					}),
+				],
+			},
+			{
+				label: 'Phenomenex',
+				opcos: phxOnly,
+				hops: [
+					hop('auth0', 'azure-b2c', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'First sign-in only',
+						note: 'Just-in-time migration: a custom database script checks the password of a user not yet in Auth0 against the legacy Azure AD B2C tenant, then saves the profile and password in Auth0, so later sign-ins stay in Auth0.',
+					}),
+					hop('intershop', 'phx-web-api', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'On sign-in or registration',
+						note: 'The token handler gets the web user ID from the Web API and stores it in Intershop.',
+					}),
+					hop('phx-web-api', 'webdb', {
+						via: 'direct',
+						note: 'The Web API reads the industry the customer chose from the ID token and stores it in WebDB.',
+					}),
+				],
+			},
+			{
+				label: 'SCIEX',
+				opcos: sciexOnly,
+				hops: [
+					hop('auth0', 'crm', {
+						via: 'direct',
+						mechanism: 'api',
+						note: 'An Auth0 Forms flow posts the user to SCIEX’s own Salesforce org, with flags for access to the Absorb learning portal and the IAP program.',
+					}),
+					hop('storefront', 'sciex-website-db', {
+						via: 'direct',
+						note: 'The SCIEX website’s AEM backend reads the answers — industry, Absorb access, IAP program — from the ID token and stores them in its database.',
+					}),
+				],
+			},
+			{
+				label: 'Leica Microsystems',
+				opcos: ['leica-microsystems'],
+				hops: [
+					hop('auth0', 'onelogin', {
+						via: 'direct',
+						sync: true,
+						frequency: 'On partner sign-in',
+						note: 'An enterprise connection lets Leica Microsystems partners sign in with their OneLogin profiles. A form then asks them to set an Auth0 password, so they can also sign in to Auth0 directly.',
+					}),
+				],
+			},
+		],
+		variations: {
+			phenomenex: 'Asks for industry. Users still in Azure AD B2C are migrated on first sign-in.',
+			sciex: 'Asks for industry, Absorb learning portal access, and IAP program access; posts the user to Salesforce. Users were bulk-migrated from Keycloak, hashed passwords included.',
+			'leica-microsystems': 'No custom forms. Partners can sign in with OneLogin.',
+			'danaher-life-sciences': 'No custom forms.',
+		},
+		openQuestions: [
+			'Is there a cut-off date for the just-in-time migration from Azure AD B2C, after which unmigrated Phenomenex users must reset their password?',
+			'Which details from the ID token does the token handler use for the user and customer, and how does it match a returning user to an existing Intershop customer?',
+			'What does IAP stand for?',
 		],
 	},
 ];

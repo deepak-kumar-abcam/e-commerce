@@ -92,7 +92,7 @@ export function SystemValue({ slot }: { slot: SystemSlot }) {
 			<Badge variant="secondary">{slot.name}</Badge>
 			{slot.migratingTo && (
 				<Badge variant="outline" className="border-dashed">
-					Moving to {slot.migratingTo} · planned
+					Moving to {slot.migratingTo} · {slot.migrationNote ?? 'planned'}
 				</Badge>
 			)}
 		</span>

@@ -4,9 +4,11 @@ import {
 	Database,
 	FileCheck,
 	FolderInput,
+	KeyRound,
 	Layers,
 	Monitor,
 	Search,
+	Server,
 	ShoppingCart,
 	TableProperties,
 	UserCog,
@@ -41,6 +43,8 @@ const icons: Record<StoryIcon, LucideIcon> = {
 	team: UserCog,
 	payment: CreditCard,
 	storefront: Monitor,
+	identity: KeyRound,
+	api: Server,
 };
 
 type FlowId = FlowStoryLayout['flow'];

@@ -1,0 +1,50 @@
+---
+title: Sign-in and registration
+description: How customers sign in and register through the central Auth0 tenant — common Universal Login pages, each OpCo's own questions and legacy accounts, and the user Intershop creates from the token.
+sidebar:
+  order: 8
+---
+
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
+
+Sign-in and registration start at the storefront rather than in Intershop or a system of record.
+This page gives the overall picture. Auth0's own configuration, OpCo by OpCo, will have its own
+documents.
+
+Every OpCo on the central instance uses the same **Auth0 Universal Login** pages for sign-in and
+registration. They carry common Danaher login wording and the OpCo's own primary branding. Both
+Edge Delivery Services pages and traditional AEM send customers there. Where an OpCo needs more
+than the standard profile, **custom forms and triggers** ask its own questions and store the
+answers in the user's app metadata. The answers travel back to the storefront in the **ID token**.
+Intershop's custom token handler then creates the user and customer from that token.
+
+- **Phenomenex** asks which industry the customer works in, and the PHX Web API stores the answer
+  in WebDB. Users still in the legacy **Azure AD B2C** tenant are migrated **just in time**: on
+  their first sign-in, a custom database script checks their password against Azure AD B2C, then
+  Auth0 keeps the profile and password, so later sign-ins stay in Auth0.
+- **SCIEX** asks for the customer's industry, and whether they want access to the **Absorb**
+  learning portal and the **IAP program**. The SCIEX website's AEM backend stores the answers in
+  its own database, and an Auth0 Forms flow posts the user to SCIEX's Salesforce org with both
+  access flags. Existing users were **bulk-migrated** from Keycloak, the legacy identity provider,
+  hashed passwords included.
+- **Leica Microsystems** has no custom forms. Partners can sign in with their **OneLogin** profiles
+  through an enterprise connection; a form then asks them to set an Auth0 password, so they can
+  also sign in to Auth0 directly.
+- **Danaher Life Sciences** has no custom forms.
+
+## At a glance
+
+<FlowSummary flow="sign-in" />
+
+## How it flows
+
+<FlowStory client:visible flow="sign-in" />
+
+## Hop by hop
+
+<FlowHops flow="sign-in" />
+
+## Open questions
+
+<FlowQuestions flow="sign-in" />

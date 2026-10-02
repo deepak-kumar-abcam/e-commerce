@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
  * the Flow Diagrams section follows each flow hop by hop. Coveo sits under the
  * storefront because pages query it at runtime; its feeds from inRiver and AEM
  * would cross layers, so the Search layer's caption names them instead.
+ * OpCo-specific identity systems (legacy IdPs, partner IdPs) are left to the
+ * sign-in flow.
  */
 
 function System({ id, emphasis = false }: { id: string; emphasis?: boolean }) {
@@ -55,7 +57,7 @@ export function ArchitectureMap() {
 		<div className="not-content">
 			<Layer
 				label="Experience"
-				caption="What customers see — one branded storefront per OpCo, moving page by page to Edge Delivery Services"
+				caption="What customers see — one branded storefront per OpCo, on Edge Delivery Services for every page except checkout"
 			>
 				<div className="grid gap-2 md:grid-cols-2">
 					<System id="aem" />
@@ -63,19 +65,19 @@ export function ArchitectureMap() {
 				</div>
 			</Layer>
 
-			<Connector label="Coveo Headless & Atomic, queried from the page" />
+			<Connector label="Coveo Headless & Atomic, queried from the page · AEM content pushed on a scheduled sync" />
 
-			<Layer label="Search" caption="Indexes product data from inRiver and content from AEM">
+			<Layer label="Search" caption="Indexes product data from inRiver and content from AEM — the pages' only source of product content">
 				<System id="coveo" />
 			</Layer>
 
-			<Connector label="Sign-in, from traditional AEM" />
+			<Connector label="Sign-in, from Edge Delivery Services and traditional AEM" />
 
 			<Layer label="Customer identity" caption="Central CIAM tenant">
 				<System id="auth0" />
 			</Layer>
 
-			<Connector label="REST APIs, called directly by traditional AEM" />
+			<Connector label="REST APIs, called directly by both, for transactional data: prices, units, minimum order quantities" />
 
 			<Layer
 				label="Commerce"
@@ -87,7 +89,7 @@ export function ArchitectureMap() {
 
 			<Connector label="Product data & list prices" up />
 
-			<Layer label="Product information" caption="Also feeds Coveo, directly">
+			<Layer label="Product information" caption="Also feeds Coveo, directly — not AEM">
 				<System id="inriver" />
 			</Layer>
 
@@ -95,7 +97,7 @@ export function ArchitectureMap() {
 
 			<Layer
 				label="Integration"
-				caption="How files reach inRiver and Intershop: ERPs, and PHX's WebDB on scheduled jobs, drop them on SFTP for Boomi"
+				caption="How files reach inRiver and Intershop: ERPs, and PHX's WebDB, drop them on SFTP for Boomi — pricing on scheduled jobs"
 			>
 				<div className="grid gap-2 md:grid-cols-3">
 					<System id="webdb" />
@@ -106,7 +108,7 @@ export function ArchitectureMap() {
 
 			<Connector label="Product, customer, pricing, quote & segment data" up />
 
-			<Layer label="Systems of record" caption="These differ per operating company">
+			<Layer label="Systems of record" caption="These differ per operating company. Each OpCo on Salesforce has its own org">
 				<div className="overflow-x-auto rounded-lg border bg-background">
 					<Table>
 						<TableHeader>
