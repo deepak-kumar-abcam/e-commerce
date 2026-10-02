@@ -1,4 +1,4 @@
-import { NotDocumented, PlannedBadge, UnconfirmedBadge } from '@/components/diagram/parts';
+import { NotDocumented, PlannedBadge, SystemValue, UnconfirmedBadge } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,8 +6,10 @@ import {
 	dataFlows,
 	documentedOpcos,
 	getFlow,
+	mechanismLabel,
 	resolveNode,
 	type DataFlow,
+	type Hop,
 } from '@/data/integrations';
 import { centralOpcos } from '@/data/platform';
 import { withBase } from '@/lib/url';
@@ -44,7 +46,9 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 						</Badge>
 					))}
 				</dd>
-				<dt className="text-xs tracking-wide text-muted-foreground uppercase sm:pt-1">Mastered in</dt>
+				<dt className="text-xs tracking-wide text-muted-foreground uppercase sm:pt-1">
+					{flow.direction === 'outbound' ? 'Created in' : 'Mastered in'}
+				</dt>
 				<dd className="flex flex-wrap items-center gap-1.5">
 					<Badge>{master.title}</Badge>
 					{!flow.master.confirmed && <UnconfirmedBadge />}
@@ -67,6 +71,8 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 								<TableCell>
 									{documented.includes(opco.id) ? (
 										<Badge variant="secondary">Documented</Badge>
+									) : flow.notApplicable?.[opco.id] ? (
+										<SystemValue slot={{ notApplicable: true, reason: flow.notApplicable[opco.id] }} />
 									) : (
 										<NotDocumented />
 									)}
@@ -89,11 +95,14 @@ export function FlowSummary({ flow: id }: { flow: FlowId }) {
 // Hop table
 // ---------------------------------------------------------------------------
 
-const mechanismLabel = { file: 'File', api: 'API' } as const;
+const mechanismOf = (hop: Hop) =>
+	hop.mechanism && (hop.sync ? `${mechanismLabel[hop.mechanism]}, request/response` : mechanismLabel[hop.mechanism]);
+const viaLabel = { boomi: 'Boomi', direct: 'Direct' } as const;
 
 export function FlowHops({ flow: id }: { flow: FlowId }) {
 	const flow = getFlow(id);
-	const rows = flow.routes.flatMap((route) => route.hops.map((hop) => ({ route, hop })));
+	// Name each route above its hops when there is more than one to tell apart.
+	const headed = flow.routes.length > 1;
 	return (
 		<div className="not-content overflow-x-auto rounded-xl border">
 			<Table>
@@ -108,8 +117,18 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{rows.map(({ route, hop }) => (
-						<TableRow key={`${route.label}-${hop.from}-${hop.to}`}>
+					{flow.routes.flatMap((route) => [
+						...(headed
+							? [
+									<TableRow key={route.label} className="bg-muted/50 hover:bg-muted/50">
+										<TableCell colSpan={6} className="font-semibold">
+											{route.label}
+										</TableCell>
+									</TableRow>,
+								]
+							: []),
+						...route.hops.map((hop) => (
+						<TableRow key={[route.label, hop.from, hop.to, hop.key].join('-')}>
 							<TableCell className="align-top">
 								<div className="font-medium">
 									{resolveNode(hop.from, route.opcos).title} → {resolveNode(hop.to, route.opcos).title}
@@ -121,10 +140,10 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 								)}
 							</TableCell>
 							<TableCell className="align-top">
-								<Value value={hop.via === 'boomi' ? 'Boomi' : null} />
+								<Value value={hop.via && viaLabel[hop.via]} />
 							</TableCell>
 							<TableCell className="align-top">
-								<Value value={hop.mechanism && mechanismLabel[hop.mechanism]} />
+								<Value value={mechanismOf(hop)} />
 							</TableCell>
 							<TableCell className="align-top">
 								<Value value={hop.frequency} />
@@ -139,7 +158,8 @@ export function FlowHops({ flow: id }: { flow: FlowId }) {
 								</div>
 							</TableCell>
 						</TableRow>
-					))}
+						)),
+					])}
 				</TableBody>
 			</Table>
 		</div>
@@ -168,12 +188,12 @@ export function FlowQuestions({ flow: id }: { flow: FlowId }) {
 // Overview
 // ---------------------------------------------------------------------------
 
-export function FlowIndex() {
+export function FlowIndex({ direction }: { direction: DataFlow['direction'] }) {
 	return (
 		<div className="not-content grid gap-3 sm:grid-cols-2">
-			{dataFlows.map((flow) => {
+			{dataFlows.filter((flow) => flow.direction === direction).map((flow) => {
 				const documented = documentedOpcos(flow);
-				const missing = centralOpcos.filter((o) => !documented.includes(o.id));
+				const missing = centralOpcos.filter((o) => !documented.includes(o.id) && !flow.notApplicable?.[o.id]);
 				return (
 					<a key={flow.id} href={withBase(flow.href)} className="group block no-underline">
 						<Card className="h-full gap-0 py-4 transition-colors group-hover:border-primary/50">

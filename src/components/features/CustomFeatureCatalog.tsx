@@ -1,5 +1,6 @@
 import {
 	BadgePercent,
+	CreditCard,
 	FileCheck,
 	KeyRound,
 	LayoutList,
@@ -9,6 +10,7 @@ import {
 	Tag,
 	type LucideIcon,
 } from 'lucide-react';
+import { NotDocumented } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
 import {
 	customFeatures,
@@ -29,6 +31,7 @@ import { cn } from '@/lib/utils';
 
 const icons: Record<string, LucideIcon> = {
 	BadgePercent,
+	CreditCard,
 	FileCheck,
 	KeyRound,
 	LayoutList,
@@ -171,6 +174,7 @@ function FeatureCard({ feature }: { feature: CustomFeature }) {
 				<div>
 					<Label>APIs</Label>
 					<div className="flex flex-wrap gap-1.5">
+						{feature.apis.length === 0 && <NotDocumented />}
 						{feature.apis.map((api) => (
 							<Badge key={api} variant="outline" className="font-mono font-normal">
 								{api}

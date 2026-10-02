@@ -10,10 +10,15 @@ import { FlowStory } from '@/components/flows/FlowStory';
 
 Products — SKUs, titles, and list prices — are created in each operating company's ERP. inRiver, the
 central PIM, enriches them with descriptions, images, and attributes, and publishes the result to
-Intershop for the storefront and to Coveo for search and recommendations.
+Intershop and to Coveo. AEM pages get product content from **Coveo** only — inRiver doesn't feed
+AEM — and transactional data from **Intershop**: list price, unit of measure, minimum order
+quantity, and customer-specific price.
 
-The route is broadly the same for every OpCo on the central instance, with some variations per OpCo
-that are not yet documented. inRiver also carries some **list prices** today; they are planned to
+The route is broadly the same for every OpCo on the central instance that has an ERP, with some
+variations per OpCo that are not yet documented. **Danaher Life Sciences** has no ERP: it is a
+common marketplace hosting the other OpCos' products, which inRiver feeds to Intershop and Coveo for
+it from the same source. Shoppers there don't buy: they raise
+[quote requests](/flows/quote-requests/), which go to each product's OpCo. inRiver also carries some **list prices** today; they are planned to
 move out of it.
 
 ## At a glance

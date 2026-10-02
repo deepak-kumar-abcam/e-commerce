@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { SystemValue } from '@/components/diagram/parts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
 	centralOpcos,
@@ -77,13 +78,13 @@ export function OpCoRoster() {
 							</CardHeader>
 							<CardContent className="px-4">
 								<Row label="Orders">
-									<Value value={opco.orderBackend?.name} />
+									<SystemValue slot={opco.orderBackend} />
 								</Row>
 								<Row label="Payment">
-									<Value value={opco.paymentProvider?.name} />
+									<SystemValue slot={opco.paymentProvider} />
 								</Row>
 								<Row label="Marketing">
-									<Value value={opco.marketingPlatform?.name} />
+									<SystemValue slot={opco.marketingPlatform} />
 								</Row>
 							</CardContent>
 						</Card>

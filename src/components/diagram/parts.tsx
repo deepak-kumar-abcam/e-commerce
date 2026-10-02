@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { isNotApplicable, type SystemSlot } from '@/data/platform';
 import { cn } from '@/lib/utils';
 
 /**
@@ -70,6 +71,31 @@ export function NotDocumented({ label = 'Not documented' }: { label?: string }) 
 		<Badge variant="outline" className="text-muted-foreground">
 			{label}
 		</Badge>
+	);
+}
+
+/**
+ * An OpCo's system: its name (plus any planned replacement), "None" with the
+ * reason when it knowingly has none, or the "Not documented" gap marker.
+ */
+export function SystemValue({ slot }: { slot: SystemSlot }) {
+	if (!slot) return <NotDocumented />;
+	if (isNotApplicable(slot)) {
+		return (
+			<Badge variant="outline" className="shrink border-dashed whitespace-normal text-muted-foreground">
+				None · {slot.reason}
+			</Badge>
+		);
+	}
+	return (
+		<span className="inline-flex flex-wrap items-center gap-1">
+			<Badge variant="secondary">{slot.name}</Badge>
+			{slot.migratingTo && (
+				<Badge variant="outline" className="border-dashed">
+					Moving to {slot.migratingTo} · {slot.migrationNote ?? 'planned'}
+				</Badge>
+			)}
+		</span>
 	);
 }
 

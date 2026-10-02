@@ -1,0 +1,65 @@
+---
+title: Payments
+description: How card payments are saved, authorised, and captured — Stripe for Phenomenex and Leica Microsystems, Cybersource for SCIEX.
+sidebar:
+  order: 7
+---
+
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
+
+Card payments follow the same shape for every OpCo that takes them. At checkout the card is
+entered in an iframe served by the payment provider, and saved so the customer can use it again.
+When the order is placed, Intershop has the provider authorise an amount on the card, and if the
+provider declines, the order can't be placed. The real amount is captured once the order is
+invoiced. The OpCos differ in which provider they use, how much they authorise, and who captures.
+
+- **Phenomenex** uses **Stripe**. A SetupIntent saves the card to Stripe, and the order total is
+  authorised for manual capture. The PaymentIntent and payment method IDs go to the ERP with the
+  order. When the order is invoiced, the ERP captures through Stripe. It can capture less or more
+  than was authorised, or capture several times for a split shipment; over-capture and
+  multicapture are enabled on the account by special request to Stripe, and so is extended
+  authorisation. If an authorisation still expires, the ERP creates a new PaymentIntent on the
+  payment method it received with the order. It then records a payment journal against the paid
+  invoice. Refunds go through the same integration.
+- **Leica Microsystems** uses **Stripe** the same way up to the authorisation. The order reaches
+  customer service as an email notification; a REST API to SAP is planned for later in 2026.
+  Capture is **manual**: customer service invoices the order and emails finance, who capture the amount in the
+  Stripe Dashboard, or charge the saved card afresh if the authorisation has expired. Refunds are
+  made by hand in the Dashboard too. An SAP integration is planned but not yet on the roadmap.
+- **SCIEX** uses **Cybersource**, for cards in the US and Canada, through Intershop's Cybersource
+  connector. Intershop exchanges Microform's short-lived token for a stored token and saves it as
+  a payment instrument. When the order is placed, only **$0.10** is authorised. The order goes to
+  the ERP with the card details and stored token, and once it is invoiced the ERP authorises and
+  captures the invoiced amount afresh. Refunds are made by hand in Cybersource.
+
+The Stripe integration is the platform team's own (see [custom features](/custom-features/)):
+Intershop's Stripe connector doesn't support SetupIntents, so it can't save cards in Stripe for
+later charges. Each OpCo has its own Stripe organisation, with several
+accounts to sell globally, and the Stripe settings live in Intershop managed services, one per
+sales channel. 3-D Secure applies to Stripe customers in the EU and Australia. No Stripe webhooks
+are used.
+
+Every OpCo that takes orders also offers **pay by invoice**: the customer gives a purchase order
+number and can upload the purchase order document. Where the order goes through the ERP's
+order-create API, the document travels in that call as binary data. No payment provider is involved, so it isn't part of this flow. At SCIEX, customer service handles invoicing once the order is processed in Oracle, and the customer pays the invoice to SCIEX directly.
+
+Danaher Life Sciences takes no direct payments: its shoppers raise
+[quote requests](/flows/quote-requests/) instead. How orders reach the ERP is covered by the
+[orders flow](/flows/orders/).
+
+## At a glance
+
+<FlowSummary flow="payments" />
+
+## How it flows
+
+<FlowStory client:visible flow="payments" />
+
+## Hop by hop
+
+<FlowHops flow="payments" />
+
+## Open questions
+
+<FlowQuestions flow="payments" />

@@ -1,9 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import { Database, FolderInput, Layers, Search, ShoppingCart, TableProperties, Users, type LucideIcon } from 'lucide-react';
+import {
+	CreditCard,
+	Database,
+	FileCheck,
+	FolderInput,
+	KeyRound,
+	Layers,
+	Megaphone,
+	Monitor,
+	Search,
+	Server,
+	ShoppingCart,
+	TableProperties,
+	UserCog,
+	Users,
+	type LucideIcon,
+} from 'lucide-react';
 
 import { NotDocumented, UnconfirmedBadge } from '@/components/diagram/parts';
 import { Badge } from '@/components/ui/badge';
-import { getFlow, resolveNode, type Hop, type NodeId } from '@/data/integrations';
+import { getFlow, mechanismLabel, resolveNode, type Hop, type NodeId } from '@/data/integrations';
 import { centralOpcos } from '@/data/platform';
 import { cn } from '@/lib/utils';
 
@@ -24,17 +40,26 @@ const icons: Record<StoryIcon, LucideIcon> = {
 	pim: Layers,
 	commerce: ShoppingCart,
 	search: Search,
+	order: FileCheck,
+	team: UserCog,
+	payment: CreditCard,
+	storefront: Monitor,
+	identity: KeyRound,
+	api: Server,
+	marketing: Megaphone,
 };
 
 type FlowId = FlowStoryLayout['flow'];
 
-function findHop(flowId: FlowId, from: NodeId, to: NodeId): Hop {
+function findHop(flowId: FlowId, { from, to, key }: { from: NodeId; to: NodeId; key?: string }): Hop {
 	const hop = getFlow(flowId)
 		.routes.flatMap((r) => r.hops)
-		.find((h) => h.from === from && h.to === to);
-	if (!hop) throw new Error(`No ${from} → ${to} hop in flow "${flowId}"`);
+		.find((h) => h.from === from && h.to === to && h.key === key);
+	if (!hop) throw new Error(`No ${from} → ${to}${key ? ` (${key})` : ''} hop in flow "${flowId}"`);
 	return hop;
 }
+
+const hopId = (hop: { from: NodeId; to: NodeId; key?: string }) => [hop.from, hop.to, hop.key].filter(Boolean).join('-');
 
 function nodeText(node: StoryNode, opcos: string[]) {
 	if (node.opco) {
@@ -66,7 +91,8 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 				</defs>
 				{layout.edges.map((edge) => {
 					const stage = stageOf(edge.key, 'edge');
-					const planned = findHop(layout.flow, edge.hop.from, edge.hop.to).status === 'planned';
+					const hop = findHop(layout.flow, edge.hop);
+					const planned = hop.status === 'planned';
 					return (
 						<g key={edge.key}>
 							{/* Faint track, always visible, so the whole route reads before it's drawn. */}
@@ -76,6 +102,7 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 								fill="none"
 								pathLength={1}
 								markerEnd={stage === 'idle' ? undefined : 'url(#flow-arrow)'}
+								markerStart={stage !== 'idle' && hop.sync ? 'url(#flow-arrow)' : undefined}
 								className={cn(
 									'stroke-primary transition-[stroke-dashoffset,opacity] duration-700 ease-out motion-reduce:transition-none',
 									stage === 'active' ? 'opacity-100' : 'opacity-60'
@@ -93,14 +120,22 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 
 			{layout.edges.map((edge) => {
 				if (!edge.labelAt) return null;
-				const hop = findHop(layout.flow, edge.hop.from, edge.hop.to);
+				const hop = findHop(layout.flow, edge.hop);
 				const text = hop.status === 'planned'
 					? 'Planned'
 					: hop.unconfirmed
 						? 'Unconfirmed'
-						: hop.via === 'boomi'
-							? 'via Boomi'
-							: 'via ?';
+						: hop.sync
+							? 'Request / response'
+							: hop.mechanism === 'batch'
+								? 'Batch job'
+								: hop.mechanism === 'manual' || hop.mechanism === 'email'
+									? mechanismLabel[hop.mechanism]
+									: hop.via === 'boomi'
+									? 'via Boomi'
+									: hop.via === 'direct'
+										? hop.mechanism === 'api' ? 'Direct API' : 'Direct'
+										: 'via ?';
 				const stage = stageOf(edge.key, 'edge');
 				return (
 					<span
@@ -121,14 +156,21 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 			{layout.nodes.map((node) => {
 				const Icon = icons[node.icon];
 				const stage = stageOf(node.key, 'node');
-				const { title, system } = nodeText(node, opcos);
+				const full = nodeText(node, opcos);
+				const title = node.short?.title ?? full.title;
+				const system = node.short?.system ?? full.system;
+				const tooltip = node.ghost
+					? `${full.title}: ${(node.opco && flow.notApplicable?.[node.opco]) || 'not documented for this flow'}`
+					: node.short
+						? [full.title, full.system].filter(Boolean).join(' — ')
+						: undefined;
 				const side = node.label ?? 'below';
 				return (
 					<div
 						key={node.key}
 						className="absolute"
 						style={{ left: pct(node.x, 400), top: pct(node.y, layout.height) }}
-						title={node.ghost ? `${title}: not documented for this flow` : undefined}
+						title={tooltip}
 					>
 						<div
 							className={cn(
@@ -209,7 +251,9 @@ function HopFacts({ hop, opcos }: { hop: Hop; opcos: string[] }) {
 	const doubt = hop.unconfirmed && <UnconfirmedBadge key="unconfirmed" />;
 	const known = [
 		hop.via === 'boomi' && 'via Boomi',
-		hop.mechanism && (hop.mechanism === 'file' ? 'File' : 'API'),
+		hop.via === 'direct' && 'Direct',
+		hop.mechanism && mechanismLabel[hop.mechanism],
+		hop.sync && 'Request/response',
 		hop.frequency,
 		hop.format,
 	].filter(Boolean) as string[];
@@ -276,7 +320,7 @@ export function FlowStory({ flow: flowId }: { flow: FlowId }) {
 						...new Map(
 							step.edges
 								.map((key) => layout.edges.find((e) => e.key === key)!)
-								.map((e) => [`${e.hop.from}-${e.hop.to}`, findHop(flowId, e.hop.from, e.hop.to)])
+								.map((e) => [hopId(e.hop), findHop(flowId, e.hop)])
 						).values(),
 					];
 					return (
@@ -312,7 +356,7 @@ export function FlowStory({ flow: flowId }: { flow: FlowId }) {
 												</FactRow>
 											);
 										})
-									: hops.map((hop) => <HopFacts key={`${hop.from}-${hop.to}`} hop={hop} opcos={opcos} />)}
+									: hops.map((hop) => <HopFacts key={hopId(hop)} hop={hop} opcos={opcos} />)}
 							</div>
 						</li>
 					);

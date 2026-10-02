@@ -1,6 +1,6 @@
 ---
 title: Architecture Diagrams
-description: The systems around the central Intershop instance — storefront, search, identity, product information, integration, and each OpCo's systems of record.
+description: The systems around the central Intershop instance — AEM and Edge Delivery Services, search, identity, product information, integration, and each OpCo's systems of record.
 ---
 
 import { ArchitectureMap } from '@/components/architecture/ArchitectureMap';
@@ -15,20 +15,51 @@ operating company on it and run by the platform team. This page maps them; the
 
 ## How it fits together
 
-- **AEM is the storefront.** Intershop hosts no customer-facing pages. Each OpCo's storefront,
-  checkout included, is built in Adobe Experience Manager, whose components call Intershop's REST
-  APIs directly. Customers sign in through the central Auth0 tenant.
+- **AEM is the storefront, in two parts.** Intershop hosts no customer-facing pages. Every page
+  except checkout runs on **AEM Edge Delivery Services**; checkout still runs on **traditional
+  AEM**, and is planned to move too. Both call Intershop's REST APIs and Auth0 directly.
+- **Product content comes from Coveo; transactional data from Intershop.** AEM pages load Coveo
+  through the Coveo Headless and Atomic libraries, and it is their only source of product content —
+  inRiver doesn't feed AEM. Intershop supplies the transactional data: list price, unit of measure,
+  minimum order quantity, and customer-specific price. Coveo indexes product data, fed directly by
+  inRiver, and AEM content, which AEM pushes to it on a scheduled sync every 24 hours.
+- **Customers sign in through one Auth0 tenant.** Every OpCo uses the same Universal Login pages,
+  with its own branding; custom forms collect OpCo-specific answers, which reach the storefront in
+  the ID token. Intershop's custom token handler creates the user and customer from it. Phenomenex
+  users are still migrating from Azure AD B2C on first sign-in, until the end of Q3 2027; the rest
+  then move without passwords and set one when they first sign in. See the
+  [sign-in flow](/flows/sign-in/).
 - **Commerce consumes data it doesn't own.** Products are created in each OpCo's ERP and enriched in
-  inRiver, the central PIM, before they reach Intershop and Coveo. Customers, customer-specific
-  prices, quotes, and segments come from the ERP and CRM. See the [flow diagrams](/flows/).
-- **Inbound data travels as files.** ERPs and, for Phenomenex, WebDB drop files on the Danaher Life
-  Sciences SFTP server; Boomi picks them up and delivers them to inRiver and Intershop.
+  inRiver, the central PIM, before they reach Intershop and Coveo. Danaher Life Sciences has no ERP:
+  it is a common marketplace hosting the other OpCos' products, fed from the same inRiver.
+  Customer-specific prices and quotes come from the ERP — except at Leica Microsystems, which sends
+  neither to Intershop; customers and segments from the CRM. See the [flow diagrams](/flows/).
+- **Inbound data travels as files.** ERPs drop files on the Danaher Life Sciences SFTP server — for
+  SCIEX, customer-specific prices as XML on a scheduled Oracle job every 24 hours, over SSH. For Phenomenex, pricing,
+  quotes, customers, and segments are staged in WebDB first, which sends them on to the SFTP
+  server as CSV — pricing and quotes on scheduled jobs every 24 hours, one per data type. Boomi picks the files up and
+  delivers them to inRiver and Intershop.
+- **Orders go out by direct API.** Intershop calls each OpCo's ERP itself, with no Boomi or files —
+  except Leica Microsystems, whose orders are emailed to customer service until a REST API to SAP
+  arrives, planned for later in 2026.
+  For Phenomenex it calls the ERP twice: **Order Simulate** during checkout, for tax, shipping, an
+  estimated delivery date, and any account block; then to create the order in the ERP's pre-order
+  table, from which a batch job makes a sales order. SCIEX orders go to Oracle's order-create API,
+  where they are booked directly, or flagged for customer service to review — including any
+  order over 10,000, in whatever currency. See the
+  [orders flow](/flows/orders/).
 - **Everything behind the sale differs per OpCo.** Orders go to each OpCo's own ERP, payment runs
-  through its own provider, and campaigns through its own marketing platform.
+  through its own provider, and campaigns through its own marketing platform. Danaher Life Sciences
+  has **no ERP** yet, because no legal entity has been established, and **takes no payments**,
+  because it doesn't transact directly. See the [payments flow](/flows/payments/).
+- **Danaher Life Sciences generates leads, not orders.** Its shoppers submit quote requests through
+  Intershop's eRFQ quote cart, signed in or not. Intershop sends each to the central Salesforce
+  Marketing Cloud as a lead, by REST API, and Marketing Cloud routes it to each product's OpCo. See the [quote requests flow](/flows/quote-requests/).
+- **CRM is converging on Salesforce, one org per OpCo.** Danaher Life Sciences, SCIEX, and Leica
+  Microsystems each have their own Salesforce org; Phenomenex uses Microsoft Dynamics CRM, and its
+  move to Salesforce is in planning, expected around the third quarter of 2027.
 
 ## Not yet documented
 
-- The **outbound flows**: orders from Intershop to each ERP, payment authorisation, and Auth0
-  sign-in and registration.
-- Each OpCo's **CRM**.
-- Whether **inRiver feeds AEM**, and whether **Coveo** indexes AEM content as well as product data.
+Nothing at this level. Detailed open questions — schedules, retries, payloads — are kept on each
+[flow](/flows/).

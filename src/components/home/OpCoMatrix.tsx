@@ -7,8 +7,9 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
+import { SystemValue } from '@/components/diagram/parts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { centralOpcos, type BackendSystem } from '@/data/platform';
+import { centralOpcos, systemOf, type SystemSlot } from '@/data/platform';
 
 /**
  * The same integration facts read two ways: down the operating companies, or
@@ -16,22 +17,11 @@ import { centralOpcos, type BackendSystem } from '@/data/platform';
  * ships JavaScript.
  */
 
-function SystemCell({ system }: { system: BackendSystem | null }) {
-	if (!system) {
-		return (
-			<Badge variant="outline" className="text-muted-foreground">
-				Not documented
-			</Badge>
-		);
-	}
-	return <Badge variant="secondary">{system.name}</Badge>;
-}
-
 /** Which operating companies use a given system, grouped for the second view. */
-function usageBySystem(pick: (o: (typeof centralOpcos)[number]) => BackendSystem | null) {
+function usageBySystem(pick: (o: (typeof centralOpcos)[number]) => SystemSlot) {
 	const map = new Map<string, string[]>();
 	for (const opco of centralOpcos) {
-		const system = pick(opco);
+		const system = systemOf(pick(opco));
 		if (!system) continue;
 		map.set(system.name, [...(map.get(system.name) ?? []), opco.name]);
 	}
@@ -70,13 +60,13 @@ export function OpCoMatrix() {
 									<TableRow key={opco.id}>
 										<TableCell className="font-medium">{opco.name}</TableCell>
 										<TableCell>
-											<SystemCell system={opco.orderBackend} />
+											<SystemValue slot={opco.orderBackend} />
 										</TableCell>
 										<TableCell>
-											<SystemCell system={opco.paymentProvider} />
+											<SystemValue slot={opco.paymentProvider} />
 										</TableCell>
 										<TableCell>
-											<SystemCell system={opco.marketingPlatform} />
+											<SystemValue slot={opco.marketingPlatform} />
 										</TableCell>
 										<TableCell className="text-sm text-muted-foreground">
 											{opco.regions?.join(', ') ?? 'Not documented'}
@@ -133,7 +123,7 @@ export function OpCoMatrix() {
 						</Table>
 					</div>
 					<p className="mt-2 text-xs text-muted-foreground">
-						Systems not yet documented for an operating company do not appear in this view.
+						Systems not yet documented for an operating company, and those it has none of, do not appear in this view.
 					</p>
 				</TabsContent>
 			</Tabs>

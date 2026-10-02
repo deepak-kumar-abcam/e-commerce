@@ -1,6 +1,6 @@
 ---
 title: Quotes
-description: How quotes raised in the CRM reach Intershop, documented for Phenomenex.
+description: How quotes created in the ERP reach Intershop — for Phenomenex, the only OpCo that sends them.
 sidebar:
   order: 4
 ---
@@ -8,9 +8,12 @@ sidebar:
 import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
 import { FlowStory } from '@/components/flows/FlowStory';
 
-Quotes — their details, prices, and customer — are raised in the CRM and sent to Intershop so
-customers can see and act on them in the storefront. The route below is documented for
-**Phenomenex** only.
+Quotes — their details, prices, and customer — are created in the ERP and staged in WebDB, which
+pushes them to the SFTP server as CSV files, on a scheduled job every 24 hours, for Boomi to load into Intershop, so customers can
+see and act on them in the storefront. The route below is documented for
+**Phenomenex**. SCIEX doesn't create quotes, and Leica Microsystems doesn't send them to
+Intershop. Quote *requests* from Danaher Life Sciences shoppers travel the other way, to each OpCo's
+CRM: see the [quote requests flow](/flows/quote-requests/).
 
 ## At a glance
 

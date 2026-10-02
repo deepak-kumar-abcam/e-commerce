@@ -25,6 +25,7 @@ export const customFeatureAreas: CustomFeatureArea[] = [
 	{ id: 'identity', title: 'Registration and sign-in' },
 	{ id: 'catalog', title: 'Catalog, pricing, and promotions' },
 	{ id: 'basket', title: 'Basket' },
+	{ id: 'payment', title: 'Payment' },
 ];
 
 export interface CustomFeature {
@@ -60,10 +61,16 @@ export const customFeatures: CustomFeature[] = [
 		custom:
 			'The eRFQ API is extended so anonymous users can add items to a quote cart and submit the quote.',
 		apis: ['eRFQ API'],
-		status: {},
+		status: { 'danaher-life-sciences': 'enabled' },
+		opcoNotes: [
+			{
+				opco: 'danaher-life-sciences',
+				note: 'How shoppers buy on the marketplace: each submitted quote goes to the central Salesforce Marketing Cloud as a lead, which routes it to each product’s OpCo. See the quote requests flow.',
+			},
+		],
 		openQuestions: [
-			'Which OpCos have it enabled.',
-			'What contact details a guest must supply, and where the submitted quote goes.',
+			'Whether the other OpCos have it enabled.',
+			'What contact details a guest must supply.',
 		],
 	},
 	{
@@ -94,7 +101,12 @@ export const customFeatures: CustomFeature[] = [
 			'OpCo-specific IDs come from an API call to that OpCo’s own system and are stored in Intershop.',
 		],
 		apis: ['Token handler'],
-		status: { phenomenex: 'enabled' },
+		status: {
+			'danaher-life-sciences': 'enabled',
+			sciex: 'enabled',
+			phenomenex: 'enabled',
+			'leica-microsystems': 'enabled',
+		},
 		opcoNotes: [
 			{
 				opco: 'phenomenex',
@@ -167,6 +179,23 @@ export const customFeatures: CustomFeature[] = [
 			sciex: 'available',
 			'leica-microsystems': 'available',
 		},
+	},
+	{
+		id: 'stripe-payments',
+		title: 'Stripe card payments',
+		area: 'payment',
+		icon: 'CreditCard',
+		summary: 'Cards saved to Stripe at checkout and authorised on order submission, for capture once the order is invoiced.',
+		standard:
+			'Intershop offers a Stripe connector, but it doesn’t support SetupIntents, so it can’t save a customer’s card in Stripe for later charges.',
+		custom:
+			'Intershop creates the Stripe SetupIntent that renders Stripe’s payment form, lists the customer’s saved cards, and authorises the order total with manual capture. See the payments flow for the full journey.',
+		details: [
+			'Stripe settings are held in Intershop managed services, one per sales channel.',
+			'Each OpCo has its own Stripe organisation, with several accounts for selling globally.',
+		],
+		apis: ['Stripe SetupIntent API', 'Stripe PaymentIntent API'],
+		status: { phenomenex: 'enabled', 'leica-microsystems': 'enabled' },
 	},
 ];
 
