@@ -22,7 +22,8 @@ export type StoryIcon =
 	| 'payment'
 	| 'storefront'
 	| 'identity'
-	| 'api';
+	| 'api'
+	| 'marketing';
 
 export interface StoryNode {
 	key: string;
@@ -202,8 +203,6 @@ interface StepCopy {
 interface WebdbRouteCopy {
 	/** Step 1: where the data starts. */
 	source: StepCopy;
-	/** The ERP → CRM step, for routes that pass through the CRM. */
-	toCrm?: StepCopy;
 	/** The WebDB → SFTP step, when it differs from the generic one. */
 	toSftp?: StepCopy;
 	/** The last step: loaded into Intershop. */
@@ -213,17 +212,15 @@ interface WebdbRouteCopy {
 /**
  * Build a story for a flow on the shared WebDB route. The top row shows every
  * central-instance OpCo; those the flow isn't documented for are ghosts, so
- * the gap stays visible in the picture. `throughCrm` inserts the ERP → CRM leg.
+ * the gap stays visible in the picture.
  */
 function webdbRouteStory(
 	flow: DataFlow['id'],
 	start: 'erp' | 'crm',
 	documentedFor: string,
-	copy: WebdbRouteCopy,
-	{ throughCrm = false } = {}
+	copy: WebdbRouteCopy
 ): FlowStoryLayout {
 	const chain: { node: NodeId; icon: StoryIcon }[] = [
-		...(throughCrm ? [{ node: 'crm', icon: 'crm' as const }] : []),
 		{ node: 'webdb', icon: 'staging' },
 		{ node: 'sftp', icon: 'sftp' },
 		{ node: 'intershop', icon: 'commerce' },
@@ -261,8 +258,8 @@ function webdbRouteStory(
 			i === 0
 				? curve(sourceX, top + R + LABEL, 200, ys[0] - R)
 				: drop(200, ys[i - 1], 200, ys[i]);
-		// Label only the hops that have something to say: a carrier or a doubt.
-		const labelled = (from === 'erp' && c.node === 'crm') || c.node === 'intershop';
+		// Label only the hop that has something to say: its carrier.
+		const labelled = c.node === 'intershop';
 		return {
 			key: `${from}-${c.node}`,
 			hop: { from, to: c.node },
@@ -272,7 +269,7 @@ function webdbRouteStory(
 	});
 
 	const edgeInto = (node: NodeId) => edges.find((e) => e.hop.to === node)!.key;
-	const feeder = throughCrm || start === 'crm' ? 'CRM' : 'ERP';
+	const feeder = start === 'crm' ? 'CRM' : 'ERP';
 	const generic: Partial<Record<string, StepCopy>> = {
 		webdb: {
 			title: 'Staged in WebDB',
@@ -287,7 +284,7 @@ function webdbRouteStory(
 	const steps: StoryStep[] = [
 		{ ...copy.source, nodes: [`source-${documentedFor}`], edges: [], facts: { source: start } },
 		...chain.map((c) => {
-			const text = c.node === 'crm' ? copy.toCrm : c.node === 'intershop' ? copy.load : generic[c.node];
+			const text = c.node === 'intershop' ? copy.load : generic[c.node];
 			if (!text) throw new Error(`No copy for the ${c.node} step of "${flow}"`);
 			return { ...text, nodes: [c.node], edges: [edgeInto(c.node)], facts: 'hops' as const };
 		}),
@@ -384,7 +381,7 @@ export const customerPricingStory: FlowStoryLayout = {
 // Sign-in: Auth0 for every OpCo, with each OpCo's own additions
 // ---------------------------------------------------------------------------
 
-/** Every sign-in node has a two-line label, so curves leaving one start further down. */
+/** Below two-line labels (name and role), curves leaving a node start this far down. */
 const LABEL2 = 62;
 
 const sign = {
@@ -492,6 +489,79 @@ export const signInStory: FlowStoryLayout = {
 			body: 'Phenomenex’s Web API stores the industry the customer chose in WebDB. The SCIEX website’s AEM backend stores its three answers in its own database. Leica Microsystems and Danaher Life Sciences ask no extra questions.',
 			nodes: ['webdb', 'sciex-website-db'],
 			edges: ['phx-web-api-webdb', 'storefront-sciex-website-db'],
+			facts: 'hops',
+		},
+	],
+};
+
+// ---------------------------------------------------------------------------
+// Quote requests: DHLS shoppers' requests, through Marketing Cloud, to each OpCo
+// ---------------------------------------------------------------------------
+
+const rfq = {
+	storefront: { x: 200, y: 50 },
+	intershop: { x: 200, y: 210 },
+	sfmc: { x: 200, y: 380 },
+	crm: { phenomenex: 80, sciex: 200, 'leica-microsystems': 320 } as Record<string, number>,
+	crmY: 570,
+};
+
+export const quoteRequestsStory: FlowStoryLayout = {
+	flow: 'quote-requests',
+	height: 630,
+	nodes: [
+		{ key: 'storefront', node: 'storefront', icon: 'storefront', ...rfq.storefront, short: { system: 'EDS or AEM' } },
+		{ key: 'intershop', node: 'intershop', icon: 'commerce', ...rfq.intershop },
+		{ key: 'sfmc', node: 'sfmc', icon: 'marketing', ...rfq.sfmc, short: { title: 'Marketing Cloud' } },
+		...Object.entries(rfq.crm).map(([opco, x]) => ({
+			key: `crm-${opco}`,
+			node: 'crm' as const,
+			opco,
+			icon: 'crm' as const,
+			x,
+			y: rfq.crmY,
+		})),
+	],
+	edges: [
+		{
+			key: 'storefront-intershop',
+			hop: { from: 'storefront', to: 'intershop' },
+			d: `M${rfq.storefront.x},${rfq.storefront.y + R + LABEL2} L${rfq.intershop.x},${rfq.intershop.y - R}`,
+			labelAt: { x: 200, y: 161 },
+		},
+		{
+			key: 'intershop-sfmc',
+			hop: { from: 'intershop', to: 'sfmc' },
+			d: `M${rfq.intershop.x},${rfq.intershop.y + R + LABEL2} L${rfq.sfmc.x},${rfq.sfmc.y - R}`,
+			labelAt: { x: 200, y: 326 },
+		},
+		...Object.entries(rfq.crm).map(([opco, x]) => ({
+			key: `sfmc-crm-${opco}`,
+			hop: { from: 'sfmc', to: 'opco-crm' },
+			d: curve(rfq.sfmc.x, rfq.sfmc.y + R + LABEL2, x, rfq.crmY - R),
+			labelAt: opco === 'sciex' ? { x: 200, y: 506 } : undefined,
+		})),
+	],
+	steps: [
+		{
+			title: 'Quote cart submitted',
+			body: 'Danaher Life Sciences sells nothing directly. Shoppers add products from any OpCo to an eRFQ quote cart and submit it as a quote request, signed in or not.',
+			nodes: ['storefront', 'intershop'],
+			edges: ['storefront-intershop'],
+			facts: 'hops',
+		},
+		{
+			title: 'Pushed to Marketing Cloud as a lead',
+			body: 'Intershop pushes the request to the central Salesforce Marketing Cloud as a lead, with comments that identify the products’ OpCos.',
+			nodes: ['sfmc'],
+			edges: ['intershop-sfmc'],
+			facts: 'hops',
+		},
+		{
+			title: 'Split and routed to each OpCo',
+			body: 'Marketing Cloud is integrated with each OpCo, and routes the lead based on those comments. A request covering several OpCos is split, so each gets its own lead for its own products, for its sales team to follow up.',
+			nodes: Object.keys(rfq.crm).map((opco) => `crm-${opco}`),
+			edges: Object.keys(rfq.crm).map((opco) => `sfmc-crm-${opco}`),
 			facts: 'hops',
 		},
 	],
@@ -761,28 +831,19 @@ export const flowStories: Partial<Record<DataFlow['id'], FlowStoryLayout>> = {
 	payments: paymentsStory,
 	'product-data': productDataStory,
 	orders: ordersStory,
+	'quote-requests': quoteRequestsStory,
 	'sign-in': signInStory,
 	'customer-pricing': customerPricingStory,
-	'customer-data': webdbRouteStory(
-		'customer-data',
-		'erp',
-		'phenomenex',
-		{
-			source: {
-				title: 'Starts in the ERP',
-				body: 'The documented route begins in Phenomenex’s ERP — although customers are said to be created in the CRM. Which of the two masters them is not yet confirmed.',
-			},
-			toCrm: {
-				title: 'Passed to the CRM',
-				body: 'Customer profiles, contacts, and addresses move from the ERP to the CRM. This leg is recorded as described, not yet confirmed.',
-			},
-			load: {
-				title: 'Loaded into Intershop',
-				body: 'Boomi picks up the files and loads customer profiles, contacts, and addresses into Intershop.',
-			},
+	'customer-data': webdbRouteStory('customer-data', 'crm', 'phenomenex', {
+		source: {
+			title: 'Created in the CRM',
+			body: 'Customer profiles, contacts, and addresses are created and mastered in Phenomenex’s CRM.',
 		},
-		{ throughCrm: true }
-	),
+		load: {
+			title: 'Loaded into Intershop',
+			body: 'Boomi picks up the files and loads customer profiles, contacts, and addresses into Intershop.',
+		},
+	}),
 	quotes: webdbRouteStory('quotes', 'erp', 'phenomenex', {
 		source: {
 			title: 'Created in the ERP',

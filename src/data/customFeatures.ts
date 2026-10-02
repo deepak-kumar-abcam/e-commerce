@@ -61,10 +61,16 @@ export const customFeatures: CustomFeature[] = [
 		custom:
 			'The eRFQ API is extended so anonymous users can add items to a quote cart and submit the quote.',
 		apis: ['eRFQ API'],
-		status: {},
+		status: { 'danaher-life-sciences': 'enabled' },
+		opcoNotes: [
+			{
+				opco: 'danaher-life-sciences',
+				note: 'How shoppers buy on the marketplace: each submitted quote goes to the central Salesforce Marketing Cloud as a lead, which routes it to each product’s OpCo. See the quote requests flow.',
+			},
+		],
 		openQuestions: [
-			'Which OpCos have it enabled.',
-			'What contact details a guest must supply, and where the submitted quote goes.',
+			'Whether the other OpCos have it enabled.',
+			'What contact details a guest must supply.',
 		],
 	},
 	{

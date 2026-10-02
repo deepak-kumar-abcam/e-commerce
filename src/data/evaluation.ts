@@ -919,7 +919,7 @@ export const integrationRows: ComparisonRow[] = [
 		id: 'coveo',
 		capability: 'Coveo (search and recommendations)',
 		intershop: production(
-			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync. Whether it reads anything from Intershop is not documented.'
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync every 24 hours. Whether it reads anything from Intershop is not documented.'
 		),
 		commercetools: {
 			rating: 'unknown',

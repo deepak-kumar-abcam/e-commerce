@@ -22,20 +22,22 @@ operating company on it and run by the platform team. This page maps them; the
   through the Coveo Headless and Atomic libraries, and it is their only source of product content —
   inRiver doesn't feed AEM. Intershop supplies the transactional data: list price, unit of measure,
   minimum order quantity, and customer-specific price. Coveo indexes product data, fed directly by
-  inRiver, and AEM content, which AEM pushes to it on a scheduled sync.
+  inRiver, and AEM content, which AEM pushes to it on a scheduled sync every 24 hours.
 - **Customers sign in through one Auth0 tenant.** Every OpCo uses the same Universal Login pages,
   with its own branding; custom forms collect OpCo-specific answers, which reach the storefront in
-  the ID token. Intershop's custom token handler creates the user and customer from it. See the
+  the ID token. Intershop's custom token handler creates the user and customer from it. Phenomenex
+  users are still migrating from Azure AD B2C on first sign-in, until the end of Q3 2027; the rest
+  then move without passwords and set one when they first sign in. See the
   [sign-in flow](/flows/sign-in/).
 - **Commerce consumes data it doesn't own.** Products are created in each OpCo's ERP and enriched in
   inRiver, the central PIM, before they reach Intershop and Coveo. Danaher Life Sciences has no ERP:
   it is a common marketplace hosting the other OpCos' products, fed from the same inRiver.
-  Customer-specific prices and quotes come from the ERP; customers and segments from the CRM. See
-  the [flow diagrams](/flows/).
+  Customer-specific prices and quotes come from the ERP — except at Leica Microsystems, which sends
+  neither to Intershop; customers and segments from the CRM. See the [flow diagrams](/flows/).
 - **Inbound data travels as files.** ERPs drop files on the Danaher Life Sciences SFTP server — for
-  SCIEX, customer-specific prices on a scheduled Oracle job, over SSH. For Phenomenex, pricing,
+  SCIEX, customer-specific prices as XML on a scheduled Oracle job every 24 hours, over SSH. For Phenomenex, pricing,
   quotes, customers, and segments are staged in WebDB first, which sends them on to the SFTP
-  server — pricing and quotes on scheduled jobs, one per data type. Boomi picks the files up and
+  server as CSV — pricing and quotes on scheduled jobs every 24 hours, one per data type. Boomi picks the files up and
   delivers them to inRiver and Intershop.
 - **Orders go out by direct API.** Intershop calls each OpCo's ERP itself, with no Boomi or files —
   except Leica Microsystems, whose orders are emailed to customer service until a REST API to SAP
@@ -43,20 +45,20 @@ operating company on it and run by the platform team. This page maps them; the
   For Phenomenex it calls the ERP twice: **Order Simulate** during checkout, for tax, shipping, an
   estimated delivery date, and any account block; then to create the order in the ERP's pre-order
   table, from which a batch job makes a sales order. SCIEX orders go to Oracle's order-create API,
-  where they are booked directly or flagged for customer service to review. See the
+  where they are booked directly, or flagged for customer service to review — including any
+  order over 10,000, in whatever currency. See the
   [orders flow](/flows/orders/).
 - **Everything behind the sale differs per OpCo.** Orders go to each OpCo's own ERP, payment runs
   through its own provider, and campaigns through its own marketing platform. Danaher Life Sciences
   has **no ERP** yet, because no legal entity has been established, and **takes no payments**,
   because it doesn't transact directly. See the [payments flow](/flows/payments/).
+- **Danaher Life Sciences generates leads, not orders.** Its shoppers submit quote requests through
+  Intershop's eRFQ quote cart, signed in or not. Each goes as a lead to the central Salesforce
+  Marketing Cloud, which routes it to each product's OpCo. See the [quote requests flow](/flows/quote-requests/).
 - **CRM is converging on Salesforce, one org per OpCo.** Danaher Life Sciences, SCIEX, and Leica
   Microsystems each have their own Salesforce org; Phenomenex uses Microsoft Dynamics CRM, and its
   move to Salesforce is in planning, expected around the third quarter of 2027.
 
 ## Not yet documented
 
-- How customer-specific prices and quotes reach Intershop for **Leica Microsystems**.
-- How often **AEM's sync to Coveo**, and SCIEX's and WebDB's **pricing jobs**, run.
-- The **threshold value** above which SCIEX orders are held for review.
-- Whether the just-in-time migration from **Azure AD B2C** has a cut-off date.
-- How a **Danaher Life Sciences** shopper buys a product, given it takes no orders.
+- How Intershop pushes Danaher Life Sciences **leads** to Salesforce Marketing Cloud.

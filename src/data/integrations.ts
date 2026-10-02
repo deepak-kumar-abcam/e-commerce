@@ -193,7 +193,35 @@ const identityNodes: IntegrationSystem[] = [
 ];
 
 /** Everything a flow step can name besides an OpCo's own ERP or CRM. */
-const flowNodes = [...integrationSystems, ...erpStages, ...paymentProviders, ...lmsTeams, ...sciexTeams, ...identityNodes];
+/** Where Danaher Life Sciences quote requests go: the central Marketing Cloud, then each product's OpCo's CRM. */
+const leadNodes: IntegrationSystem[] = [
+	{
+		id: 'sfmc',
+		name: 'Salesforce Marketing Cloud',
+		role: 'Central lead routing',
+		detail: 'The central Marketing Cloud, integrated with each OpCo, routes each lead to the right OpCo based on the comments sent with it.',
+		category: 'marketing',
+		opcos: null,
+	},
+	{
+		id: 'opco-crm',
+		name: 'OpCo CRM',
+		role: 'The CRM of each product’s OpCo',
+		detail: 'Each OpCo’s own CRM: Salesforce for SCIEX and Leica Microsystems, Microsoft Dynamics CRM for Phenomenex.',
+		category: 'crm',
+		opcos: null,
+	},
+];
+
+const flowNodes = [
+	...integrationSystems,
+	...erpStages,
+	...paymentProviders,
+	...lmsTeams,
+	...sciexTeams,
+	...identityNodes,
+	...leadNodes,
+];
 
 /**
  * A step in a flow: a shared system by id, or an OpCo's own ERP or CRM, which
@@ -283,6 +311,7 @@ export interface DataFlow {
 		| 'customer-segments'
 		| 'orders'
 		| 'payments'
+		| 'quote-requests'
 		| 'sign-in';
 	/**
 	 * `inbound` = into Intershop from the systems that own the data;
@@ -371,18 +400,19 @@ const stripeCheckout: Hop[] = [
 /**
  * The PHX route through WebDB, which every flow except product data takes:
  * from the ERP or CRM into WebDB, then as files to the SFTP server for Boomi.
- * `unconfirmedErpHop` flags an ERP → CRM leg where the notes contradict
- * themselves or haven't been checked; `scheduled` marks WebDB's per-data-type
- * scheduled export.
+ * `scheduled` marks WebDB's per-data-type scheduled export.
  */
-const viaWebdb = (start: NodeId[], { unconfirmedErpHop = false, scheduled = false } = {}): Hop[] => {
+const viaWebdb = (start: NodeId[], { scheduled = false } = {}): Hop[] => {
 	const chain: NodeId[] = [...start, 'webdb'];
 	return [
-		...chain
-			.slice(1)
-			.map((to, i) => hop(chain[i], to, chain[i] === 'erp' && unconfirmedErpHop ? { unconfirmed: true } : {})),
+		...chain.slice(1).map((to, i) => hop(chain[i], to)),
 		scheduled
-			? hop('webdb', 'sftp', { mechanism: 'file', note: 'Pushed by a scheduled job, one per data type.' })
+			? hop('webdb', 'sftp', {
+					mechanism: 'file',
+					frequency: 'Every 24 hours',
+					format: 'CSV',
+					note: 'Pushed by a scheduled job, one per data type.',
+				})
 			: toSftp('webdb'),
 		hop('sftp', 'intershop', { via: 'boomi' }),
 	];
@@ -442,12 +472,9 @@ export const dataFlows: DataFlow[] = [
 		variations: {
 			...Object.fromEntries(allCentral.map((id) => [id, null])),
 			'danaher-life-sciences':
-				'No ERP of its own: a common marketplace hosting the other OpCos’ products, fed to Intershop and Coveo from inRiver.',
+				'No ERP of its own: a common marketplace hosting the other OpCos’ products, fed to Intershop and Coveo from inRiver. Shoppers request quotes rather than buy.',
 		},
-		openQuestions: [
-			'Where will list prices come from once they leave inRiver, and when?',
-			'Danaher Life Sciences takes no orders. How does a shopper there buy a product: handed on to the OpCo’s own storefront?',
-		],
+		openQuestions: ['Where will list prices come from once they leave inRiver, and when?'],
 	},
 	{
 		id: 'customer-data',
@@ -456,13 +483,9 @@ export const dataFlows: DataFlow[] = [
 		href: '/flows/customer-data/',
 		summary: 'Customer accounts, contacts, and addresses, from the CRM into Intershop.',
 		carries: ['Customer profiles', 'Contacts', 'Addresses'],
-		master: { node: 'crm', confirmed: false },
-		routes: [
-			{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp', 'crm'], { unconfirmedErpHop: true }) },
-		],
-		openQuestions: [
-			'Which system masters customer data? The integration notes say customers are created in the CRM, but the route they give starts in the ERP.',
-		],
+		master: { node: 'crm', confirmed: true },
+		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['crm']) }],
+		openQuestions: [],
 	},
 	{
 		id: 'customer-pricing',
@@ -481,16 +504,16 @@ export const dataFlows: DataFlow[] = [
 					hop('erp', 'sftp', {
 						via: 'direct',
 						mechanism: 'file',
+						frequency: 'Every 24 hours',
+						format: 'XML',
 						note: 'A scheduled job in Oracle publishes the prices as files to the SFTP server over SSH.',
 					}),
 					hop('sftp', 'intershop', { via: 'boomi' }),
 				],
 			},
 		],
-		openQuestions: [
-			'How do customer-specific prices reach Intershop from the Leica Microsystems (SAP) ERP?',
-			'How often do WebDB’s and Oracle’s scheduled jobs run, and what file formats do they write?',
-		],
+		notApplicable: { 'leica-microsystems': 'Not sent to Intershop' },
+		openQuestions: [],
 	},
 	{
 		id: 'quotes',
@@ -501,11 +524,8 @@ export const dataFlows: DataFlow[] = [
 		carries: ['Quote details', 'Quoted prices', 'Customer'],
 		master: { node: 'erp', confirmed: true },
 		routes: [{ label: 'Phenomenex', opcos: phxOnly, hops: viaWebdb(['erp'], { scheduled: true }) }],
-		notApplicable: { sciex: 'No quotes' },
-		openQuestions: [
-			'How do quotes reach Intershop from the Leica Microsystems (SAP) ERP?',
-			'How often does WebDB’s scheduled job run, and what file format does it write?',
-		],
+		notApplicable: { sciex: 'No quotes', 'leica-microsystems': 'Not sent to Intershop' },
+		openQuestions: [],
 	},
 	{
 		id: 'customer-segments',
@@ -531,7 +551,7 @@ export const dataFlows: DataFlow[] = [
 			'Account blocks (from Order Simulate)',
 		],
 		master: { node: 'intershop', confirmed: true },
-		notApplicable: { 'danaher-life-sciences': 'No direct transactions' },
+		notApplicable: { 'danaher-life-sciences': 'No direct sale; quote requests instead' },
 		routes: [
 			{
 				label: 'Phenomenex',
@@ -575,11 +595,11 @@ export const dataFlows: DataFlow[] = [
 						via: 'direct',
 						mechanism: 'api',
 						frequency: 'On order submission',
-						note: 'Intershop creates the order through Oracle’s REST order-create API. There is no check against Oracle during checkout. Oracle books the order directly when the account, ship-to, and bill-to already exist and it is a normal order within the threshold value.',
+						note: 'Intershop creates the order through Oracle’s REST order-create API. There is no check against Oracle during checkout. Oracle books the order directly when the account, ship-to, and bill-to already exist and it is a normal order with a value of 10,000 or less, in the order’s currency.',
 					}),
 					hop('erp', 'sciex-customer-service', {
 						via: 'direct',
-						note: 'Flags set up by customer service hold an order for manual review: a new account or address, a special request such as shipping instructions or notes, or a value over the threshold. The threshold itself is not documented.',
+						note: 'Flags set up by customer service hold an order for manual review: a new account or address, a special request such as shipping instructions or notes, or an order value over 10,000 — the same figure in every currency: USD, CAD, EUR, CHF, and the rest.',
 					}),
 				],
 			},
@@ -612,7 +632,6 @@ export const dataFlows: DataFlow[] = [
 			'How often does the batch job run?',
 			'Besides a new customer, what flags an order for manual intervention?',
 			'Do order status, shipment, or invoice updates flow back to Intershop, and is the customer told when an order is held?',
-			'What is the threshold value above which SCIEX orders are held for review, and does it differ by currency?',
 			'For Leica Microsystems, how does customer service get the order into SAP today, and is the purchase order document attached to the email?',
 		],
 	},
@@ -630,7 +649,7 @@ export const dataFlows: DataFlow[] = [
 			'Refunds',
 		],
 		master: { node: 'aem', confirmed: true },
-		notApplicable: { 'danaher-life-sciences': 'No direct transactions' },
+		notApplicable: { 'danaher-life-sciences': 'No direct sale; quote requests instead' },
 		routes: [
 			{
 				label: 'Phenomenex: Stripe, captured by the ERP',
@@ -745,6 +764,42 @@ export const dataFlows: DataFlow[] = [
 		],
 	},
 	{
+		id: 'quote-requests',
+		direction: 'outbound',
+		title: 'Quote requests (leads)',
+		href: '/flows/quote-requests/',
+		summary:
+			'Danaher Life Sciences sells nothing directly: shoppers request quotes, which go as leads to the central Marketing Cloud, and from there to each product’s OpCo.',
+		carries: ['Quote requests', 'Requested products'],
+		master: { node: 'intershop', confirmed: true },
+		routes: [
+			{
+				label: 'Danaher Life Sciences',
+				opcos: ['danaher-life-sciences'],
+				hops: [
+					hop('storefront', 'intershop', {
+						via: 'direct',
+						mechanism: 'api',
+						sync: true,
+						frequency: 'On quote request',
+						note: 'The shopper adds products to an eRFQ quote cart and submits it, signed in or not, through the eRFQ API extended for anonymous quote requests.',
+					}),
+					hop('intershop', 'sfmc', {
+						note: 'Intershop pushes each quote request to the central Salesforce Marketing Cloud as a lead, with comments that identify the products’ OpCos. How it is sent, and when, is not documented.',
+					}),
+					hop('sfmc', 'opco-crm', {
+						note: 'Marketing Cloud’s integration with each OpCo routes the lead, based on the comments sent with it. A request covering several OpCos is split, so each OpCo gets its own lead for its own products.',
+					}),
+				],
+			},
+		],
+		openQuestions: [
+			'How does Intershop push the lead to Marketing Cloud — a direct API call, Boomi, or another route — and when: on submission, or in a batch?',
+			'What contact details must a shopper give, and how does the OpCo’s answer reach them?',
+			'Do the other OpCos’ storefronts send quote requests to their CRMs the same way?',
+		],
+	},
+	{
 		id: 'sign-in',
 		direction: 'identity',
 		title: 'Sign-in and registration',
@@ -787,7 +842,7 @@ export const dataFlows: DataFlow[] = [
 						mechanism: 'api',
 						sync: true,
 						frequency: 'First sign-in only',
-						note: 'Just-in-time migration: a custom database script checks the password of a user not yet in Auth0 against the legacy Azure AD B2C tenant, then saves the profile and password in Auth0, so later sign-ins stay in Auth0.',
+						note: 'Just-in-time migration: a custom database script checks the password of a user not yet in Auth0 against the legacy Azure AD B2C tenant, then saves the profile and password in Auth0, so later sign-ins stay in Auth0. The migration is planned to complete by the end of Q3 2027; the profiles left after that are to be migrated without passwords, and those users asked to set one on their first sign-in.',
 					}),
 					hop('intershop', 'phx-web-api', {
 						via: 'direct',
@@ -831,13 +886,12 @@ export const dataFlows: DataFlow[] = [
 			},
 		],
 		variations: {
-			phenomenex: 'Asks for industry. Users still in Azure AD B2C are migrated on first sign-in.',
+			phenomenex: 'Asks for industry. Users still in Azure AD B2C are migrated on first sign-in until the end of Q3 2027; after that, the rest move without passwords and set one on first sign-in.',
 			sciex: 'Asks for industry, Absorb learning portal access, and IAP program access; posts the user to Salesforce. Users were bulk-migrated from Keycloak, hashed passwords included.',
 			'leica-microsystems': 'No custom forms. Partners can sign in with OneLogin.',
 			'danaher-life-sciences': 'No custom forms.',
 		},
 		openQuestions: [
-			'Is there a cut-off date for the just-in-time migration from Azure AD B2C, after which unmigrated Phenomenex users must reset their password?',
 			'Which details from the ID token does the token handler use for the user and customer, and how does it match a returning user to an existing Intershop customer?',
 			'What does IAP stand for?',
 		],

@@ -65,7 +65,7 @@ export function ArchitectureMap() {
 				</div>
 			</Layer>
 
-			<Connector label="Coveo Headless & Atomic, queried from the page · AEM content pushed on a scheduled sync" />
+			<Connector label="Coveo Headless & Atomic, queried from the page · AEM content pushed every 24 hours" />
 
 			<Layer label="Search" caption="Indexes product data from inRiver and content from AEM — the pages' only source of product content">
 				<System id="coveo" />
@@ -97,7 +97,7 @@ export function ArchitectureMap() {
 
 			<Layer
 				label="Integration"
-				caption="How files reach inRiver and Intershop: ERPs, and PHX's WebDB, drop them on SFTP for Boomi — pricing on scheduled jobs"
+				caption="How files reach inRiver and Intershop: ERPs, and PHX's WebDB, drop them on SFTP for Boomi — pricing on scheduled jobs every 24 hours"
 			>
 				<div className="grid gap-2 md:grid-cols-3">
 					<System id="webdb" />
@@ -108,7 +108,7 @@ export function ArchitectureMap() {
 
 			<Connector label="Product, customer, pricing, quote & segment data" up />
 
-			<Layer label="Systems of record" caption="These differ per operating company. Each OpCo on Salesforce has its own org">
+			<Layer label="Systems of record" caption="These differ per operating company. Each OpCo on Salesforce has its own org; DHLS's Marketing Cloud also routes marketplace leads to each OpCo">
 				<div className="overflow-x-auto rounded-lg border bg-background">
 					<Table>
 						<TableHeader>

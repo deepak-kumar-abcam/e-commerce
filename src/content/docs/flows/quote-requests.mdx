@@ -1,0 +1,36 @@
+---
+title: Quote requests (leads)
+description: How Danaher Life Sciences shoppers request quotes instead of buying, and how each request reaches the right OpCo as a lead, through the central Salesforce Marketing Cloud.
+sidebar:
+  order: 8
+---
+
+import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
+import { FlowStory } from '@/components/flows/FlowStory';
+
+Danaher Life Sciences is a common marketplace for the other OpCos' products, and it doesn't sell
+them directly: it has no ERP and takes no orders or payments. Shoppers instead add products to an
+**eRFQ quote cart** in Intershop and submit it as a quote request — signed in or not, through the
+[anonymous quote requests](/custom-features/#anonymous-erfq) customization.
+
+Intershop pushes each request to the central **Salesforce Marketing Cloud** as a **lead**, with
+comments that identify the products' OpCos. Marketing Cloud is integrated with each OpCo, and routes
+the lead to the OpCo that sells each product, for its own sales team to follow up. A request
+covering several OpCos is split, so each OpCo gets its own lead for its own products. How Intershop
+sends the lead to Marketing Cloud, and when, is not yet documented.
+
+## At a glance
+
+<FlowSummary flow="quote-requests" />
+
+## How it flows
+
+<FlowStory client:visible flow="quote-requests" />
+
+## Hop by hop
+
+<FlowHops flow="quote-requests" />
+
+## Open questions
+
+<FlowQuestions flow="quote-requests" />

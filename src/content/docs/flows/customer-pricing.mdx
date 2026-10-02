@@ -11,12 +11,12 @@ import { FlowStory } from '@/components/flows/FlowStory';
 Customer-specific pricing agreements are created in the ERP and reach Intershop as files on the
 SFTP server, which Boomi loads.
 
-- **Phenomenex** stages them in WebDB first, which pushes them to the SFTP server on a scheduled
-  job.
-- **SCIEX** publishes them straight from Oracle, on a scheduled job that writes the files to the
-  SFTP server over SSH.
+- **Phenomenex** stages them in WebDB first, which pushes them to the SFTP server as CSV files, on
+  a scheduled job every 24 hours.
+- **SCIEX** publishes them straight from Oracle, on a scheduled job every 24 hours that writes XML
+  files to the SFTP server over SSH.
 
-The route for Leica Microsystems is not yet documented.
+Leica Microsystems doesn't send customer-specific prices to Intershop.
 
 ## At a glance
 

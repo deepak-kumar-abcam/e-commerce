@@ -2,7 +2,7 @@
 title: Sign-in and registration
 description: How customers sign in and register through the central Auth0 tenant — common Universal Login pages, each OpCo's own questions and legacy accounts, and the user Intershop creates from the token.
 sidebar:
-  order: 8
+  order: 9
 ---
 
 import { FlowHops, FlowQuestions, FlowSummary } from '@/components/flows/DataFlow';
@@ -22,7 +22,9 @@ Intershop's custom token handler then creates the user and customer from that to
 - **Phenomenex** asks which industry the customer works in, and the PHX Web API stores the answer
   in WebDB. Users still in the legacy **Azure AD B2C** tenant are migrated **just in time**: on
   their first sign-in, a custom database script checks their password against Azure AD B2C, then
-  Auth0 keeps the profile and password, so later sign-ins stay in Auth0.
+  Auth0 keeps the profile and password, so later sign-ins stay in Auth0. The migration is planned to
+  complete by the end of Q3 2027. The profiles left after that are to be migrated without passwords,
+  and those users asked to set one on their first sign-in.
 - **SCIEX** asks for the customer's industry, and whether they want access to the **Absorb**
   learning portal and the **IAP program**. The SCIEX website's AEM backend stores the answers in
   its own database, and an Auth0 Forms flow posts the user to SCIEX's Salesforce org with both

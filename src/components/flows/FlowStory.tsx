@@ -6,6 +6,7 @@ import {
 	FolderInput,
 	KeyRound,
 	Layers,
+	Megaphone,
 	Monitor,
 	Search,
 	Server,
@@ -45,6 +46,7 @@ const icons: Record<StoryIcon, LucideIcon> = {
 	storefront: Monitor,
 	identity: KeyRound,
 	api: Server,
+	marketing: Megaphone,
 };
 
 type FlowId = FlowStoryLayout['flow'];
@@ -158,7 +160,7 @@ function Diagram({ layout, stageOf }: { layout: FlowStoryLayout; stageOf: (key: 
 				const title = node.short?.title ?? full.title;
 				const system = node.short?.system ?? full.system;
 				const tooltip = node.ghost
-					? `${full.title}: not documented for this flow`
+					? `${full.title}: ${(node.opco && flow.notApplicable?.[node.opco]) || 'not documented for this flow'}`
 					: node.short
 						? [full.title, full.system].filter(Boolean).join(' — ')
 						: undefined;

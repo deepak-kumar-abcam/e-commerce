@@ -268,7 +268,7 @@ export const sharedServices: SharedService[] = [
 		name: 'Coveo',
 		role: 'Search & recommendations',
 		detail:
-			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync.',
+			'Loaded into AEM pages with the Coveo Headless and Atomic libraries, and their only source of product content. Indexes product data, fed directly from inRiver, and AEM content, which AEM pushes on a scheduled sync every 24 hours.',
 		category: 'search',
 	},
 	{
